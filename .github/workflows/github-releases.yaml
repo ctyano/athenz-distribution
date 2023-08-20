@@ -1,0 +1,191 @@
+name: Create Github Releases with Packages
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  # If any commit message in your push or the HEAD commit of your PR contains the strings
+  # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+  # workflows triggered on the push or pull_request events will be skipped.
+  # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
+  workflow_call:
+
+env:
+  # Use docker.io for Docker Hub if empty
+  DOCKER_REGISTRY_URL: ghcr.io
+  # DOCKER_REGISTRY_OWNER: ${{ env.CI_REPOSITORY_OWNER }}
+  # DOCKER_REGISTRY_IMAGE: ${{ env.CI_REPOSITORY_NAME }}
+  # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
+  # DOCKER_BUILD_ARGS: |
+  NFPM_SOURCE_IMAGES: athenz-zms-server,athenz-zts-server,athenz-cli
+  NFPM_TARGET_PACKAGER: apk,deb,rpm
+  NFPM_TARGET_COMPONENTS: cli,zms,zts
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: write
+      deployments: none
+      issues: none
+      discussions: none
+      packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      # A GitHub Action to expose useful environment variables.
+      # https://github.com/FranzDiebold/github-env-vars-action
+      -
+        name: GitHub Environment Variables Action
+        id: env
+        # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
+        uses: FranzDiebold/github-env-vars-action@v2
+
+      # A GitHub Action to prepare default environment variables.
+      -
+        name: Set Default Environment Variables
+        id: default_env
+        run: |
+          # Use docker.io for Docker Hub if empty
+          [[ "${{ env.DOCKER_REGISTRY_URL}}" = "" ]] && echo "DOCKER_REGISTRY_URL=docker.io" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_OWNER }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_IMAGE }}" = "" ]] && echo "DOCKER_REGISTRY_IMAGE=${{ env.CI_REPOSITORY_NAME }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
+
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      # GitHub Action to login against a Docker registry.
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      -
+        name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
+        id: login
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/docker/login-action/tags
+        uses: docker/login-action@v2
+        with:
+          # Server address of Docker registry. If not set then will default to Docker Hub
+          registry: ${{ env.DOCKER_REGISTRY_URL }} # optional
+          # Username used to log against the Docker registry
+          username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
+          # Password or personal access token used to log against the Docker registry
+          password: ${{ env.DOCKER_REGISTRY_TOKEN }} # optional
+          # Log out from the Docker registry at the end of a job
+          logout: true # optional, default is true
+
+      -
+        name: Extract files from Docker image
+        id: extract
+        run: |
+          tag=$(basename ${{ env.CI_REF }})
+          for image in $(echo ${{ env.NFPM_SOURCE_IMAGES }} | tr "," "\n"); do
+            for platform in $(echo ${{ env.DOCKER_TAEGET_PLATFORMS }} | tr "," "\n"); do
+              # Download docker image to a tarball
+              docker pull --platform $platform ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/${image}:$tag
+              arch=$(echo $platform | sed -e 's/\([^/]*\)\/\([^/]*\).*/\2/g')
+              docker save ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/${image}:$tag -o ${image}_${arch}.tgz
+              docker image prune -fa
+              # Decompress docker image tarball
+              mkdir ${image}_${arch} && tar xvf ${image}_${arch}.tgz --directory ${image}_${arch}
+              cat ${image}_${arch}/manifest.json | jq -r .[].Layers.[] | xargs -I% tar xvf ${image}_${arch}/% --directory ${image}_${arch} || true
+            done
+          done
+
+      # This action sets up a go environment for use in actions by:
+      # - Optionally downloading and caching a version of Go by version and adding to PATH.
+      # - Registering problem matchers for error output.
+      # https://github.com/actions/setup-go
+      -
+        name: Setup Golang
+        id: setup-go
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/setup-go/tags
+        uses: actions/setup-go@v3
+        with:
+          go-version: stable
+          check-latest: true
+
+      # A GitHub Action to set environment variables for Go
+      -
+        name: Set Golang env
+        id: go-env
+        run: |
+          go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
+
+      # A GitHub Action to Create Packages
+      # https://nfpm.goreleaser.com/install/#go-install
+      -
+        name: Create packages with nFPM
+        id: nfpm
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
+          for platform in $(echo ${{ env.DOCKER_TAEGET_PLATFORMS }} | tr "," "\n"); do
+            GOARCH=$(echo $platform | sed -e 's/\([^/]*\)\/\([^/]*\).*/\2/g')
+            for packager in $(echo ${{ env.NFPM_TARGET_PACKAGER }} | tr "," "\n"); do
+              for component in $(echo ${{ env.NFPM_TARGET_COMPONENTS }} | tr "," "\n"); do
+                SEMVER=${{ env.CI_REF_NAME }} nfpm pkg -f nfpm/linux/$GOARCH/$component.yaml -p $packager -t .
+              done
+            done
+          done
+
+      # A GitHub Action to create GitHub Release
+      # https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
+      -
+        name: Create GitHub Release
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(git tag --points-at HEAD)
+          curl \
+            -XPOST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
+            -d "{\"tag_name\":\"$tag\",\"name\":\"Release $tag\",\"body\":\"\",\"draft\":false,\"prerelease\":false}"
+
+      # A GitHub Action to upload release assets
+      # https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28#upload-a-release-asset
+      -
+        name: Upload GitHub Release Assets
+        id: upload_release_assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag=$(git tag --points-at HEAD)
+          release_id=$(curl \
+            -XGET \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/$tag" \
+            | jq '.id')
+          for file in $(echo ${{ env.NFPM_TARGET_PACKAGER }} | sed -e 's/\([^,]*\)/\*.\1/g' | tr "," "\n"); do
+            curl \
+              -XPOST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Content-Type: $(file --mime-type -b $file)" \
+              --data-binary @$file \
+              "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$release_id/assets?name=$(basename $file)"
+          done

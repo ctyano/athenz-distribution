@@ -1,0 +1,19 @@
+# https://nfpm.goreleaser.com/configuration/
+name: athenz-zms
+description: Package for Athenz ZMS
+maintainer: CTY <ctyano@duck.com>
+vendor: CTY
+homepage: https://ctyano.com
+license: Private
+arch: arm64
+platform: linux
+version: ${SEMVER}
+version_schema: semver
+suggests:
+  - curl
+  - openssl
+contents:
+  - src: athenz-zms-server_arm64/usr/local/bin/docker-entrypoint.sh
+    dst: /usr/local/bin/docker-entrypoint.sh
+  - src: athenz-zms-server_arm64/opt/athenz/zms/*
+    dst: /opt/athenz/zms/

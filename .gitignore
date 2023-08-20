@@ -1,0 +1,8 @@
+*.pem
+*.srl
+*.jks
+*.pkcs12
+zts_store
+athenz.conf
+jwks.json
+cookie-session

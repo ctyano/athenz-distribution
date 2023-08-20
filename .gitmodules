@@ -1,0 +1,3 @@
+[submodule "athenz"]
+	path = athenz
+	url = https://github.com/AthenZ/athenz.git

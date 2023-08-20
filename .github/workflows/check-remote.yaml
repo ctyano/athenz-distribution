@@ -1,0 +1,131 @@
+name: Check remote repositories and create corresponding tag
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  # If any commit message in your push or the HEAD commit of your PR contains the strings
+  # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+  # workflows triggered on the push or pull_request events will be skipped.
+  # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
+  push:
+    branches: [ main ]
+  schedule: [ cron: '0 21 * * 5' ] # Friday 21:00
+  workflow_dispatch:
+
+env:
+  DOCKER_REGISTRY_URL: ghcr.io
+  TARGET_TAG: ""
+  GIT_SUBMODULE_URL: https://github.com/AthenZ/athenz.git
+  GIT_SUBMODULE_PATH: athenz
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: write
+      checks: none
+      contents: write
+      deployments: none
+      issues: none
+      discussions: none
+      packages: none
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      # A GitHub Action to check remote repositories
+      -
+        name: Check remote repositories
+        id: check
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        run: |
+          # Get latest release tag with:
+          #   curl -s https://api.github.com/repos/AthenZ/athenz/releases \
+          #     | jq -r .[].tag_name \
+          #     | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
+          #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
+          #     | head -n1
+          if [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
+            ATHENZ_PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            ATHENZ_TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+          else
+            ATHENZ_PACKAGE_VERSION="$( \
+              curl -s https://api.github.com/repos/AthenZ/athenz/releases \
+                | jq -r .[].tag_name \
+                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
+                | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
+                | head -n1
+              )"
+            ATHENZ_TAG_VERSION="$( \
+              curl -s https://api.github.com/repos/AthenZ/athenz/releases \
+                | jq -r .[].tag_name \
+                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
+                | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
+                | head -n1
+              )"
+          fi
+          printf "VERSION=${ATHENZ_PACKAGE_VERSION}\n" >> $GITHUB_ENV
+          printf "TAG_VERSION=${ATHENZ_TAG_VERSION}\n" >> $GITHUB_ENV
+
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      # A GitHub Action to update submodule and commit
+      -
+        name: Update submodule and commit
+        id: update
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        run: |
+          set -x
+          git submodule add ${{ env.GIT_SUBMODULE_URL }} ${{ env.GIT_SUBMODULE_PATH }}
+          cd ${{ env.GIT_SUBMODULE_PATH }} && git fetch --refetch --tags ${{ env.GIT_SUBMODULE_URL }} && git checkout ${{ env.TAG_VERSION }}
+          cd ${GITHUB_WORKSPACE}
+          git config --global user.name "github-actions"
+          git config --global user.email "notifications@github.com"
+          git add ${{ env.GIT_SUBMODULE_PATH }}
+          git commit -m "Updated ${{ env.GIT_SUBMODULE_PATH }} to ${{ env.TAG_VERSION }}" || true
+
+      # A GitHub Action to create git tags
+      #
+      # Using the GITHUB_TOKEN in a workflow
+      # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+      # When you use the repository's GITHUB_TOKEN to perform tasks, events triggered by the GITHUB_TOKEN, with the exception of workflow_dispatch and repository_dispatch, will not create a new workflow run.
+      # This prevents you from accidentally creating recursive workflow runs.
+      # For example, if a workflow run pushes code using the repository's GITHUB_TOKEN, a new workflow will not run even when the repository contains a workflow configured to run when push events occur.
+      -
+        name: Create git tag
+        id: tag
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          git tag -f ${{ env.TAG_VERSION }}
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          git push -f origin tag ${{ env.TAG_VERSION }}
+
+      - name: Trigger Workflows
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          curl --fail -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/trigger-workflows.yaml/dispatches \
+            -d "{\"ref\":\"${{ env.TAG_VERSION }}\"}"

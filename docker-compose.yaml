@@ -1,0 +1,150 @@
+version: '3.9'
+
+services:
+
+  athenz-cli:
+    container_name: athenz-cli
+    depends_on:
+      - athenz-zms-server
+      - athenz-zts-server
+    image: ghcr.io/ctyano/athenz-cli:${ATHENZ_VERSION}
+    networks:
+      - athenz
+    volumes:
+      - ./admin:/admin:rw
+      - ./docker/zms/var:/zms:ro
+      - ./docker/zts/var:/zts:ro
+    restart: unless-stopped
+
+  athenz-zms-server:
+    container_name: athenz-zms-server
+    hostname: localhost
+    expose:
+      - 4443
+    depends_on:
+      - athenz-db
+    image: ghcr.io/ctyano/athenz-zms-server:${ATHENZ_VERSION}
+    ports:
+      - target: 4443
+        published: 8443
+        protocol: tcp
+        mode: host
+    networks:
+      - athenz
+      #- athenz-zms-db
+    volumes:
+      - ./docker/zms/var:/opt/athenz/zms/var:ro
+      - ./docker/zms/conf:/opt/athenz/zms/conf/zms_server:ro
+    environment:
+      ROOT: /opt/athenz/zms
+      CLASSPATH: /opt/athenz/zms/lib/jars/*
+      CONF_PATH: /opt/athenz/zms/conf/zms_server
+      JAVA_OPTS: "-Dathenz.root_dir=/opt/athenz/zms -Dathenz.jetty_home=/opt/athenz/zms -Dathenz.access_log_dir=/opt/athenz/zms/logs"
+      USER_CLASSPATH: /usr/lib/jars/*
+      ZMS_STOP_TIMEOUT: "30"
+    restart: unless-stopped
+
+  athenz-zts-server:
+    container_name: athenz-zts-server
+    hostname: localhost
+    expose:
+      - 8443
+    depends_on:
+      - athenz-db
+    image: ghcr.io/ctyano/athenz-zts-server:${ATHENZ_VERSION}
+    ports:
+      - target: 8443
+        published: 8443
+        protocol: tcp
+        mode: host
+    networks:
+      - athenz
+      #- athenz-zts-db
+    volumes:
+      - ./docker/zts/var:/opt/athenz/zts/var:rw
+      - ./docker/zts/conf:/opt/athenz/zts/conf/zts_server:ro
+    environment:
+      ROOT: /opt/athenz/zts
+      CLASSPATH: /opt/athenz/zts/lib/jars/*
+      CONF_PATH: /opt/athenz/zts/conf/zts_server
+      JAVA_OPTS: "-Dathenz.root_dir=/opt/athenz/zts -Dathenz.jetty_home=/opt/athenz/zts -Dathenz.access_log_dir=/opt/athenz/zts/logs"
+      USER_CLASSPATH: /usr/lib/jars/*
+      ZTS_STOP_TIMEOUT: "30"
+    restart: unless-stopped
+
+  athenz-db:
+    container_name: athenz-db
+    image: docker.io/library/mariadb:10
+    ports:
+      - target: 3306
+        published: 3306
+        protocol: tcp
+        mode: host
+    networks:
+      - athenz
+    volumes:
+      - ./docker/db/schema:/docker-entrypoint-initdb.d:ro
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Asia/Tokyo
+      MYSQL_ROOT_PASSWORD: ""
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
+      #MYSQL_USER: "zms_admin"
+      #MYSQL_PASSWORD: "athenz"
+    restart: unless-stopped
+
+  #athenz-ui:
+  #  container_name: athenz-ui
+  #  hostname: localhost
+  #  expose:
+  #    - 443
+  #    - 3000
+  #  depends_on:
+  #    - athenz-zms-server
+  #  image: ghcr.io/ctyano/athenz-ui:${ATHENZ_VERSION}
+  #  ports:
+  #    - target: 3000
+  #      published: 3000
+  #      protocol: tcp
+  #      mode: host
+  #    - target: 443
+  #      published: 443
+  #      protocol: tcp
+  #      mode: host
+  #  volumes:
+  #    - ./docker/ui/keys:/home/athenz/keys:ro
+  #    - ./docker/ui/conf:/home/athenz/src/config:ro
+  #  environment:
+  #    TZ: Asia/Tokyo
+  #    ROOT: /home/athenz
+  #    NODE_ENV: production
+  #    PORT: 3000
+  #  restart: unless-stopped
+  #  entrypoint:
+  #    - node
+  #  command:
+  #    - /home/athenz/app.js
+
+networks:
+
+  athenz:
+    driver: bridge
+    driver_opts:
+      encrypted: "true"
+    attachable: true
+    internal: true
+#
+#  athenz-zms-db:
+#    driver: bridge
+#    driver_opts:
+#      encrypted: "true"
+#    attachable: true
+#    internal: true
+#
+#  athenz-zts-db:
+#    driver: bridge
+#    driver_opts:
+#      encrypted: "true"
+#    attachable: true
+#    internal: true

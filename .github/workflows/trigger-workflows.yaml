@@ -1,0 +1,61 @@
+name: Trigger Workflows
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  # If any commit message in your push or the HEAD commit of your PR contains the strings
+  # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+  # workflows triggered on the push or pull_request events will be skipped.
+  # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
+  push:
+    # Publish semver tags as releases.
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
+  docker-build-publish:
+    name: "Build and Publish Docker Images"
+    uses: ./.github/workflows/docker-build-publish.yaml
+    secrets: inherit
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: write
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+  # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
+  github-releases:
+    name: "Create Github Releases with Packages"
+    needs: docker-build-publish
+    if: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
+    uses: ./.github/workflows/github-releases.yaml
+    secrets: inherit
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: write
+      deployments: none
+      issues: none
+      discussions: none
+      packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none

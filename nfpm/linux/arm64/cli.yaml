@@ -1,0 +1,31 @@
+# https://nfpm.goreleaser.com/configuration/
+name: athenz-cli
+description: Package for Athenz CLI
+maintainer: CTY <ctyano@duck.com>
+vendor: CTY
+homepage: https://ctyano.com
+license: Private
+arch: arm64
+platform: linux
+version: ${SEMVER}
+version_schema: semver
+suggests:
+  - curl
+  - openssl
+contents:
+  - src: athenz-cli_arm64/usr/bin/athenz-conf
+    dst: /usr/local/bin/athenz-conf
+  - src: athenz-cli_arm64/usr/bin/zms-cli
+    dst: /usr/local/bin/zms-cli
+  - src: athenz-cli_arm64/usr/bin/zms-svctoken
+    dst: /usr/local/bin/zms-svctoken
+  - src: athenz-cli_arm64/usr/bin/zpu
+    dst: /usr/local/bin/zpu
+  - src: athenz-cli_arm64/usr/bin/zts-accesstoken
+    dst: /usr/local/bin/zts-accesstoken
+  - src: athenz-cli_arm64/usr/bin/zts-rolecert
+    dst: /usr/local/bin/zts-rolecert
+  - src: athenz-cli_arm64/usr/bin/zts-roletoken
+    dst: /usr/local/bin/zts-roletoken
+  - src: athenz-cli_arm64/usr/bin/zts-svccert
+    dst: /usr/local/bin/zts-svccert

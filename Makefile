@@ -108,13 +108,12 @@ build-java: checkout-version install-rdl-tools patch
 		-pl rdl/rdl-gen-athenz-java-model \
 		-pl rdl/rdl-gen-athenz-java-client \
 		-pl clients/java/zms \
-		-pl clients/java/zts \
+		-pl clients/java/zts/core \
 		-pl libs/java/auth_core \
 		-pl libs/java/client_common \
 		-pl libs/java/server_common \
 		-pl libs/java/instance_provider \
 		-pl libs/java/cert_refresher \
-		-pl libs/java/dynamodb_client_factory \
 		-pl rdl/rdl-gen-athenz-server \
 		-pl servers/zms \
 		-pl servers/zts \

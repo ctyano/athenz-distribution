@@ -35,7 +35,11 @@ DOCKER_REGISTRY=ghcr.io/$${USER}/
 endif
 
 ifeq ($(DOCKER_TAG),)
+ifneq ($(VERSION),)
 DOCKER_TAG=:v$(VERSION)
+else
+DOCKER_TAG=:latest
+endif
 endif
 
 ifeq ($(GOPATH),)
@@ -52,7 +56,7 @@ endif
 
 .SILENT: version
 
-build: athenz-zms-server athenz-zts-server athenz-cli
+build: athenz-zms-server athenz-zts-server athenz-cli athenz-ui
 
 athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \

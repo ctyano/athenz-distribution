@@ -16,6 +16,38 @@ services:
       - ./docker/zts/var:/zts:ro
     restart: unless-stopped
 
+  athenz-ui:
+    container_name: athenz-ui
+    hostname: localhost
+    expose:
+      - 443
+      - 3000
+    depends_on:
+      - athenz-zms-server
+    image: ghcr.io/ctyano/athenz-ui:latest
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./docker/ui/keys:/home/athenz/keys:ro
+      - ./docker/ui/conf:/home/athenz/src/config:ro
+    environment:
+      TZ: Asia/Tokyo
+      ROOT: /home/athenz
+      NODE_ENV: production
+      PORT: 3000
+    restart: unless-stopped
+    entrypoint:
+      - node
+    command:
+      - /home/athenz/app.js
+
   athenz-zms-server:
     container_name: athenz-zms-server
     hostname: localhost
@@ -94,38 +126,6 @@ services:
       #MYSQL_PASSWORD: "athenz"
     restart: unless-stopped
 
-  #athenz-ui:
-  #  container_name: athenz-ui
-  #  hostname: localhost
-  #  expose:
-  #    - 443
-  #    - 3000
-  #  depends_on:
-  #    - athenz-zms-server
-  #  image: ghcr.io/ctyano/athenz-ui:${ATHENZ_VERSION}
-  #  ports:
-  #    - target: 3000
-  #      published: 3000
-  #      protocol: tcp
-  #      mode: host
-  #    - target: 443
-  #      published: 443
-  #      protocol: tcp
-  #      mode: host
-  #  volumes:
-  #    - ./docker/ui/keys:/home/athenz/keys:ro
-  #    - ./docker/ui/conf:/home/athenz/src/config:ro
-  #  environment:
-  #    TZ: Asia/Tokyo
-  #    ROOT: /home/athenz
-  #    NODE_ENV: production
-  #    PORT: 3000
-  #  restart: unless-stopped
-  #  entrypoint:
-  #    - node
-  #  command:
-  #    - /home/athenz/app.js
-
 networks:
 
   athenz:
@@ -134,17 +134,3 @@ networks:
       encrypted: "true"
     attachable: true
     internal: true
-#
-#  athenz-zms-db:
-#    driver: bridge
-#    driver_opts:
-#      encrypted: "true"
-#    attachable: true
-#    internal: true
-#
-#  athenz-zts-db:
-#    driver: bridge
-#    driver_opts:
-#      encrypted: "true"
-#    attachable: true
-#    internal: true

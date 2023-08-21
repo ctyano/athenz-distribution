@@ -1,8 +1,8 @@
 # https://nfpm.goreleaser.com/configuration/
 name: athenz-zms
 description: Package for Athenz ZMS
-maintainer: CTY <ctyano@duck.com>
-vendor: CTY
+maintainer: ctyano <ctyano@duck.com>
+vendor: ctyano
 homepage: https://ctyano.com
 license: Private
 arch: arm7

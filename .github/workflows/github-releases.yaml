@@ -20,9 +20,9 @@ env:
   # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
   DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   # DOCKER_BUILD_ARGS: |
-  NFPM_SOURCE_IMAGES: athenz-zms-server,athenz-zts-server,athenz-cli
+  NFPM_SOURCE_IMAGES: athenz-db,athenz-zms-server,athenz-zts-server,athenz-cli
   NFPM_TARGET_PACKAGER: apk,deb,rpm
-  NFPM_TARGET_COMPONENTS: cli,zms,zts
+  NFPM_TARGET_COMPONENTS: zms,zts,cli
 
 jobs:
   build:

@@ -1,6 +1,16 @@
-# Debugging Instruction
+# Setup Instruction
 
-## Retriving Credentials
+## Initial Setup
+
+```
+git submodule add --force https://github.com/AthenZ/athenz.git athenz
+```
+
+```
+make
+```
+
+## Preparing Credentials
 
 ### Create Root CA
 

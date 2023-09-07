@@ -26,9 +26,7 @@ UID_ARG := $(if $(UID),--build-arg UID=$(UID),--build-arg UID)
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 VCS_REF=$(shell cd athenz && git rev-parse --short HEAD)
 XPLATFORM_ARGS := --platform=linux/amd64,linux/arm64
-XPLATFORM_ARGS_UI := --platform=linux/amd64,linux/arm64
 BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' $(XPLATFORM_ARGS) $(PUSH_OPTION)
-BUILD_ARG_UI := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' $(XPLATFORM_ARGS_UI) $(PUSH_OPTION)
 
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/$${USER}/
@@ -56,7 +54,11 @@ endif
 
 .SILENT: version
 
-build: athenz-zms-server athenz-zts-server athenz-cli athenz-ui
+build: athenz-db athenz-zms-server athenz-zts-server athenz-cli athenz-ui
+
+athenz-db:
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -f ./docker/db/Dockerfile .
 
 athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
@@ -68,7 +70,7 @@ athenz-zts-server: build-java
 
 athenz-ui:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
-	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG_UI) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -f ./docker/ui/Dockerfile .
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -f ./docker/ui/Dockerfile .
 
 athenz-cli: build-go
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \

@@ -92,12 +92,13 @@ jobs:
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
         run: |
           set -x
-          git submodule add ${{ env.GIT_SUBMODULE_URL }} ${{ env.GIT_SUBMODULE_PATH }}
+          git config advice.addIgnoredFile false
+          git submodule add -f ${{ env.GIT_SUBMODULE_URL }} ${{ env.GIT_SUBMODULE_PATH }}
           cd ${{ env.GIT_SUBMODULE_PATH }} && git fetch --refetch --tags ${{ env.GIT_SUBMODULE_URL }} && git checkout ${{ env.TAG_VERSION }}
           cd ${GITHUB_WORKSPACE}
           git config --global user.name "github-actions"
           git config --global user.email "notifications@github.com"
-          git add ${{ env.GIT_SUBMODULE_PATH }}
+          git add -f ${{ env.GIT_SUBMODULE_PATH }}
           git commit -m "Updated ${{ env.GIT_SUBMODULE_PATH }} to ${{ env.TAG_VERSION }}" || true
 
       # A GitHub Action to create git tags

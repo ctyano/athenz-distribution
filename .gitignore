@@ -7,3 +7,5 @@ athenz.conf
 jwks.json
 cookie-session
 .npm
+athenz
+plugins

@@ -1,0 +1,21 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+resources:
+  - namespace.yaml
+  - service.yaml
+  - statefulset.yaml
+
+configMapGenerator:
+  - name: athenz-ddl
+    files:
+      - zms_server.sql=zms_server.sql
+      - zms_user.sql=zms_user.sql
+      - zts_server.sql=zts_server.sql
+      - zts_user.sql=zts_user.sql

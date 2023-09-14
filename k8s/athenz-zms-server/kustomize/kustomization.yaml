@@ -1,0 +1,40 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+resources:
+  - deployment.yaml
+  - namespace.yaml
+  - service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+  - name: athenz-zms-cert-stores
+    type: Opaque
+    files:
+      - zms_keystore.pkcs12=certs/zms_keystore.pkcs12
+      - zms_truststore.jks=certs/zms_truststore.jks
+  - name: athenz-zms-keys
+    type: Opaque
+    files:
+      - zms.private.pem=keys/zms.private.pem
+
+configMapGenerator:
+  - name: athenz-zms-conf
+    files:
+      - athenz.properties=conf/athenz.properties
+      - zms.properties=conf/zms.properties
+      - authorized_client_ids.txt=conf/authorized_client_ids.txt
+      - authorized_services.json=conf/authorized_services.json
+      - logback.xml=conf/logback.xml
+      - solution_templates.json=conf/solution_templates.json
+  - name: athenz-plugins
+    files:
+      - athenz-auth-core.jar=plugins/athenz-auth-core.jar
+  - name: athenz-cacert
+    files:
+      - ca.cert.pem=certs/ca.cert.pem

@@ -205,7 +205,6 @@ jobs:
         # uses: https://github.com/docker/build-push-action/tags
         run: |
           DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
-          VERSION=${{ env.VERSION }} \
           PUSH=${{ github.event_name != 'pull_request' }} \
           make build
         #uses: docker/build-push-action@v4

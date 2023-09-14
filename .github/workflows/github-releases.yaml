@@ -98,6 +98,7 @@ jobs:
         name: Extract files from Docker image
         id: extract
         run: |
+          set -x
           tag=$(basename ${{ env.CI_REF }})
           for image in $(echo ${{ env.NFPM_SOURCE_IMAGES }} | tr "," "\n"); do
             for platform in $(echo ${{ env.DOCKER_TAEGET_PLATFORMS }} | tr "," "\n"); do
@@ -139,6 +140,7 @@ jobs:
         name: Create packages with nFPM
         id: nfpm
         run: |
+          set -x
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
           for platform in $(echo ${{ env.DOCKER_TAEGET_PLATFORMS }} | tr "," "\n"); do
             GOARCH=$(echo $platform | sed -e 's/\([^/]*\)\/\([^/]*\).*/\2/g')
@@ -157,6 +159,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -x
           tag=$(git tag --points-at HEAD)
           curl \
             -XPOST \
@@ -173,6 +176,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -x
           tag=$(git tag --points-at HEAD)
           release_id=$(curl \
             -XGET \

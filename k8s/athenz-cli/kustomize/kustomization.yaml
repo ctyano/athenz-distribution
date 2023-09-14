@@ -1,0 +1,21 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+resources:
+  - deployment.yaml
+  - namespace.yaml
+
+secretGenerator:
+  - name: athenz-admin-keys
+    type: Opaque
+    files:
+      - athenz_admin.cert.pem=certs/athenz_admin.cert.pem
+      - athenz_admin.private.pem=keys/athenz_admin.private.pem
+
+configMapGenerator:
+  - name: athenz-cacert
+    files:
+      - ca.cert.pem=certs/ca.cert.pem

@@ -40,9 +40,31 @@ jobs:
       statuses: none
 
   # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
+  kubernetes:
+    name: "Test running on Kubernetes Cluster"
+    needs: docker-build-publish
+    uses: ./.github/workflows/kubernetes.yaml
+    secrets: inherit
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+  # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
   github-releases:
     name: "Create Github Releases with Packages"
-    needs: docker-build-publish
+    needs:
+      - docker-build-publish
+      - kubernetes
     if: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     uses: ./.github/workflows/github-releases.yaml
     secrets: inherit

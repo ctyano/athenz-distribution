@@ -1,0 +1,129 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: athenz-zms-server
+  labels:
+    app.kubernetes.io/name: athenz-zms-server
+    app.kubernetes.io/instance: athenz-zms-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: athenz-zms-server
+      app.kubernetes.io/instance: athenz-zms-server
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: athenz-zms-server
+        app.kubernetes.io/instance: athenz-zms-server
+    spec:
+      restartPolicy: Always
+      dnsPolicy: "ClusterFirst"
+      volumes:
+        - name: athenz-zms-cert-stores
+          secret:
+            secretName: athenz-zms-cert-stores
+            defaultMode: 0555
+            items:
+              - key: zms_keystore.pkcs12
+                path: zms_keystore.pkcs12
+              - key: zms_truststore.jks
+                path: zms_truststore.jks
+        - name: athenz-zms-keys
+          secret:
+            secretName: athenz-zms-keys
+            defaultMode: 0555
+            items:
+              - key: zms.private.pem
+                path: zms.private.pem
+        - name: athenz-zms-conf
+          configMap:
+            name: athenz-zms-conf
+        - name: athenz-plugins
+          configMap:
+            name: athenz-plugins
+        - name: athenz-cacert
+          configMap:
+            name: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+      containers:
+        - name: athenz-zms-server
+          image: ghcr.io/ctyano/athenz-zms-server:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ROOT
+              value: /opt/athenz/zms
+            - name: CLASSPATH
+              value: /opt/athenz/zms/lib/jars/*
+            - name: CONF_PATH
+              value: /opt/athenz/zms/conf/zms_server
+            - name: JAVA_OPTS
+              value: "-Dathenz.root_dir=/opt/athenz/zms -Dathenz.jetty_home=/opt/athenz/zms -Dathenz.access_log_dir=/opt/athenz/zms/logs"
+            - name: USER_CLASSPATH
+              value: /usr/lib/jars/*:/athenz/plugins/*
+            - name: ZMS_STOP_TIMEOUT
+              value: "30"
+          ports:
+            - name: https
+              containerPort: 4443
+              protocol: TCP
+            - name: http
+              containerPort: 10080
+              protocol: TCP
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 17
+            exec:
+              command:
+                - curl
+                - -s
+                - --fail
+                - --resolve
+                - athenz-zms-server:4443:127.0.0.1
+                - https://athenz-zms-server:4443/zms/v1/status
+          livenessProbe:
+            initialDelaySeconds: 150
+            periodSeconds: 10
+            failureThreshold: 3
+            exec:
+              command:
+                - curl
+                - -s
+                - --fail
+                - --resolve
+                - athenz-zms-server:4443:127.0.0.1
+                - https://athenz-zms-server:4443/zms/v1/status
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 2
+            requests:
+              memory: 100Mi
+              cpu: 200m
+          volumeMounts:
+            - name: athenz-zms-conf
+              mountPath: /opt/athenz/zms/conf/zms_server
+              readOnly: true
+            - name: athenz-zms-keys
+              mountPath: /opt/athenz/zms/var/keys
+              readOnly: true
+            - name: athenz-zms-cert-stores
+              mountPath: /opt/athenz/zms/var/certs
+              readOnly: true
+            - name: athenz-plugins
+              mountPath: /athenz/plugins
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true

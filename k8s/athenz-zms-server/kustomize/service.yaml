@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: athenz-zms-server
+  labels:
+    app.kubernetes.io/name: athenz-zms-server
+    app.kubernetes.io/instance: athenz-zms-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: athenz-zms-server
+    app.kubernetes.io/instance: athenz-zms-server
+  ports:
+    - name: https
+      port: 4443
+      targetPort: 4443
+      protocol: TCP

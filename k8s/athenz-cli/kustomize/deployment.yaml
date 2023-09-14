@@ -1,0 +1,68 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: athenz-cli
+  labels:
+    app.kubernetes.io/name: athenz-cli
+    app.kubernetes.io/instance: athenz-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: athenz-cli
+      app.kubernetes.io/instance: athenz-cli
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: athenz-cli
+        app.kubernetes.io/instance: athenz-cli
+    spec:
+      restartPolicy: Always
+      volumes:
+        - name: athenz-admin-keys
+          secret:
+            secretName: athenz-admin-keys
+            defaultMode: 0555
+            items:
+              - key: athenz_admin.cert.pem
+                path: athenz_admin.cert.pem
+              - key: athenz_admin.private.pem
+                path: athenz_admin.private.pem
+        - name: athenz-cacert
+          configMap:
+            name: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca.cert.pem
+      containers:
+        # Examples:
+        # zms-cli -i user.athenz_admin -key /var/run/athenz/athenz_admin.private.pem -cert /var/run/athenz/athenz_admin.cert.pem -z https://athenz-zms-server.athenz:4443/zms/v1 list-domain
+        # zts-accesstoken -zts https://athenz-zts-server.athenz:4443/zts/v1 -svc-key-file /var/run/athenz/athenz_admin.private.pem -svc-cert-file /var/run/athenz/athenz_admin.cert.pem -domain sys.auth -roles admin | jq -r .access_token | jq -Rr 'split(".") | .[0,1] | @base64d' | jq -r .
+        # zts-roletoken -zts https://athenz-zts-server.athenz:4443/zts/v1 -svc-key-file /var/run/athenz/athenz_admin.private.pem -svc-cert-file /var/run/athenz/athenz_admin.cert.pem -domain sys.auth -role admin | rev | cut -d';' -f2- | rev | tr ';' '\n'
+        # athenz-conf -svc-key-file /var//run/athenz/athenz_admin.private.pem -svc-cert-file /var/run/athenz/athenz_admin.cert.pem -z https://athenz-zms-server.athenz:4443/zms/v1 -t https://athenz-zts-server.athenz:4443/zts/v1 -o /tmp/athenz.conf && cat /tmp/athenz.conf | jq -r .
+        - name: athenz-cli
+          image: ghcr.io/ctyano/athenz-cli:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 256Mi
+              cpu: 250m
+          volumeMounts:
+            - name: athenz-admin-keys
+              mountPath: /var/run/athenz
+              readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
+              readOnly: true

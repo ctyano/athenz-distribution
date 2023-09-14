@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: athenz-db
+  labels:
+    app.kubernetes.io/name: athenz-db
+    app.kubernetes.io/instance: athenz-db
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: athenz-db
+    app.kubernetes.io/instance: athenz-db
+  ports:
+    - name: mysql 
+      port: 3306
+      targetPort: 3306
+      protocol: TCP

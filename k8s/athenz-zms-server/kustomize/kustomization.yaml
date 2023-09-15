@@ -32,9 +32,6 @@ configMapGenerator:
       - authorized_services.json=conf/authorized_services.json
       - logback.xml=conf/logback.xml
       - solution_templates.json=conf/solution_templates.json
-  - name: athenz-plugins
-    files:
-      - athenz-auth-core.jar=plugins/athenz-auth-core.jar
   - name: athenz-cacert
     files:
       - ca.cert.pem=certs/ca.cert.pem

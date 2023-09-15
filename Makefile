@@ -193,16 +193,6 @@ clean-certificates:
 	rm -rf k8s/athenz-zms-server/kustomize/{keys,certs}
 	rm -rf k8s/athenz-zts-server/kustomize/{keys,certs}
 
-clean-plugins:
-	rm -rf plugins
-	rm -rf k8s/athenz-zms-server/kustomize/plugins
-	rm -rf k8s/athenz-zts-server/kustomize/plugins
-
-download-plugins:
-	mkdir plugins ||:
-	ATHENZ_PACKAGE_VERSION="$$(curl -s https://api.github.com/repos/AthenZ/athenz/tags | jq -r .[].name | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' | head -n2 | tail -n1)"; \
-	curl -o plugins/athenz-auth-core.jar -sL https://github.com/ctyano/athenz-auth-core/releases/download/v$${ATHENZ_PACKAGE_VERSION}/athenz-auth-core-$${ATHENZ_PACKAGE_VERSION}.jar
-
 generate-ca:
 	mkdir keys certs ||:
 	openssl genrsa -out keys/ca.private.pem 4096 \
@@ -248,8 +238,6 @@ copy-to-kustomization: generate-ca generate-zms generate-zts generate-admin
 	cp -r keys certs k8s/athenz-cli/kustomize/
 	cp -r keys certs k8s/athenz-zms-server/kustomize/
 	cp -r keys certs k8s/athenz-zts-server/kustomize/
-	cp -r plugins k8s/athenz-zms-server/kustomize/
-	cp -r plugins k8s/athenz-zts-server/kustomize/
 	cp athenz/servers/zms/schema/zms_server.sql k8s/athenz-db/kustomize/zms_server.sql
 	cp athenz/servers/zts/schema/zts_server.sql k8s/athenz-db/kustomize/zts_server.sql
 
@@ -270,9 +258,9 @@ clean-k8s:
 
 setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server
 
-clean-athenz: clean-k8s clean-certificates clean-plugins
+clean-athenz: clean-k8s clean-certificates
 
-deploy-athenz: generate-certificates download-plugins copy-to-kustomization setup-athenz
+deploy-athenz: generate-certificates copy-to-kustomization setup-athenz
 
 check-athenz:
 	SLEEP_SECONDS=5; \
@@ -296,3 +284,25 @@ check-athenz:
 	@echo "*********************************************"
 	@echo "******* Athenz Deployed Successfully ********"
 	@echo "*********************************************"
+
+test-athenz-zms-server:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+	curl \
+		-s \
+		-H"Content-type: application/json" \
+		-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+		--cacert /etc/ssl/certs/ca.cert.pem \
+		https://athenz-zms-server:4443/zms/v1/domain \
+	| cat; echo
+
+test-athenz-zts-server:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+	curl \
+		-s \
+		-H"Content-type: application/json" \
+		-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+		--cacert /etc/ssl/certs/ca.cert.pem \
+		https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
+	| cat; echo
+
+test-athenz: test-athenz-zms-server test-athenz-zts-server

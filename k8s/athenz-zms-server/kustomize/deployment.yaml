@@ -46,14 +46,30 @@ spec:
           configMap:
             name: athenz-zms-conf
         - name: athenz-plugins
-          configMap:
-            name: athenz-plugins
+          emptyDir: {}
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt
+      initContainers:
+        - name: athenz-auth-core
+          image: ghcr.io/ctyano/athenz-auth-core:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: JAR_DESTINATION
+              value: /athenz/plugins/
+          resources:
+            limits:
+              memory: 32Mi
+              cpu: 100m
+            requests:
+              memory: 16Mi
+              cpu: 50m
+          volumeMounts:
+            - name: athenz-plugins
+              mountPath: /athenz/plugins
       containers:
         - name: athenz-zms-server
           image: ghcr.io/ctyano/athenz-zms-server:latest

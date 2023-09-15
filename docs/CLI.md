@@ -2,6 +2,12 @@
 
 ## Testing with Kubernetes environment
 
+### Prerequisite
+
+- kubectl
+- jq
+- step
+
 ### Athenz Domain Management 
 
 ```
@@ -19,6 +25,24 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -cert /var/run/athenz/athenz_admin.cert.pem \
         -d sys.auth \
         add-service zts 0 zts/keys/zts_public.pem
+
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    curl \
+        -s \
+        -H"Content-type: application/json" \
+        -H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+        --cacert /etc/ssl/certs/ca.cert.pem \
+        https://athenz-zms-server:4443/zms/v1/domain \
+    | jq -r .
+
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    curl \
+        -s \
+        -H"Content-type: application/json" \
+        -H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+        --cacert /etc/ssl/certs/ca.cert.pem \
+        https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
+    | jq -r .
 ```
 
 ### Retriving tokens and public keys

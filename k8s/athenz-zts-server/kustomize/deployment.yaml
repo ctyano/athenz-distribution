@@ -63,8 +63,7 @@ spec:
           configMap:
             name: athenz-zts-conf
         - name: athenz-plugins
-          configMap:
-            name: athenz-plugins
+          emptyDir: {}
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
@@ -152,6 +151,22 @@ spec:
             - name: athenz-cacert
               mountPath: /etc/ssl/certs
               readOnly: true
+        - name: athenz-auth-core
+          image: ghcr.io/ctyano/athenz-auth-core:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: JAR_DESTINATION
+              value: /athenz/plugins/
+          resources:
+            limits:
+              memory: 32Mi
+              cpu: 100m
+            requests:
+              memory: 16Mi
+              cpu: 50m
+          volumeMounts:
+            - name: athenz-plugins
+              mountPath: /athenz/plugins
       containers:
         - name: athenz-zts-server
           image: ghcr.io/ctyano/athenz-zts-server:latest
@@ -168,7 +183,7 @@ spec:
             - name: JAVA_OPTS
               value: "-Dathenz.root_dir=/opt/athenz/zts -Dathenz.jetty_home=/opt/athenz/zts -Dathenz.access_log_dir=/opt/athenz/zts/logs"
             - name: USER_CLASSPATH
-              value: /usr/lib/jars/*
+              value: /usr/lib/jars/*:/athenz/plugins/*
             - name: ZTS_STOP_TIMEOUT
               value: "30"
           ports:

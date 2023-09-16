@@ -187,6 +187,12 @@ version:
 	echo "Version: $(VERSION)"
 	echo "Tag Version: v$(VERSION)"
 
+install-jq:
+	curl -s https://webi.sh/jq | sh
+
+install-yq:
+	curl -s https://webi.sh/yq | sh
+
 clean-certificates:
 	rm -rf keys certs
 	rm -rf k8s/athenz-cli/kustomize/{keys,certs}
@@ -267,11 +273,11 @@ check-athenz:
 	WAITING_THRESHOLD=600; \
 	i=0; \
 	while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-		printf "\n\n*********** Waiting for athenz($${SLEEP_SECONDS}s) **********\n\n"; \
+		printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
 		sleep $${SLEEP_SECONDS}; \
 		i=$$(( i + 1 )); \
 		if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-			printf "\n\n*********** Waiting for athenz($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **********\n\n"; \
+			printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 			kubectl -n athenz get all; \
 			kubectl -n athenz logs statefulset/athenz-db --all-containers=true; \
 			kubectl -n athenz logs deployment/athenz-zms-server --all-containers=true; \
@@ -280,10 +286,12 @@ check-athenz:
 		fi; \
 	done
 	kubectl -n athenz get all
+	@echo "** Waiting(5s) reached to threshold(600s) **";
 	@echo ""
-	@echo "*********************************************"
-	@echo "******* Athenz Deployed Successfully ********"
-	@echo "*********************************************"
+	@echo "**********************************"
+	@echo "** Athenz Deployed Successfully **"
+	@echo "**********************************"
+	@echo ""
 
 test-athenz-zms-server:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -304,5 +312,36 @@ test-athenz-zts-server:
 		--cacert /etc/ssl/certs/ca.cert.pem \
 		https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
 	| cat; echo
+
+test-zms-cli:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+	zms-cli \
+		-z https://athenz-zms-server:4443/zms/v1 \
+		-key /var/run/athenz/athenz_admin.private.pem \
+		-cert /var/run/athenz/athenz_admin.cert.pem \
+		list-domain
+
+test-zts-roletoken:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-roletoken \
+        -zts https://athenz-zts-server:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+        -domain sys.auth \
+        -role admin \
+	| rev | cut -d';' -f2- | rev \
+	| tr ';' '\n'
+
+test-zts-accesstoken: install-jq
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+	zts-accesstoken \
+		-zts https://athenz-zts-server:4443/zts/v1 \
+		-svc-key-file /var/run/athenz/athenz_admin.private.pem \
+		-svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+		-domain sys.auth \
+		-roles admin \
+	| jq -r .access_token \
+	| jq -Rr 'split(".") | .[0,1] | @base64d' \
+	| jq -r .
 
 test-athenz: test-athenz-zms-server test-athenz-zts-server

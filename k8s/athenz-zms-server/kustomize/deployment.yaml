@@ -73,7 +73,8 @@ spec:
       containers:
         - name: athenz-zms-server
           image: ghcr.io/ctyano/athenz-zms-server:latest
-          imagePullPolicy: IfNotPresent
+          #imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: TZ
               value: Asia/Tokyo

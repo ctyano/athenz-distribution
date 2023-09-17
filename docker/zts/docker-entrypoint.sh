@@ -15,6 +15,7 @@ ZTS_LOG_DIR=${ZTS_LOG_DIR:-$ROOT/logs/zts_server}
 mkdir -p "${ZTS_PID_DIR}"
 mkdir -p "${ZTS_LOG_DIR}"
 
+# any environment variables starting with ATHENZ__ will be converted to java system properties with converting __ as to . and ___ as to -
 if [ $(printenv | grep -E "^ATHENZ__") ]; then
     printenv | grep -E "^ATHENZ__" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g' | tee -a ${CONF_PATH}/zts.properties
 fi
@@ -25,23 +26,23 @@ JAVA_OPTS="${JAVA_OPTS} -Dathenz.prop_file=${CONF_PATH}/athenz.properties"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.prop_file=${CONF_PATH}/zts.properties"
 JAVA_OPTS="${JAVA_OPTS} -Dlogback.configurationFile=${CONF_PATH}/logback.xml"
 # system properties for passwords
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.cert_jdbc_password=${ZTS_DB_ADMIN_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZTS_KEYSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZTS_TRUSTSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.keystore_signer.keystore_password=${ZTS_SIGNER_KEYSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.ssl_key_store_password=${ZTS_SIGNER_KEYSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.ssl_trust_store_password=${ZTS_SIGNER_TRUSTSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Djavax.net.ssl.trustStorePassword=${ZTS_SIGNER_TRUSTSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.keystore_password=${ZMS_CLIENT_KEYSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.truststore_password=${ZMS_CLIENT_TRUSTSTORE_PASS}"
-
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZTS_PRIVATE_KEY}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZTS_PRIVATE_KEY_ID}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key=${ZTS_RSA_PRIVATE_KEY}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key_id=${ZTS_RSA_PRIVATE_KEY_ID}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZTS_EC_PRIVATE_KEY}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZTS_EC_PRIVATE_KEY_ID}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.self_signer_private_key_fname=${ZTS_SELF_SIGNER_PRIVATE_KEY}"
+[ ! -z "${ZTS_DB_ADMIN_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.cert_jdbc_password=${ZTS_DB_ADMIN_PASS}"
+[ ! -z "${ZTS_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZTS_KEYSTORE_PASS}"
+[ ! -z "${ZTS_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZTS_TRUSTSTORE_PASS}"
+[ ! -z "${ZTS_SIGNER_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.keystore_signer.keystore_password=${ZTS_SIGNER_KEYSTORE_PASS}"
+[ ! -z "${ZTS_SIGNER_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.ssl_key_store_password=${ZTS_SIGNER_KEYSTORE_PASS}"
+[ ! -z "${ZTS_SIGNER_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.ssl_trust_store_password=${ZTS_SIGNER_TRUSTSTORE_PASS}"
+[ ! -z "${ZTS_SIGNER_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Djavax.net.ssl.trustStorePassword=${ZTS_SIGNER_TRUSTSTORE_PASS}"
+[ ! -z "${ZMS_CLIENT_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.keystore_password=${ZMS_CLIENT_KEYSTORE_PASS}"
+[ ! -z "${ZMS_CLIENT_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.truststore_password=${ZMS_CLIENT_TRUSTSTORE_PASS}"
+# system properties for private keys
+[ ! -z "${ZTS_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZTS_PRIVATE_KEY}"
+[ ! -z "${ZTS_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZTS_PRIVATE_KEY_ID}"
+[ ! -z "${ZTS_RSA_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key=${ZTS_RSA_PRIVATE_KEY}"
+[ ! -z "${ZTS_RSA_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key_id=${ZTS_RSA_PRIVATE_KEY_ID}"
+[ ! -z "${ZTS_EC_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZTS_EC_PRIVATE_KEY}"
+[ ! -z "${ZTS_EC_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZTS_EC_PRIVATE_KEY_ID}"
+[ ! -z "${ZTS_SELF_SIGNER_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.self_signer_private_key_fname=${ZTS_SELF_SIGNER_PRIVATE_KEY}"
 
 ZTS_CLASSPATH="${CLASSPATH}:${USER_CLASSPATH}"
 ZTS_BOOTSTRAP_CLASS="com.yahoo.athenz.container.AthenzJettyContainer"

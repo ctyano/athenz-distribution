@@ -15,6 +15,7 @@ ZMS_LOG_DIR=${ZMS_LOG_DIR:-$ROOT/logs/zms_server}
 mkdir -p "${ZMS_PID_DIR}"
 mkdir -p "${ZMS_LOG_DIR}"
 
+# any environment variables starting with ATHENZ__ will be converted to java system properties with converting __ as to . and ___ as to -
 if [ $(printenv | grep -E "^ATHENZ__") ]; then
     printenv | grep -E "^ATHENZ__" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g' | tee -a ${CONF_PATH}/zms.properties
 fi
@@ -24,17 +25,17 @@ JAVA_OPTS="${JAVA_OPTS} -Dathenz.prop_file=${CONF_PATH}/athenz.properties"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.prop_file=${CONF_PATH}/zms.properties"
 JAVA_OPTS="${JAVA_OPTS} -Dlogback.configurationFile=${CONF_PATH}/logback.xml"
 # system properties for passwords
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_password=${ZMS_DB_ADMIN_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_ro_password=${ZMS_RODB_ADMIN_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZMS_KEYSTORE_PASS}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZMS_TRUSTSTORE_PASS}"
-
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZMS_PRIVATE_KEY}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZMS_PRIVATE_KEY_ID}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key=${ZMS_RSA_PRIVATE_KEY}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key_id=${ZMS_RSA_PRIVATE_KEY_ID}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZMS_EC_PRIVATE_KEY}"
-JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZMS_EC_PRIVATE_KEY_ID}"
+[ ! -z "${ZMS_DB_ADMIN_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_password=${ZMS_DB_ADMIN_PASS}"
+[ ! -z "${ZMS_RODB_ADMIN_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_ro_password=${ZMS_RODB_ADMIN_PASS}"
+[ ! -z "${ZMS_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZMS_KEYSTORE_PASS}"
+[ ! -z "${ZMS_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZMS_TRUSTSTORE_PASS}"
+# system properties for private keys
+[ ! -z "${ZMS_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZMS_PRIVATE_KEY}"
+[ ! -z "${ZMS_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZMS_PRIVATE_KEY_ID}"
+[ ! -z "${ZMS_RSA_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key=${ZMS_RSA_PRIVATE_KEY}"
+[ ! -z "${ZMS_RSA_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key_id=${ZMS_RSA_PRIVATE_KEY_ID}"
+[ ! -z "${ZMS_EC_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZMS_EC_PRIVATE_KEY}"
+[ ! -z "${ZMS_EC_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZMS_EC_PRIVATE_KEY_ID}"
 
 ZMS_CLASSPATH="${CLASSPATH}:${USER_CLASSPATH}"
 ZMS_BOOTSTRAP_CLASS="com.yahoo.athenz.container.AthenzJettyContainer"

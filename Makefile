@@ -187,11 +187,16 @@ version:
 	@echo "Version: $(VERSION)"
 	@echo "Tag Version: v$(VERSION)"
 
-install-jq:
-	curl -s https://webi.sh/jq | sh
+install-pathman:
+	curl -s https://webi.sh/pathman | sh
 
-install-yq:
+install-jq: install-pathman
+	curl -s https://webi.sh/jq | sh
+	~/.local/bin/pathman add ~/.local/bin
+
+install-yq: install-pathman
 	curl -s https://webi.sh/yq | sh
+	~/.local/bin/pathman add ~/.local/bin
 
 clean-certificates:
 	rm -rf keys certs
@@ -270,7 +275,7 @@ deploy-athenz: generate-certificates copy-to-kustomization setup-athenz
 
 check-athenz:
 	SLEEP_SECONDS=5; \
-WAITING_THRESHOLD=600; \
+WAITING_THRESHOLD=300; \
 i=0; \
 while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
 	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \

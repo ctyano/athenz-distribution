@@ -25,6 +25,13 @@ JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_ro_password=${ZMS_RODB_ADMIN_PASS}"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZMS_KEYSTORE_PASS}"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZMS_TRUSTSTORE_PASS}"
 
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZMS_PRIVATE_KEY}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZMS_PRIVATE_KEY_ID}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key=${ZMS_RSA_PRIVATE_KEY}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key_id=${ZMS_RSA_PRIVATE_KEY_ID}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZMS_EC_PRIVATE_KEY}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZMS_EC_PRIVATE_KEY_ID}"
+
 ZMS_CLASSPATH="${CLASSPATH}:${USER_CLASSPATH}"
 ZMS_BOOTSTRAP_CLASS="com.yahoo.athenz.container.AthenzJettyContainer"
 

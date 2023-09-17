@@ -175,17 +175,17 @@ diff:
 	@diff athenz patchfiles
 
 checkout:
-	cd athenz/ && git checkout .
+	@cd athenz/ && git checkout .
 
 submodule-update: checkout
-	git submodule update --init
+	@git submodule update --init
 
 checkout-version: submodule-update
-	cd athenz/ && git fetch --refetch --tags origin && git checkout v$(VERSION)
+	@cd athenz/ && git fetch --refetch --tags origin && git checkout v$(VERSION)
 
 version:
-	echo "Version: $(VERSION)"
-	echo "Tag Version: v$(VERSION)"
+	@echo "Version: $(VERSION)"
+	@echo "Tag Version: v$(VERSION)"
 
 install-jq:
 	curl -s https://webi.sh/jq | sh
@@ -202,41 +202,41 @@ clean-certificates:
 generate-ca:
 	mkdir keys certs ||:
 	openssl genrsa -out keys/ca.private.pem 4096 \
-		&& openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem \
-		&& openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
+	&& openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem \
+	&& openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
 
 generate-zms: generate-ca
 	mkdir keys certs ||:
-	cp keys/ca.private.pem keys/zms.private.pem \
-		&& cp keys/ca.public.pem keys/zms.public.pem \
-		&& openssl req -config openssl/zms.openssl.config -new -key keys/zms.private.pem -out certs/zms.csr.pem -extensions ext_req \
-		&& openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/zms.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req \
-		&& openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem \
-		&& openssl pkcs12 -export -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -noiter -password pass:athenz \
-		&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz \
-		&& keytool --list -keystore certs/zms_truststore.jks -storepass athenz
+	openssl genrsa -out keys/zms.private.pem 4096 \
+	&& openssl rsa -pubout -in keys/zms.private.pem -out keys/zms.public.pem \
+	&& openssl req -config openssl/zms.openssl.config -new -key keys/zms.private.pem -out certs/zms.csr.pem -extensions ext_req \
+	&& openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req \
+	&& openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem \
+	&& openssl pkcs12 -export -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -noiter -password pass:athenz \
+	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz \
+	&& keytool --list -keystore certs/zms_truststore.jks -storepass athenz
 
 generate-zts: generate-zms
 	mkdir keys certs ||:
-	cp keys/ca.private.pem keys/zts.private.pem \
-		&& cp keys/ca.public.pem keys/zts.public.pem \
-		&& openssl req -config openssl/zts.openssl.config -new -key keys/zts.private.pem -out certs/zts.csr.pem -extensions ext_req \
-		&& openssl x509 -req -in certs/zts.csr.pem -CA certs/ca.cert.pem -CAkey keys/zts.private.pem -CAcreateserial -out certs/zts.cert.pem -days 99999 -extfile openssl/zts.openssl.config -extensions ext_req \
-		&& openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem \
-		&& openssl pkcs12 -export -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-		&& openssl pkcs12 -export -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-		&& openssl pkcs12 -export -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-		&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz \
-		&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz \
-		&& keytool --list -keystore certs/zts_truststore.jks -storepass athenz
+	openssl genrsa -out keys/zts.private.pem 4096 \
+	&& openssl rsa -pubout -in keys/zts.private.pem -out keys/zts.public.pem \
+	&& openssl req -config openssl/zts.openssl.config -new -key keys/zts.private.pem -out certs/zts.csr.pem -extensions ext_req \
+	&& openssl x509 -req -in certs/zts.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zts.cert.pem -days 99999 -extfile openssl/zts.openssl.config -extensions ext_req \
+	&& openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem \
+	&& openssl pkcs12 -export -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
+	&& openssl pkcs12 -export -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
+	&& openssl pkcs12 -export -out certs/zts_signer_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
+	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz \
+	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz \
+	&& keytool --list -keystore certs/zts_truststore.jks -storepass athenz
 
 generate-admin: generate-ca
 	mkdir keys certs ||:
-	cp keys/ca.private.pem keys/athenz_admin.private.pem \
-		&& cp keys/ca.public.pem keys/athenz_admin.public.pem \
-		&& openssl req -config openssl/athenz_admin.openssl.config -new -key keys/athenz_admin.private.pem -out certs/athenz_admin.csr.pem -extensions ext_req \
-		&& openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/athenz_admin.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req \
-		&& openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
+	openssl genrsa -out keys/athenz_admin.private.pem 4096 \
+	&& openssl rsa -pubout -in keys/athenz_admin.private.pem -out keys/athenz_admin.public.pem \
+	&& openssl req -config openssl/athenz_admin.openssl.config -new -key keys/athenz_admin.private.pem -out certs/athenz_admin.csr.pem -extensions ext_req \
+	&& openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req \
+	&& openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin
 
@@ -260,7 +260,7 @@ setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server
 	kubectl apply -k k8s/athenz-zts-server/kustomize
 
 clean-k8s:
-	kubectl delete namespace athenz
+	kubectl delete namespace athenz ||:
 
 setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server
 
@@ -270,23 +270,23 @@ deploy-athenz: generate-certificates copy-to-kustomization setup-athenz
 
 check-athenz:
 	SLEEP_SECONDS=5; \
-	WAITING_THRESHOLD=600; \
-	i=0; \
-	while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-		printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
-		sleep $${SLEEP_SECONDS}; \
-		i=$$(( i + 1 )); \
-		if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-			printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-			kubectl -n athenz get all; \
-			kubectl -n athenz logs statefulset/athenz-db --all-containers=true; \
-			kubectl -n athenz logs deployment/athenz-zms-server --all-containers=true; \
-			kubectl -n athenz logs deployment/athenz-zts-server --all-containers=true; \
-			exit 1; \
-		fi; \
-	done
+WAITING_THRESHOLD=600; \
+i=0; \
+while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
+	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	sleep $${SLEEP_SECONDS}; \
+	i=$$(( i + 1 )); \
+	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs statefulset/athenz-db --all-containers=true; \
+		kubectl -n athenz logs deployment/athenz-zms-server --all-containers=true; \
+		kubectl -n athenz logs deployment/athenz-zts-server --all-containers=true; \
+		echo "** Waiting(5s) reached to threshold(600s) **"; \
+		exit 1; \
+	fi; \
+done
 	kubectl -n athenz get all
-	@echo "** Waiting(5s) reached to threshold(600s) **";
 	@echo ""
 	@echo "**********************************"
 	@echo "** Athenz Deployed Successfully **"
@@ -295,53 +295,58 @@ check-athenz:
 
 test-athenz-zms-server:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
-	curl \
-		-s \
-		-H"Content-type: application/json" \
-		-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-		--cacert /etc/ssl/certs/ca.cert.pem \
-		https://athenz-zms-server:4443/zms/v1/domain \
-	| cat; echo
+curl \
+	-s \
+	-H"Content-type: application/json" \
+	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+	--cacert /etc/ssl/certs/ca.cert.pem \
+	https://athenz-zms-server:4443/zms/v1/domain \
+| cat; echo
 
 test-athenz-zts-server:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
-	curl \
-		-s \
-		-H"Content-type: application/json" \
-		-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-		--cacert /etc/ssl/certs/ca.cert.pem \
-		https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
-	| cat; echo
+curl \
+	-s \
+	-H"Content-type: application/json" \
+	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+	--cacert /etc/ssl/certs/ca.cert.pem \
+	https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
+| cat; echo
 
 test-zms-cli:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
-	zms-cli \
-		-z https://athenz-zms-server:4443/zms/v1 \
-		-key /var/run/athenz/athenz_admin.private.pem \
-		-cert /var/run/athenz/athenz_admin.cert.pem \
-		list-domain
+zms-cli \
+	-z https://athenz-zms-server:4443/zms/v1 \
+	-key /var/run/athenz/athenz_admin.private.pem \
+	-cert /var/run/athenz/athenz_admin.cert.pem \
+	list-domain
 
 test-zts-roletoken:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
-    zts-roletoken \
-        -zts https://athenz-zts-server:4443/zts/v1 \
-        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
-        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
-        -domain sys.auth \
-        -role admin \
-	| rev | cut -d';' -f2- | rev \
-	| tr ';' '\n'
+zts-roletoken \
+	-zts https://athenz-zts-server:4443/zts/v1 \
+	-svc-key-file /var/run/athenz/athenz_admin.private.pem \
+	-svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+	-domain sys.auth \
+	-role admin \
+| rev | cut -d';' -f2- | rev \
+| tr ';' '\n'
 
 test-zts-accesstoken: install-jq
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
-	zts-accesstoken \
-		-zts https://athenz-zts-server:4443/zts/v1 \
-		-svc-key-file /var/run/athenz/athenz_admin.private.pem \
-		-svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
-		-domain sys.auth \
-		-roles admin \
-	| jq -r .access_token \
-	| jq -Rr 'split(".") | .[0,1] | @base64d' \
-	| jq -r .
+zts-accesstoken \
+	-zts https://athenz-zts-server:4443/zts/v1 \
+	-svc-key-file /var/run/athenz/athenz_admin.private.pem \
+	-svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+	-domain sys.auth \
+	-roles admin \
+| jq -r .access_token \
+| jq -Rr 'split(".") | .[0,1] | @base64d' \
+| jq -r .
 
 test-athenz: test-athenz-zms-server test-athenz-zts-server
+	@echo ""
+	@echo "**********************************"
+	@echo "** Athenz APIs are functioning  **"
+	@echo "**********************************"
+	@echo ""

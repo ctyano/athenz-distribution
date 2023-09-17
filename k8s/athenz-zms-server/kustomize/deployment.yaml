@@ -89,12 +89,21 @@ spec:
               value: /usr/lib/jars/*:/athenz/plugins/*
             - name: ZMS_STOP_TIMEOUT
               value: "30"
+            - name: ZMS_PRIVATE_KEY
+              value: /opt/athenz/zms/var/keys/zms.private.pem
+            - name: ZMS_RSA_PRIVATE_KEY
+              value: /opt/athenz/zms/var/keys/zms.private.pem
+            - name: ZMS_EC_PRIVATE_KEY
+              value: /opt/athenz/zms/var/keys/zms.private.pem
+            - name: ZMS_PRIVATE_KEY_ID
+              value: "0"
+            - name: ZMS_RSA_PRIVATE_KEY_ID
+              value: "0"
+            - name: ZMS_EC_PRIVATE_KEY_ID
+              value: "0"
           ports:
             - name: https
               containerPort: 4443
-              protocol: TCP
-            - name: http
-              containerPort: 10080
               protocol: TCP
           readinessProbe:
             initialDelaySeconds: 10

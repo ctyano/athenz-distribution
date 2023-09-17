@@ -9,7 +9,7 @@ It is currently owned and maintained by [ctyano](https://github.com/ctyano).
 ⚠️  Prerequisite: A Kubernetes Cluster must be set up before continuing to further steps.
 
 ```
-make clean-certificates
+make clean-athenz
 ```
 
 ```

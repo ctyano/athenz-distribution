@@ -31,6 +31,14 @@ JAVA_OPTS="${JAVA_OPTS} -Djavax.net.ssl.trustStorePassword=${ZTS_SIGNER_TRUSTSTO
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.keystore_password=${ZMS_CLIENT_KEYSTORE_PASS}"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.truststore_password=${ZMS_CLIENT_TRUSTSTORE_PASS}"
 
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZTS_PRIVATE_KEY}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZTS_PRIVATE_KEY_ID}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key=${ZTS_RSA_PRIVATE_KEY}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_rsa_key_id=${ZTS_RSA_PRIVATE_KEY_ID}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZTS_EC_PRIVATE_KEY}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZTS_EC_PRIVATE_KEY_ID}"
+JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.self_signer_private_key_fname=${ZTS_SELF_SIGNER_PRIVATE_KEY}"
+
 ZTS_CLASSPATH="${CLASSPATH}:${USER_CLASSPATH}"
 ZTS_BOOTSTRAP_CLASS="com.yahoo.athenz.container.AthenzJettyContainer"
 

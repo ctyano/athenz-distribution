@@ -15,6 +15,10 @@ ZTS_LOG_DIR=${ZTS_LOG_DIR:-$ROOT/logs/zts_server}
 mkdir -p "${ZTS_PID_DIR}"
 mkdir -p "${ZTS_LOG_DIR}"
 
+if [ $(printenv | grep -E "^ATHENZ__") ]; then
+    printenv | grep -E "^ATHENZ__" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g' | tee -a ${CONF_PATH}/zts.properties
+fi
+
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.root_dir=."
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.root_dir=."
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.prop_file=${CONF_PATH}/athenz.properties"

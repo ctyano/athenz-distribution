@@ -319,7 +319,7 @@ zms-cli \
 	-z https://athenz-zms-server:4443/zms/v1 \
 	-key /var/run/athenz/athenz_admin.private.pem \
 	-cert /var/run/athenz/athenz_admin.cert.pem \
-	list-domain
+	show-domain sys.auth
 
 test-zts-roletoken:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -343,6 +343,34 @@ zts-accesstoken \
 | jq -r .access_token \
 | jq -Rr 'split(".") | .[0,1] | @base64d' \
 | jq -r .
+
+test-jwks-policies:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+curl \
+	-s \
+	-H"Content-type: application/json" \
+	--cacert /etc/ssl/certs/ca.cert.pem \
+	--key /var/run/athenz/athenz_admin.private.pem \
+	--cert /var/run/athenz/athenz_admin.cert.pem \
+	"https://athenz-zts-server:4443/zts/v1/oauth2/keys?rfc=true" \
+| tee ./jwks.json \
+| jq -r .
+	@echo ""
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+curl \
+	-sXPOST \
+	-H "Content-type: application/json" \
+	-d"{\"policyVersions\":{\"\":\"\"}}" \
+	--cacert /etc/ssl/certs/ca.cert.pem \
+	--key /var/run/athenz/athenz_admin.private.pem \
+	--cert /var/run/athenz/athenz_admin.cert.pem \
+	"https://athenz-zts-server:4443/zts/v1/domain/sys.auth/policy/signed" \
+| jq -r '[.protected,.payload,.signature] | join(".")' \
+| jq -Rr 'split(".") | .[0,1] | @base64d' \
+| jq -r .
+
+#| step crypto jws verify --jwks=jwks.json \
+#&& printf "\nValid Policy\n" || printf "\nInvalid Policy\n"
 
 test-athenz: test-athenz-zms-server test-athenz-zts-server
 	@echo ""

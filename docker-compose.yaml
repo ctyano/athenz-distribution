@@ -74,6 +74,8 @@ services:
       JAVA_OPTS: "-Dathenz.root_dir=/opt/athenz/zms -Dathenz.jetty_home=/opt/athenz/zms -Dathenz.access_log_dir=/opt/athenz/zms/logs"
       USER_CLASSPATH: /usr/lib/jars/*
       ZMS_STOP_TIMEOUT: "30"
+      ZMS_PRIVATE_KEY: /opt/athenz/zms/var/keys/zms.private.pem
+      ZMS_PRIVATE_KEY_ID: "0"
     restart: unless-stopped
 
   athenz-zts-server:
@@ -102,6 +104,9 @@ services:
       JAVA_OPTS: "-Dathenz.root_dir=/opt/athenz/zts -Dathenz.jetty_home=/opt/athenz/zts -Dathenz.access_log_dir=/opt/athenz/zts/logs"
       USER_CLASSPATH: /usr/lib/jars/*
       ZTS_STOP_TIMEOUT: "30"
+      ZTS_PRIVATE_KEY: /opt/athenz/zts/var/keys/zts.private.pem
+      ZTS_PRIVATE_KEY_ID: "0"
+      ZTS_SELF_SIGNER_PRIVATE_KEY: /opt/athenz/zts/var/keys/zts.private.pem
     restart: unless-stopped
 
   athenz-db:

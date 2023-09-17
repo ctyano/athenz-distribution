@@ -15,6 +15,10 @@ ZMS_LOG_DIR=${ZMS_LOG_DIR:-$ROOT/logs/zms_server}
 mkdir -p "${ZMS_PID_DIR}"
 mkdir -p "${ZMS_LOG_DIR}"
 
+if [ $(printenv | grep -E "^ATHENZ__") ]; then
+    printenv | grep -E "^ATHENZ__" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g' | tee -a ${CONF_PATH}/zms.properties
+fi
+
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.root_dir=."
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.prop_file=${CONF_PATH}/athenz.properties"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.prop_file=${CONF_PATH}/zms.properties"

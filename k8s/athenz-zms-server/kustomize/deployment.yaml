@@ -96,11 +96,17 @@ spec:
             - name: ZMS_EC_PRIVATE_KEY
               value: /opt/athenz/zms/var/keys/zms.private.pem
             - name: ZMS_PRIVATE_KEY_ID
-              value: "0"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ZMS_RSA_PRIVATE_KEY_ID
-              value: "0"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ZMS_EC_PRIVATE_KEY_ID
-              value: "0"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           ports:
             - name: https
               containerPort: 4443
@@ -108,7 +114,7 @@ spec:
           readinessProbe:
             initialDelaySeconds: 10
             periodSeconds: 10
-            failureThreshold: 17
+            failureThreshold: 5
             exec:
               command:
                 - curl
@@ -118,7 +124,7 @@ spec:
                 - athenz-zms-server:4443:127.0.0.1
                 - https://athenz-zms-server:4443/zms/v1/status
           livenessProbe:
-            initialDelaySeconds: 150
+            initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3
             exec:

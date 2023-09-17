@@ -96,7 +96,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z https://athenz-zms-server:4443/zms/v1 \
                 -d sys.auth \
-                add-public-key zts "0" /athenz/zts/zts.public.pem \
+                add-public-key zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
               || \
               zms-cli \
                 -key /athenz/admin/athenz_admin.private.pem \
@@ -104,7 +104,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z https://athenz-zms-server:4443/zms/v1 \
                 -d sys.auth \
-                add-service zts "0" /athenz/zts/zts.public.pem
+                add-service zts "${HOSTNAME}" /athenz/zts/zts.public.pem
           resources:
             limits:
               memory: 32Mi
@@ -193,11 +193,17 @@ spec:
             - name: ZTS_EC_PRIVATE_KEY
               value: /opt/athenz/zts/var/keys/zts.private.pem
             - name: ZTS_PRIVATE_KEY_ID
-              value: "0"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ZTS_RSA_PRIVATE_KEY_ID
-              value: "0"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ZTS_EC_PRIVATE_KEY_ID
-              value: "0"
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: ZTS_SELF_SIGNER_PRIVATE_KEY
               value: /opt/athenz/zts/var/keys/zts.private.pem
           ports:
@@ -207,7 +213,7 @@ spec:
           readinessProbe:
             initialDelaySeconds: 10
             periodSeconds: 10
-            failureThreshold: 17
+            failureThreshold: 5
             exec:
               command:
                 - curl
@@ -217,7 +223,7 @@ spec:
                 - athenz-zts-server:4443:127.0.0.1
                 - https://athenz-zts-server:4443/zts/v1/status
           livenessProbe:
-            initialDelaySeconds: 150
+            initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3
             exec:

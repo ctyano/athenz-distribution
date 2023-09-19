@@ -62,7 +62,7 @@ ENV ZMS_PORT='4443'
 #  || exit 1
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -sk \
+  CMD curl -skf \
   --resolve ${ZMS_HOST}:${ZMS_PORT}:127.0.0.1 \
   "https://${ZMS_HOST}:${ZMS_PORT}/zms/v1/status" \
   || exit 1

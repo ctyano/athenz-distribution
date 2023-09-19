@@ -65,7 +65,7 @@ ENV ZTS_PORT='8443'
 #  || exit 1
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -sk \
+  CMD curl -skf \
   --resolve ${ZTS_HOST}:${ZTS_PORT}:127.0.0.1 \
-  "https://${ZTS_HOST}:${ZTS_PORT}/zms/v1/status" \
+  "https://${ZTS_HOST}:${ZTS_PORT}/zts/v1/status" \
   || exit 1

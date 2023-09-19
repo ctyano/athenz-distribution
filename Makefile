@@ -115,6 +115,7 @@ build-java: checkout-version install-rdl-tools patch
 		-pl core/zms \
 		-pl core/zts \
 		-pl core/msd \
+		-pl rdl/rdl-gen-athenz-go-model \
 		-pl rdl/rdl-gen-athenz-java-model \
 		-pl rdl/rdl-gen-athenz-java-client \
 		-pl clients/java/zms \

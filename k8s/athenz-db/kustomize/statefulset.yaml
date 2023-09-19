@@ -37,7 +37,7 @@ spec:
           emptyDir: {}
       containers:
         - name: mariadb
-          image: docker.io/linuxserver/mariadb:10.6.13
+          image: docker.io/linuxserver/mariadb:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

@@ -25,7 +25,10 @@ UID_ARG := $(if $(UID),--build-arg UID=$(UID),--build-arg UID)
 
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 VCS_REF=$(shell cd athenz && git rev-parse --short HEAD)
-XPLATFORM_ARGS := --platform=linux/amd64,linux/arm64
+ifeq ($(XPLATFORMS),)
+XPLATFORMS := linux/amd64,linux/arm64
+endif
+XPLATFORM_ARGS := --platform=$(XPLATFORMS)
 BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' $(XPLATFORM_ARGS) $(PUSH_OPTION)
 
 ifeq ($(DOCKER_REGISTRY),)
@@ -198,11 +201,11 @@ install-yq: install-pathman
 	curl -s https://webi.sh/yq | sh
 	~/.local/bin/pathman add ~/.local/bin
 
+install-parsers: install-jq install-yq
+
 clean-certificates:
 	rm -rf keys certs
-	rm -rf k8s/athenz-cli/kustomize/{keys,certs}
-	rm -rf k8s/athenz-zms-server/kustomize/{keys,certs}
-	rm -rf k8s/athenz-zts-server/kustomize/{keys,certs}
+	@$(MAKE) -f Makefile.kubernetes clean-certificates
 
 generate-ca:
 	mkdir keys certs ||:
@@ -245,141 +248,26 @@ generate-admin: generate-ca
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin
 
-copy-to-kustomization: generate-ca generate-zms generate-zts generate-admin
-	cp -r keys certs k8s/athenz-cli/kustomize/
-	cp -r keys certs k8s/athenz-zms-server/kustomize/
-	cp -r keys certs k8s/athenz-zts-server/kustomize/
-	cp athenz/servers/zms/schema/zms_server.sql k8s/athenz-db/kustomize/zms_server.sql
-	cp athenz/servers/zts/schema/zts_server.sql k8s/athenz-db/kustomize/zts_server.sql
+clean-k8s-athenz:
+	@$(MAKE) -f Makefile.kubernetes clean-athenz
 
-setup-athenz-db:
-	kubectl apply -k k8s/athenz-db/kustomize
+deploy-k8s-athenz: generate-certificates
+	@$(MAKE) -f Makefile.kubernetes deploy-athenz
 
-setup-athenz-cli:
-	kubectl apply -k k8s/athenz-cli/kustomize
+check-k8s-athenz: install-parsers
+	@$(MAKE) -f Makefile.kubernetes check-athenz
 
-setup-athenz-zms-server: setup-athenz-db
-	kubectl apply -k k8s/athenz-zms-server/kustomize
+test-k8s-athenz: install-parsers
+	@$(MAKE) -f Makefile.kubernetes test-athenz
 
-setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server
-	kubectl apply -k k8s/athenz-zts-server/kustomize
+clean-docker-athenz: clean-certificates
+	@$(MAKE) -f Makefile.docker clean-athenz
 
-clean-k8s:
-	kubectl delete namespace athenz ||:
+deploy-docker-athenz: build-java build-go generate-certificates
+	@$(MAKE) -f Makefile.docker deploy-athenz
 
-setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server
+check-docker-athenz: install-parsers
+	@$(MAKE) -f Makefile.docker check-athenz
 
-clean-athenz: clean-k8s clean-certificates
-
-deploy-athenz: generate-certificates copy-to-kustomization setup-athenz
-
-check-athenz:
-	SLEEP_SECONDS=5; \
-WAITING_THRESHOLD=300; \
-i=0; \
-while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
-	sleep $${SLEEP_SECONDS}; \
-	i=$$(( i + 1 )); \
-	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n athenz get all; \
-		kubectl -n athenz logs statefulset/athenz-db --all-containers=true; \
-		kubectl -n athenz logs deployment/athenz-zms-server --all-containers=true; \
-		kubectl -n athenz logs deployment/athenz-zts-server --all-containers=true; \
-		echo "** Waiting(5s) reached to threshold(600s) **"; \
-		exit 1; \
-	fi; \
-done
-	kubectl -n athenz get all
-	@echo ""
-	@echo "**********************************"
-	@echo "** Athenz Deployed Successfully **"
-	@echo "**********************************"
-	@echo ""
-
-test-athenz-zms-server:
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-curl \
-	-s \
-	-H"Content-type: application/json" \
-	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
-	https://athenz-zms-server:4443/zms/v1/domain \
-| cat; echo
-
-test-athenz-zts-server:
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-curl \
-	-s \
-	-H"Content-type: application/json" \
-	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
-	https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
-| cat; echo
-
-test-zms-cli:
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-zms-cli \
-	-z https://athenz-zms-server:4443/zms/v1 \
-	-key /var/run/athenz/athenz_admin.private.pem \
-	-cert /var/run/athenz/athenz_admin.cert.pem \
-	show-domain sys.auth
-
-test-zts-roletoken:
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-zts-roletoken \
-	-zts https://athenz-zts-server:4443/zts/v1 \
-	-svc-key-file /var/run/athenz/athenz_admin.private.pem \
-	-svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
-	-domain sys.auth \
-	-role admin \
-| rev | cut -d';' -f2- | rev \
-| tr ';' '\n'
-
-test-zts-accesstoken: install-jq
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-zts-accesstoken \
-	-zts https://athenz-zts-server:4443/zts/v1 \
-	-svc-key-file /var/run/athenz/athenz_admin.private.pem \
-	-svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
-	-domain sys.auth \
-	-roles admin \
-| jq -r .access_token \
-| jq -Rr 'split(".") | .[0,1] | @base64d' \
-| jq -r .
-
-test-jwks-policies:
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-curl \
-	-s \
-	-H"Content-type: application/json" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
-	--key /var/run/athenz/athenz_admin.private.pem \
-	--cert /var/run/athenz/athenz_admin.cert.pem \
-	"https://athenz-zts-server:4443/zts/v1/oauth2/keys?rfc=true" \
-| tee ./jwks.json \
-| jq -r .
-	@echo ""
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-curl \
-	-sXPOST \
-	-H "Content-type: application/json" \
-	-d"{\"policyVersions\":{\"\":\"\"}}" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
-	--key /var/run/athenz/athenz_admin.private.pem \
-	--cert /var/run/athenz/athenz_admin.cert.pem \
-	"https://athenz-zts-server:4443/zts/v1/domain/sys.auth/policy/signed" \
-| jq -r '[.protected,.payload,.signature] | join(".")' \
-| jq -Rr 'split(".") | .[0,1] | @base64d' \
-| jq -r .
-
-#| step crypto jws verify --jwks=jwks.json \
-#&& printf "\nValid Policy\n" || printf "\nInvalid Policy\n"
-
-test-athenz: test-athenz-zms-server test-athenz-zts-server
-	@echo ""
-	@echo "**********************************"
-	@echo "** Athenz APIs are functioning  **"
-	@echo "**********************************"
-	@echo ""
+test-docker-athenz: install-parsers
+	@$(MAKE) -f Makefile.docker test-athenz

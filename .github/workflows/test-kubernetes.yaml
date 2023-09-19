@@ -108,12 +108,12 @@ jobs:
         run: |
           # Use kubectl or your preferred Kubernetes deployment tool to deploy your application to KinD
           set -ex
-          make deploy-athenz
+          make deploy-k8s-athenz
 
       -
         name: Run Tests
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make check-athenz test-athenz
+          make check-k8s-athenz test-k8s-athenz
 

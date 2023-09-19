@@ -43,7 +43,7 @@ jobs:
   kubernetes:
     name: "Test running on Kubernetes Cluster"
     needs: docker-build-publish
-    uses: ./.github/workflows/kubernetes.yaml
+    uses: ./.github/workflows/test-kubernetes.yaml
     secrets: inherit
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
     permissions:

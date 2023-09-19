@@ -4,12 +4,12 @@ services:
 
   athenz-cli:
     container_name: athenz-cli
-    #image: ghcr.io/ctyano/athenz-cli:v${ATHENZ_VERSION}
+    #image: ghcr.io/ctyano/athenz-cli:v${VERSION}
     build:
       context: .
       dockerfile: ./docker/cli/Dockerfile
       args:
-        VERSION: ${ATHENZ_VERSION}
+        VERSION: ${VERSION}
     depends_on:
       - athenz-zms-server
       - athenz-zts-server
@@ -31,7 +31,7 @@ services:
 #      - 3000
 #    depends_on:
 #      - athenz-zms-server
-#    image: ghcr.io/ctyano/athenz-ui:latest
+#    image: ghcr.io/ctyano/athenz-ui:v${VERSION}
 #    ports:
 #      - target: 3000
 #        published: 3000
@@ -53,12 +53,12 @@ services:
 
   athenz-zms-server:
     container_name: athenz-zms-server
-    #image: ghcr.io/ctyano/athenz-zms-server:v${ATHENZ_VERSION}
+    #image: ghcr.io/ctyano/athenz-zms-server:v${VERSION}
     build:
       context: .
       dockerfile: ./docker/zms/Dockerfile
       args:
-        VERSION: ${ATHENZ_VERSION}
+        VERSION: ${VERSION}
     hostname: localhost
     expose:
       - 4443
@@ -73,8 +73,8 @@ services:
       - athenz
       #- athenz-zms-db
     volumes:
-      - ./docker/zms/var:/opt/athenz/zms/var:ro
-      - ./docker/zms/conf:/opt/athenz/zms/conf/zms_server:ro
+      - ./docker/zms/var:/opt/athenz/zms/var:rw
+      - ./docker/zms/conf:/opt/athenz/zms/conf/zms_server:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zms
@@ -93,12 +93,12 @@ services:
 
   athenz-zts-server:
     container_name: athenz-zts-server
-    #image: ghcr.io/ctyano/athenz-zts-server:v${ATHENZ_VERSION}
+    #image: ghcr.io/ctyano/athenz-zts-server:v${VERSION}
     build:
       context: .
       dockerfile: ./docker/zts/Dockerfile
       args:
-        VERSION: ${ATHENZ_VERSION}
+        VERSION: ${VERSION}
     hostname: localhost
     expose:
       - 4443
@@ -114,8 +114,8 @@ services:
       #- athenz-zts-db
     volumes:
       - ./docker/zts/var:/opt/athenz/zts/var:rw
-      - ./docker/zts/conf:/opt/athenz/zts/conf/zts_server:ro
-      - ./docker/zts/conf/athenz.conf:/opt/athenz/zts/conf/athenz/athenz.conf:ro
+      - ./docker/zts/conf:/opt/athenz/zts/conf/zts_server:rw
+      - ./docker/zts/conf:/opt/athenz/zts/conf/athenz:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zts
@@ -131,12 +131,12 @@ services:
 
   athenz-db:
     container_name: athenz-db
-    #image: ghcr.io/ctyano/athenz-db:v${ATHENZ_VERSION}
+    #image: ghcr.io/ctyano/athenz-db:v${VERSION}
     build:
       context: .
       dockerfile: ./docker/db/Dockerfile
       args:
-        VERSION: ${ATHENZ_VERSION}
+        VERSION: ${VERSION}
     ports:
       - target: 3306
         published: 3306
@@ -154,6 +154,7 @@ services:
 
   athenz-auth-core:
     container_name: athenz-auth-core
+    #image: ghcr.io/ctyano/athenz-auth-core:v${VERSION}
     image: ghcr.io/ctyano/athenz-auth-core:latest
     environment:
       JAR_DESTINATION: /athenz/plugins/

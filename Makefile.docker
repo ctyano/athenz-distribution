@@ -9,19 +9,22 @@ clean-docker:
 clean-athenz: clean-docker clean-certificates
 
 copy-to-compose:
+	mkdir admin ||:
 	cp -r keys certs admin/
 	cp -r keys certs docker/zms/var/
 	cp -r keys certs docker/zts/var/
+	chmod -R a+r admin docker/zms/var/keys docker/zms/var/certs docker/zts/var/keys docker/zts/var/certs
+	chmod -R a+rw docker/zts/conf docker/zts/var
 	cp athenz/servers/zms/schema/zms_server.sql docker/db/schema/zms_server.sql
 	cp athenz/servers/zts/schema/zts_server.sql docker/db/schema/zts_server.sql
 
 setup-athenz:
-	docker compose -f docker-compose.yaml build
-	docker compose -f docker-compose.yaml up -d
+	docker compose -f docker-compose.yaml up --build --pull always --no-start -d
 
-deploy-athenz: copy-to-compose setup-athenz setup-zms setup-zts check-athenz
+deploy-athenz: copy-to-compose setup-athenz start-db start-zms start-zts check-athenz
 
-check-db:
+start-db:
+	docker compose start athenz-db
 	SLEEP_SECONDS=10; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -42,7 +45,9 @@ done
 	@echo "**********************************"
 	@echo ""
 
-check-zms:
+start-zms:
+	docker compose start athenz-auth-core ||:
+	docker compose start athenz-zms-server
 	SLEEP_SECONDS=10; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -63,11 +68,10 @@ done
 	@echo "**********************************"
 	@echo ""
 
-setup-zms: check-db
-	docker compose restart athenz-zms-server
-
-setup-zts: check-zms
-	docker exec -it athenz-cli \
+start-zts:
+	docker compose start athenz-auth-core ||:
+	docker compose start athenz-cli
+	docker compose exec -T athenz-cli \
 zms-cli \
 	-c /var/run/athenz/certs/ca.cert.pem \
 	-key /var/run/athenz/keys/athenz_admin.private.pem \
@@ -75,15 +79,34 @@ zms-cli \
 	-z https://athenz-zms-server:4443/zms/v1 \
 	-d sys.auth \
 	add-service zts "0" /var/zts/keys/zts.public.pem
-	docker exec -it athenz-cli \
+	docker compose exec -T athenz-cli \
 athenz-conf \
 	-c /var/run/athenz/certs/ca.cert.pem \
 	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
 	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
 	-z https://athenz-zms-server:4443/zms/v1 \
-	-t https://athenz-zms-server:4443/zts/v1 \
+	-t https://athenz-zts-server:8443/zts/v1 \
 	-o /conf/zts/athenz.conf
-	docker compose restart athenz-zts-server
+	docker compose start athenz-zts-server
+	SLEEP_SECONDS=10; \
+WAITING_THRESHOLD=60; \
+i=0; \
+while [ $$(( $$(docker compose -f docker-compose.yaml ps athenz-zts-server | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps athenz-zts-server | grep -E "Up " | wc -l) )) ]; do \
+	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	sleep $${SLEEP_SECONDS}; \
+	i=$$(( i + 1 )); \
+	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		docker compose -f docker-compose.yaml logs athenz-zts-server; \
+		exit 1; \
+	fi; \
+done
+	docker compose -f docker-compose.yaml ps athenz-zts-server
+	@echo ""
+	@echo "**********************************"
+	@echo "***  ZTS Deployed Successfully ***"
+	@echo "**********************************"
+	@echo ""
 
 check-athenz:
 	SLEEP_SECONDS=10; \
@@ -107,9 +130,9 @@ done
 	@echo ""
 
 test-athenz-zms-server:
-	docker exec -it athenz-cli \
+	docker compose exec -T athenz-cli \
 curl \
-	-s \
+	-sf \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
@@ -117,17 +140,17 @@ curl \
 | cat; echo
 
 test-athenz-zts-server:
-	docker exec -it athenz-cli \
+	docker compose exec -T athenz-cli \
 curl \
-	-s \
+	-sf \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
-	https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
+	https://athenz-zts-server:8443/zts/v1/domain/sys.auth/service \
 | cat; echo
 
 test-zms-cli:
-	docker exec -it athenz-cli \
+	docker compose exec -T athenz-cli \
 zms-cli \
 	-z https://athenz-zms-server:4443/zms/v1 \
 	-c /var/run/athenz/certs/ca.cert.pem \
@@ -136,10 +159,10 @@ zms-cli \
 	show-domain sys.auth
 
 test-zts-roletoken:
-	docker exec -it athenz-cli -- \
+	docker compose exec -T athenz-cli \
 zts-roletoken \
-	-zts https://athenz-zts-server:4443/zts/v1 \
-	-c /var/run/athenz/certs/ca.cert.pem \
+	-zts https://athenz-zts-server:8443/zts/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
 	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
 	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
 	-domain sys.auth \
@@ -148,10 +171,10 @@ zts-roletoken \
 | tr ';' '\n'
 
 test-zts-accesstoken:
-	docker exec -it athenz-cli -- \
+	docker compose exec -T athenz-cli \
 zts-accesstoken \
-	-zts https://athenz-zts-server:4443/zts/v1 \
-	-c /var/run/athenz/certs/ca.cert.pem \
+	-zts https://athenz-zts-server:8443/zts/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
 	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
 	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
 	-domain sys.auth \
@@ -161,36 +184,36 @@ zts-accesstoken \
 | jq -r .
 
 test-jwks:
-	docker exec -it athenz-cli -- \
+	docker compose exec -T athenz-cli \
 curl \
-	-s \
+	-sf \
 	-H"Content-type: application/json" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
 	--key /var/run/athenz/keys/athenz_admin.private.pem \
 	--cert /var/run/athenz/certs/athenz_admin.cert.pem \
-	"https://athenz-zts-server:4443/zts/v1/oauth2/keys?rfc=true" \
+	"https://athenz-zts-server:8443/zts/v1/oauth2/keys?rfc=true" \
 | tee ./jwks.json \
 | jq -r .
 
 test-policies:
-	docker exec -it athenz-cli -- \
+	docker compose exec -T athenz-cli \
 curl \
-	-sXPOST \
+	-sfXPOST \
 	-H "Content-type: application/json" \
 	-d"{\"policyVersions\":{\"\":\"\"}}" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
 	--key /var/run/athenz/keys/athenz_admin.private.pem \
 	--cert /var/run/athenz/certs/athenz_admin.cert.pem \
-	"https://athenz-zts-server:4443/zts/v1/domain/sys.auth/policy/signed" \
+	"https://athenz-zts-server:8443/zts/v1/domain/sys.auth/policy/signed" \
 | jq -r '[.protected,.payload,.signature] | join(".")' \
 | jq -Rr 'split(".") | .[0,1] | @base64d' \
 | jq -r .
 
 test-verify: test-jwks
-	docker exec -it athenz-cli -- \
+	docker compose exec -T athenz-cli \
 zts-accesstoken \
-	-zts https://athenz-zts-server:4443/zts/v1 \
-	-c /var/run/athenz/certs/ca.cert.pem \
+	-zts https://athenz-zts-server:8443/zts/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
 	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
 	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
 	-domain sys.auth \
@@ -199,15 +222,15 @@ zts-accesstoken \
 | step crypto jws verify --jwks=jwks.json \
 && printf "\nValid Access Token\n" || printf "\nInvalid Access Token\n"
 	@echo ""
-	docker exec -it athenz-cli -- \
+	docker compose exec -T athenz-cli \
 curl \
-	-sXPOST \
+	-sfXPOST \
 	-H "Content-type: application/json" \
 	-d"{\"policyVersions\":{\"\":\"\"}}" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
 	--key /var/run/athenz/keys/athenz_admin.private.pem \
 	--cert /var/run/athenz/certs/athenz_admin.cert.pem \
-	"https://athenz-zts-server:4443/zts/v1/domain/sys.auth/policy/signed" \
+	"https://athenz-zts-server:8443/zts/v1/domain/sys.auth/policy/signed" \
 | jq -r '[.protected,.payload,.signature] | join(".")' \
 | step crypto jws verify --jwks=jwks.json \
 && printf "\nValid Policy\n" || printf "\nInvalid Policy\n"

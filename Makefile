@@ -3,7 +3,7 @@ SUBMODULE := $(shell git submodule add --force https://github.com/AthenZ/athenz.
 endif
 
 ifeq ($(VERSION),)
-VERSION := $(shell git submodule status | sed 's/^.* athenz (.*v\([0-9]*\.[0-9]*\.[0-9]*\).*)/\1/g')
+VERSION := $(shell git submodule status | sed 's/^.* athenz \(.*v\([0-9]*\.[0-9]*\.[0-9]*\).*\)/\1/g')
 endif
 
 ifeq ($(PATCH),)
@@ -36,10 +36,10 @@ DOCKER_REGISTRY=ghcr.io/$${USER}/
 endif
 
 ifeq ($(DOCKER_TAG),)
-ifneq ($(VERSION),)
-DOCKER_TAG=:v$(VERSION)
+ifeq ($(VERSION),)
+DOCKER_TAG := :latest
 else
-DOCKER_TAG=:latest
+DOCKER_TAG := :v$(VERSION)
 endif
 endif
 
@@ -115,7 +115,6 @@ build-java: checkout-version install-rdl-tools patch
 		-pl core/zms \
 		-pl core/zts \
 		-pl core/msd \
-		-pl rdl/rdl-gen-athenz-go-model \
 		-pl rdl/rdl-gen-athenz-java-model \
 		-pl rdl/rdl-gen-athenz-java-client \
 		-pl clients/java/zms \
@@ -192,21 +191,26 @@ version:
 	@echo "Tag Version: v$(VERSION)"
 
 install-pathman:
-	curl -s https://webi.sh/pathman | sh
+	curl -sf https://webi.sh/pathman | sh
 
 install-jq: install-pathman
-	curl -s https://webi.sh/jq | sh
+	curl -sf https://webi.sh/jq | sh
 	~/.local/bin/pathman add ~/.local/bin
 
 install-yq: install-pathman
-	curl -s https://webi.sh/yq | sh
+	curl -sf https://webi.sh/yq | sh
 	~/.local/bin/pathman add ~/.local/bin
 
-install-parsers: install-jq install-yq
+install-step: install-pathman
+	STEP_VERSION=$$(curl -sf https://api.github.com/repos/smallstep/cli/releases | jq -r .[].tag_name | grep -E '^v[0-9]*.[0-9]*.[0-9]*$$' | head -n1 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g'); \
+	curl -fL "https://github.com/smallstep/cli/releases/download/v$${STEP_VERSION}/step_linux_$${STEP_VERSION}_amd64.tar.gz" | tar -xz -C $$HOME/.local/bin/ \
+	&& ln -s $$HOME/.local/bin/step_$${STEP_VERSION}/bin/step $$HOME/.local/bin/step
+	~/.local/bin/pathman add ~/.local/bin
+
+install-parsers: install-jq install-yq install-step
 
 clean-certificates:
 	rm -rf keys certs
-	@$(MAKE) -f Makefile.kubernetes clean-certificates
 
 generate-ca:
 	mkdir keys certs ||:
@@ -249,7 +253,7 @@ generate-admin: generate-ca
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin
 
-clean-k8s-athenz:
+clean-k8s-athenz: clean-certificates
 	@$(MAKE) -f Makefile.kubernetes clean-athenz
 
 deploy-k8s-athenz: generate-certificates

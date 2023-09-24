@@ -214,7 +214,7 @@ install-yq: install-pathman
 install-step: install-pathman
 	STEP_VERSION=$$(curl -sf https://api.github.com/repos/smallstep/cli/releases | jq -r .[].tag_name | grep -E '^v[0-9]*.[0-9]*.[0-9]*$$' | head -n1 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g'); \
 	curl -fL "https://github.com/smallstep/cli/releases/download/v$${STEP_VERSION}/step_$(GOOS)_$${STEP_VERSION}_$(GOARCH).tar.gz" | tar -xz -C ~/.local/bin/ \
-	&& ln -s ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step
+	&& ln -sf ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step
 	~/.local/bin/pathman add ~/.local/bin
 
 install-parsers: install-jq install-yq install-step

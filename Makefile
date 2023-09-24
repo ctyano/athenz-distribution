@@ -43,6 +43,16 @@ DOCKER_TAG := :v$(VERSION)
 endif
 endif
 
+ifeq ($(GOOS),)
+GOOS=$(shell go env GOOS | sed -e "s/'//g")
+export GOPATH
+endif
+
+ifeq ($(GOARCH),)
+GOARCH=$(shell go env GOARCH | sed -e "s/'//g")
+export GOPATH
+endif
+
 ifeq ($(GOPATH),)
 GOPATH=$(shell go env GOPATH | sed -e "s/'//g")
 export GOPATH
@@ -203,8 +213,8 @@ install-yq: install-pathman
 
 install-step: install-pathman
 	STEP_VERSION=$$(curl -sf https://api.github.com/repos/smallstep/cli/releases | jq -r .[].tag_name | grep -E '^v[0-9]*.[0-9]*.[0-9]*$$' | head -n1 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g'); \
-	curl -fL "https://github.com/smallstep/cli/releases/download/v$${STEP_VERSION}/step_linux_$${STEP_VERSION}_amd64.tar.gz" | tar -xz -C $$HOME/.local/bin/ \
-	&& ln -s $$HOME/.local/bin/step_$${STEP_VERSION}/bin/step $$HOME/.local/bin/step
+	curl -fL "https://github.com/smallstep/cli/releases/download/v$${STEP_VERSION}/step_$(GOOS)_$${STEP_VERSION}_$(GOARCH).tar.gz" | tar -xz -C ~/.local/bin/ \
+	&& ln -s ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step
 	~/.local/bin/pathman add ~/.local/bin
 
 install-parsers: install-jq install-yq install-step

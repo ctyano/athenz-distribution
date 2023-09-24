@@ -9,21 +9,7 @@ It is currently owned and maintained by [ctyano](https://github.com/ctyano).
 ⚠️  Prerequisite: A Kubernetes Cluster must be set up before continuing to further steps.
 
 ```
-make clean-athenz
-```
-
-```
-make generate-certificates copy-to-kustomization
-```
-
-```
-make setup-athenz
-```
-
-or
-
-```
-make deploy-athenz
+make clean-k8s-athenz deploy-k8s-athenz
 ```
 
 ## Documentation

@@ -206,7 +206,7 @@ jobs:
         run: |
           DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
           PUSH=${{ github.event_name != 'pull_request' }} \
-          make build
+          make buildx
         #uses: docker/build-push-action@v4
         #with:
         #  context: .

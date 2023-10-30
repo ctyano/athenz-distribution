@@ -10,10 +10,6 @@ on:
   # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
-  pull_request:
-    branches: [ main ]
-  push:
-    branches: [ main ]
   workflow_call:
   workflow_dispatch:
 
@@ -107,6 +103,7 @@ jobs:
         with:
           cluster_name: kind
 
+      # A GitHub Action to deploy application with Kubernetes IN Docker
       -
         name: Deploy Application
         run: |
@@ -127,10 +124,10 @@ jobs:
                 | head -n1 \
             )"
           fi
-          # Use kubectl or your preferred Kubernetes deployment tool to deploy your application to KinD
           set -ex
           USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${ATHENZ_PACKAGE_VERSION} make build load-k8s-images deploy-k8s-athenz
 
+      # A GitHub Action to check and test application
       -
         name: Run Tests
         run: |

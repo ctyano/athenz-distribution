@@ -21,28 +21,8 @@ on:
 jobs:
 
   # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
-  docker-build-publish:
-    name: "Build and Publish Docker Images"
-    uses: ./.github/workflows/docker-build-publish.yaml
-    secrets: inherit
-    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
-    permissions:
-      actions: none
-      checks: none
-      contents: read
-      deployments: none
-      issues: none
-      discussions: none
-      packages: write
-      pull-requests: none
-      repository-projects: none
-      security-events: none
-      statuses: none
-
-  # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
-  kubernetes:
+  test-kubernetes:
     name: "Test running on Kubernetes Cluster"
-    needs: docker-build-publish
     uses: ./.github/workflows/test-kubernetes.yaml
     secrets: inherit
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
@@ -54,6 +34,26 @@ jobs:
       issues: none
       discussions: none
       packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+  # https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability
+  docker-build-publish:
+    name: "Build and Publish Docker Images"
+    needs: test-kubernetes
+    uses: ./.github/workflows/docker-build-publish.yaml
+    secrets: inherit
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: write
       pull-requests: none
       repository-projects: none
       security-events: none

@@ -15,6 +15,10 @@ copy-to-kustomization:
 	cp athenz/servers/zms/schema/zms_server.sql k8s/athenz-db/kustomize/zms_server.sql
 	cp athenz/servers/zts/schema/zts_server.sql k8s/athenz-db/kustomize/zts_server.sql
 
+load-images:
+	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
+	kind load docker-image ghcr.io/ctyano/athenz-zms-server:latest ghcr.io/ctyano/athenz-zts-server:latest ghcr.io/ctyano/athenz-cli:latest
+
 setup-athenz-db:
 	kubectl apply -k k8s/athenz-db/kustomize
 

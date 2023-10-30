@@ -2,8 +2,16 @@ ifeq ($(wildcard athenz),)
 SUBMODULE := $(shell git submodule add --force https://github.com/AthenZ/athenz.git athenz)
 endif
 
+ifeq ($(DOCKER_TAG),)
 ifeq ($(VERSION),)
 VERSION := $(shell git submodule status | sed 's/^.* athenz \(.*v\([0-9]*\.[0-9]*\.[0-9]*\).*\)/\1/g')
+ifeq ($(VERSION),)
+VERSION := $(shell  \(.*v\([0-9]*\.[0-9]*\.[0-9]*\).*\)/\1/g')
+endif
+DOCKER_TAG := :latest
+else
+DOCKER_TAG := :v$(VERSION)
+endif
 endif
 
 ifeq ($(PATCH),)
@@ -29,18 +37,10 @@ ifeq ($(XPLATFORMS),)
 XPLATFORMS := linux/amd64,linux/arm64
 endif
 XPLATFORM_ARGS := --platform=$(XPLATFORMS)
-BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' $(XPLATFORM_ARGS) $(PUSH_OPTION)
+BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)'
 
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/$${USER}/
-endif
-
-ifeq ($(DOCKER_TAG),)
-ifeq ($(VERSION),)
-DOCKER_TAG := :latest
-else
-DOCKER_TAG := :v$(VERSION)
-endif
 endif
 
 ifeq ($(GOOS),)
@@ -63,41 +63,73 @@ GOCACHE=$(shell go env GOCACHE | sed -e "s/'//g")
 export GOCACHE
 endif
 
-.PHONY: build
+.PHONY: buildx
 
 .SILENT: version
 
-build: athenz-db athenz-zms-server athenz-zts-server athenz-cli athenz-ui
+build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui
 
-athenz-db:
+build-athenz-db:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-athenz-zms-server: build-java
+build-athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-athenz-zts-server: build-java
+build-athenz-zts-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-athenz-ui:
+build-athenz-ui:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-athenz-cli: build-go
+build-athenz-cli:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
+buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
+
+buildx-athenz-db:
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
+	DOCKERFILE_PATH=./docker/db/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
+buildx-athenz-zms-server: build-java
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
+	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
+buildx-athenz-zts-server: build-java
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
+	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
+buildx-athenz-ui:
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
+	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
+buildx-athenz-cli:
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 install-rdl-tools:
 	go install github.com/ardielle/ardielle-go/...@master && \
@@ -142,7 +174,7 @@ build-java: checkout-version install-rdl-tools patch
 		-pl assembly/zms \
 		-pl assembly/zts
 
-build-go: submodule-update install-rdl-tools
+build-go: checkout-version install-rdl-tools
 	go install github.com/ardielle/ardielle-go/...@master && \
 	go install github.com/ardielle/ardielle-tools/...@master && \
 	mkdir -p athenz/clients/go/zms/bin && \
@@ -191,7 +223,7 @@ checkout:
 	@cd athenz/ && git checkout .
 
 submodule-update: checkout
-	@git submodule update --init
+	@git submodule update --init --remote
 
 checkout-version: submodule-update
 	@cd athenz/ && git fetch --refetch --tags origin && git checkout v$(VERSION)
@@ -266,6 +298,9 @@ generate-certificates: generate-ca generate-zms generate-zts generate-admin
 clean-k8s-athenz: clean-certificates
 	@$(MAKE) -f Makefile.kubernetes clean-athenz
 
+load-k8s-images: build
+	@$(MAKE) -f Makefile.kubernetes load-images
+
 deploy-k8s-athenz: generate-certificates
 	@$(MAKE) -f Makefile.kubernetes deploy-athenz
 
@@ -278,7 +313,7 @@ test-k8s-athenz: install-parsers
 clean-docker-athenz: clean-certificates
 	@$(MAKE) -f Makefile.docker clean-athenz
 
-deploy-docker-athenz: build-java build-go generate-certificates
+deploy-docker-athenz: build-java generate-certificates
 	@$(MAKE) -f Makefile.docker deploy-athenz
 
 check-docker-athenz: install-parsers

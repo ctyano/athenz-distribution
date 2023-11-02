@@ -298,7 +298,7 @@ generate-certificates: generate-ca generate-zms generate-zts generate-admin
 clean-k8s-athenz: clean-certificates
 	@$(MAKE) -f Makefile.kubernetes clean-athenz
 
-load-k8s-images: build
+load-k8s-images:
 	@$(MAKE) -f Makefile.kubernetes load-images
 
 deploy-k8s-athenz: generate-certificates

@@ -43,6 +43,7 @@ jobs:
   docker-build-publish:
     name: "Build and Publish Docker Images"
     needs: test-kubernetes
+    if: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     uses: ./.github/workflows/docker-build-publish.yaml
     secrets: inherit
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions

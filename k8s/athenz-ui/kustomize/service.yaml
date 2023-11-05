@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: athenz-ui
+  labels:
+    app.kubernetes.io/name: athenz-ui
+    app.kubernetes.io/instance: athenz-ui
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: athenz-ui
+    app.kubernetes.io/instance: athenz-ui
+  ports:
+    - name: https
+      port: 443
+      targetPort: 4443
+      protocol: TCP

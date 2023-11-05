@@ -23,33 +23,37 @@ services:
       - ./docker/zts/conf:/conf/zts:rw
     restart: unless-stopped
 
-#  athenz-ui:
-#    container_name: athenz-ui
-#    hostname: localhost
-#    expose:
-#      - 443
-#      - 3000
-#    depends_on:
-#      - athenz-zms-server
-#    image: ghcr.io/ctyano/athenz-ui:v${VERSION}
-#    ports:
-#      - target: 3000
-#        published: 3000
-#        protocol: tcp
-#        mode: host
-#      - target: 443
-#        published: 443
-#        protocol: tcp
-#        mode: host
-#    volumes:
-#      - ./docker/ui/keys:/home/athenz/keys:ro
-#      - ./docker/ui/conf:/home/athenz/src/config:ro
-#    environment:
-#      TZ: Asia/Tokyo
-#      ROOT: /home/athenz
-#      NODE_ENV: production
-#      PORT: 3000
-#    restart: unless-stopped
+  athenz-ui:
+    container_name: athenz-ui
+    hostname: localhost
+    expose:
+      - 443
+    depends_on:
+      - athenz-zms-server
+    #image: ghcr.io/ctyano/athenz-ui:v${VERSION}
+    build:
+      context: .
+      dockerfile: ./docker/ui/Dockerfile
+      args:
+        VERSION: ${VERSION}
+    ports:
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./docker/ui/tls:/home/athenz/tls:ro
+    environment:
+      TZ: Asia/Tokyo
+      NODE_ENV: dev
+      DEBUG: AthenzUI:*
+      PORT: 443
+      ZMS_SERVER_URL: https://zms.athenz.ctyano.com:4443/zms/v1/
+      UI_CERT_KEY_PATH: /home/athenz/tls/ui.private.pem
+      UI_CERT_PATH: /home/athenz/tls/ui.cert.pem
+      ATHENZ_PUBLIC_CERT: /home/athenz/tls/ui.cert.pem
+      ATHENZ_PRIVATE_KEY: /home/athenz/tls/ui.private.pem
+    restart: unless-stopped
 
   athenz-zms-server:
     container_name: athenz-zms-server

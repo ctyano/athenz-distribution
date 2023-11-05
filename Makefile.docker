@@ -2,6 +2,7 @@ clean-certificates:
 	rm -rf admin/{keys,certs}
 	rm -rf docker/zms/var/{keys,certs}
 	rm -rf docker/zts/var/{keys,certs}
+	rm -rf docker/ui/tls/*.*
 
 clean-docker:
 	docker compose -f docker-compose.yaml down
@@ -13,7 +14,8 @@ copy-to-compose:
 	cp -r keys certs admin/
 	cp -r keys certs docker/zms/var/
 	cp -r keys certs docker/zts/var/
-	chmod -R a+r admin docker/zms/var/keys docker/zms/var/certs docker/zts/var/keys docker/zts/var/certs
+	cp -r keys/*.* certs/*.* docker/ui/tls/
+	chmod -R a+r admin docker/zms/var/keys docker/zms/var/certs docker/zts/var/keys docker/zts/var/certs docker/ui/tls
 	chmod -R a+rw docker/zts/conf docker/zts/var
 	cp athenz/servers/zms/schema/zms_server.sql docker/db/schema/zms_server.sql
 	cp athenz/servers/zts/schema/zts_server.sql docker/db/schema/zts_server.sql

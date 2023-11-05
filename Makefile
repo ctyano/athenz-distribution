@@ -6,7 +6,7 @@ ifeq ($(DOCKER_TAG),)
 ifeq ($(VERSION),)
 VERSION := $(shell git submodule status | sed 's/^.* athenz \(.*v\([0-9]*\.[0-9]*\.[0-9]*\).*\)/\1/g')
 ifeq ($(VERSION),)
-VERSION := $(shell  \(.*v\([0-9]*\.[0-9]*\.[0-9]*\).*\)/\1/g')
+VERSION := $(shell cat athenz/pom.xml | grep -E "<version>[0-9]+.[0-9]+.[0-9]+</version>" | head -n1 | sed -e 's/.*>\([0-9]*\.[0-9]*\.[0-9]*\)<.*/\1/g')
 endif
 DOCKER_TAG := :latest
 else
@@ -73,31 +73,31 @@ build-athenz-db:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zts-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-ui:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-cli:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
-	DOCKER_BUILDKIT=1 docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 
@@ -293,12 +293,20 @@ generate-admin: generate-ca
 	&& openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req \
 	&& openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin
+generate-ui: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out keys/ui.private.pem 4096 \
+	&& openssl rsa -pubout -in keys/ui.private.pem -out keys/ui.public.pem \
+	&& openssl req -config openssl/ui.openssl.config -new -key keys/ui.private.pem -out certs/ui.csr.pem -extensions ext_req \
+	&& openssl x509 -req -in certs/ui.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/ui.cert.pem -days 99999 -extfile openssl/ui.openssl.config -extensions ext_req \
+	&& openssl verify -CAfile certs/ca.cert.pem certs/ui.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui
 
 clean-k8s-athenz: clean-certificates
 	@$(MAKE) -f Makefile.kubernetes clean-athenz
 
-load-k8s-images:
+load-k8s-images: version
 	@$(MAKE) -f Makefile.kubernetes load-images
 
 deploy-k8s-athenz: generate-certificates
@@ -313,7 +321,7 @@ test-k8s-athenz: install-parsers
 clean-docker-athenz: clean-certificates
 	@$(MAKE) -f Makefile.docker clean-athenz
 
-deploy-docker-athenz: build-java generate-certificates
+deploy-docker-athenz: generate-certificates
 	@$(MAKE) -f Makefile.docker deploy-athenz
 
 check-docker-athenz: install-parsers

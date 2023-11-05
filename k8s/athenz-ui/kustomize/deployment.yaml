@@ -1,0 +1,176 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: athenz-ui
+  labels:
+    app.kubernetes.io/name: athenz-ui
+    app.kubernetes.io/instance: athenz-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: athenz-ui
+      app.kubernetes.io/instance: athenz-ui
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: athenz-ui
+        app.kubernetes.io/instance: athenz-ui
+    spec:
+      restartPolicy: Always
+      dnsPolicy: "ClusterFirst"
+      volumes:
+        - name: athenz-ui-keys
+          secret:
+            secretName: athenz-ui-keys
+            defaultMode: 0555
+            items:
+              - key: ui.private.pem
+                path: ui.private.pem
+              - key: ui.public.pem
+                path: ui.public.pem
+              - key: ui.cert.pem
+                path: ui.cert.pem
+        - name: athenz-admin-keys
+          secret:
+            secretName: athenz-admin-keys
+            defaultMode: 0555
+            items:
+              - key: athenz_admin.cert.pem
+                path: athenz_admin.cert.pem
+              - key: athenz_admin.private.pem
+                path: athenz_admin.private.pem
+        - name: athenz-cacert
+          configMap:
+            name: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+      initContainers:
+        - name: zms-cli
+          image: &athenz-cli-image ghcr.io/ctyano/athenz-cli:latest
+          imagePullPolicy: &athenz-cli-imagePullPolicy IfNotPresent
+          env: &athenz-cli-env
+            - name: TZ
+              value: Asia/Tokyo
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              zms-cli \
+                -key /athenz/admin/athenz_admin.private.pem \
+                -cert /athenz/admin/athenz_admin.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z https://athenz-zms-server:4443/zms/v1 \
+                -d sys.auth \
+                show-service webui \
+              && \
+              zms-cli \
+                -key /athenz/admin/athenz_admin.private.pem \
+                -cert /athenz/admin/athenz_admin.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z https://athenz-zms-server:4443/zms/v1 \
+                -d sys.auth \
+                add-public-key webui "${HOSTNAME}" /athenz/ui/ui.public.pem \
+              || \
+              zms-cli \
+                -key /athenz/admin/athenz_admin.private.pem \
+                -cert /athenz/admin/athenz_admin.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z https://athenz-zms-server:4443/zms/v1 \
+                -d sys.auth \
+                add-service webui "${HOSTNAME}" /athenz/ui/ui.public.pem
+          resources:
+            limits:
+              memory: 32Mi
+              cpu: 100m
+            requests:
+              memory: 16Mi
+              cpu: 50m
+          volumeMounts:
+            - name: athenz-admin-keys
+              mountPath: /athenz/admin
+              readOnly: true
+            - name: athenz-ui-keys
+              mountPath: /athenz/ui
+              readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
+              readOnly: true
+      containers:
+        - name: athenz-ui
+          image: ghcr.io/ctyano/athenz-ui:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: dev
+            - name: DEBUG
+              value: AthenzUI:*
+            - name: PORT
+              value: "4443"
+            - name: ZMS_SERVER_URL
+              value: https://athenz-zms-server.athenz:4443/zms/v1/
+            - name: UI_CERT_KEY_PATH
+              value: /home/athenz/tls/ui.private.pem
+            - name: UI_CERT_PATH
+              value: /home/athenz/tls/ui.cert.pem
+            - name: ATHENZ_PRIVATE_KEY
+              value: /home/athenz/tls/ui.private.pem
+            - name: ATHENZ_PUBLIC_CERT
+              value: /home/athenz/tls/ui.cert.pem
+          ports:
+            - name: https
+              containerPort: 4443
+              protocol: TCP
+          readinessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 3
+            failureThreshold: 5
+            exec:
+              command:
+                - curl
+                - -s
+                - -H
+                - "X-Auth-Request-Preferred-Username: athenz_admin"
+                - -H
+                - "X-Auth-Request-Email: athenz_admin@www.athenz.io"
+                - --fail
+                - --resolve
+                - athenz-ui.athenz:4443:::1
+                - https://athenz-ui.athenz:4443/
+          livenessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+            exec:
+              command:
+                - curl
+                - -s
+                - -H
+                - "X-Auth-Request-Preferred-Username: athenz_admin"
+                - -H
+                - "X-Auth-Request-Email: athenz_admin@www.athenz.io"
+                - --fail
+                - --resolve
+                - athenz-ui.athenz:4443:::1
+                - https://athenz-ui.athenz:4443/
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 2
+            requests:
+              memory: 100Mi
+              cpu: 200m
+          volumeMounts:
+            - name: athenz-ui-keys
+              mountPath: /home/athenz/tls
+              readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true

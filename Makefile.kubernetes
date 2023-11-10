@@ -51,11 +51,7 @@ while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; d
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
 		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		kubectl -n athenz get all; \
-		kubectl -n athenz logs statefulset/athenz-db --all-containers=true ||:; \
-		kubectl -n athenz logs deployment/athenz-zms-server --all-containers=true ||:; \
-		kubectl -n athenz logs deployment/athenz-zts-server --all-containers=true ||:; \
-		kubectl -n athenz logs deployment/athenz-cli --all-containers=true ||:; \
-		kubectl -n athenz logs deployment/athenz-ui --all-containers=true ||:; \
+		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/.*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||: \
 		exit 1; \
 	fi; \
 done

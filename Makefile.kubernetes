@@ -45,13 +45,13 @@ check-athenz:
 WAITING_THRESHOLD=300; \
 i=0; \
 while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
 		kubectl -n athenz get all; \
-		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/.*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||: \
 		exit 1; \
 	fi; \
 done

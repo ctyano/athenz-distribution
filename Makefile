@@ -4,7 +4,7 @@ endif
 
 ifeq ($(DOCKER_TAG),)
 ifeq ($(VERSION),)
-VERSION := $(shell git submodule status | sed 's/^.* athenz \(.*v\([0-9]*\.[0-9]*\.[0-9]*\).*\)/\1/g')
+VERSION := $(shell git submodule status | sed 's/^.* athenz .*v\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/g')
 ifeq ($(VERSION),)
 VERSION := $(shell cat athenz/pom.xml | grep -E "<version>[0-9]+.[0-9]+.[0-9]+</version>" | head -n1 | sed -e 's/.*>\([0-9]*\.[0-9]*\.[0-9]*\)<.*/\1/g')
 endif

@@ -1,8 +1,7 @@
-ARG BUILDER_IMAGE=docker.io/library/alpine:3
-ARG RUNTIME_IMAGE=docker.io/library/alpine:3
+ARG BUILDER_IMAGE=docker.io/library/node:hydrogen-alpine
+ARG RUNTIME_IMAGE=docker.io/library/node:hydrogen-alpine
 
-#FROM --platform=${BUILDPLATFORM} ${BUILDER_IMAGE} AS builder
-FROM --platform=${BUILDPLATFORM} docker.io/library/node:hydrogen-alpine AS builder
+FROM ${BUILDER_IMAGE} AS builder
 
 #RUN apk add --no-cache ca-certificates net-tools wget unzip curl openssl git jq tzdata tree netcat-openbsd bash make nodejs-current npm
 RUN set -eux && apk update && apk add --no-cache --update ca-certificates libstdc++ libgcc tini make git bash
@@ -10,12 +9,18 @@ RUN set -eux && apk update && apk add --no-cache --update ca-certificates libstd
 WORKDIR /tmp/work
 
 # dependency cache layer
-COPY athenz/ui/package.json .
+COPY athenz/ui /tmp/work
+COPY docker/ui/src/config/extended-config.js /tmp/work/src/config
+COPY docker/ui/src/server/clients.js /tmp/work/src/server
+COPY docker/ui/src/server/handlers/AuthStrategy.js /tmp/work/src/server/handlers
+COPY docker/ui/src/__tests__/server/handlers/AuthStrategy.test.js /tmp/work/src/__tests__/server/handlers
+
+RUN npm install -g npm
+#RUN npm install --omit=dev
 RUN npm install
 
-COPY athenz/ui /tmp/work
-
-RUN make build
+RUN sed -i 's/\("test": "[^"]*\)/\1 --maxWorkers=8 ...AuthStrategy.test.js/' /tmp/work/package.json
+RUN npm run test
 
 RUN rm -rf scripts \
     && rm -rf __mocks__ \
@@ -31,8 +36,7 @@ RUN rm -rf scripts \
     && rm -rf pom.xml \
     && rm -rf README.md
 
-#FROM ${RUNTIME_IMAGE}
-FROM docker.io/library/node:hydrogen-alpine
+FROM ${RUNTIME_IMAGE}
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'
@@ -51,8 +55,7 @@ LABEL org.opencontainers.image.url="ghcr.io/ctyano/athenz-cli"
 LABEL org.opencontainers.image.documentation="https://www.athenz.io/"
 LABEL org.opencontainers.image.source="https://github.com/AthenZ/athenz"
 
-ENV APP_NAME athenz
-
+ARG APP_NAME=athenz
 ARG GID=1001
 ARG UID=10001
 
@@ -61,31 +64,46 @@ RUN set -eux \
 
 RUN cp /usr/share/zoneinfo/Japan /etc/localtime
 
-RUN mkdir -p /var/lib/sia/tokens/msd-api-access && touch /var/lib/sia/tokens/msd-api-access/msd-api-access-token
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /sbin/tini /sbin/tini
+COPY --from=builder --chown=${UID}:${GID} /tmp/work /home/athenz
+
+RUN mkdir -p /var/lib/sia/tokens/msd-api-access && \
+  touch /var/lib/sia/tokens/msd-api-access/msd-api-access-token
+
+# requires root permission
+RUN npm install -g npm
 
 RUN addgroup -g ${GID} ${APP_NAME} && \
   adduser -S -D -H -s /sbin/nologin -u ${UID} -G ${APP_NAME} ${APP_NAME}
 USER ${APP_NAME}:${APP_NAME}
 
-#WORKDIR /home/athenz
-WORKDIR /opt/athenz/ui
+WORKDIR /home/athenz
 
-#COPY --from=builder --chown=${UID}:${GID} /tmp/work /home/athenz
+ENV NODE_ENV production 
 
-#RUN npm install
-#RUN npm run build
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /sbin/tini /sbin/tini
-COPY --from=builder --chown=${UID}:${GID} /tmp/work /opt/athenz/ui
+RUN npm run build
 
-#ENTRYPOINT ["npm", "run", "dev"]
+RUN mkdir -p /home/athenz/keys
+RUN cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1 > /home/athenz/keys/cookie-session
+
+ENV ZMS_SERVER_URL https://athenz-zms-server.athenz:4443/zms/v1/
+ENV ZMS_LOGIN_URL https://athenz-zms-server.athenz:4443/zms/v1/
+ENV ZMS_CONNECT_SRC_URL https://athenz-zms-server.athenz:4443
+ENV ZTS_LOGIN_URL https://athenz-zts-server.athenz:4443/zts/v1/
+ENV MSD_LOGIN_URL https://localhost:4443/msd/v1/
+ENV UMS_LOGIN_URL https://localhost:4443/ums/v1/
+
+ENV UI_DOMAIN_SERVICE sys.auth.webui
+ENV UI_SERVICE_KEY_VERSION 0
+ENV ATHENZ_PUBLIC_CERT /var/run/athenz/service.cert.pem
+ENV ATHENZ_PRIVATE_KEY /var/run/athenz/service.key.pem
+ENV UI_CERT_PATH /home/athenz/tls/tls.crt
+ENV UI_CERT_KEY_PATH /home/athenz/tls/tls.key
+ENV UI_SESSION_SECRET_PATH /home/athenz/keys/cookie-session
+
+ENV PORT 443
+ENV DEBUG ""
+
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["npm", "start"]
-
-# ENV for healthcheck
-ENV PORT=443
-
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -O - --quiet --tries=1 --no-check-certificate \
-  "https://127.0.0.1:${PORT}/" \
-  || exit 1
+CMD ["node", "--trace-atomics-wait", "app.js"]

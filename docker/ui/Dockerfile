@@ -16,11 +16,11 @@ COPY docker/ui/src/server/handlers/AuthStrategy.js /tmp/work/src/server/handlers
 COPY docker/ui/src/__tests__/server/handlers/AuthStrategy.test.js /tmp/work/src/__tests__/server/handlers
 
 RUN npm install -g npm
-#RUN npm install --omit=dev
-RUN npm install
+RUN npm install --omit=dev
 
-RUN sed -i 's/\("test": "[^"]*\)/\1 --maxWorkers=8 ...AuthStrategy.test.js/' /tmp/work/package.json
-RUN npm run test
+#RUN npm install
+#RUN sed -i 's/\("test": "[^"]*\)/\1 --maxWorkers=8 ...AuthStrategy.test.js/' /tmp/work/package.json
+#RUN npm run test
 
 RUN rm -rf scripts \
     && rm -rf __mocks__ \

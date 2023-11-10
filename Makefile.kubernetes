@@ -36,7 +36,7 @@ setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server
 setup-athenz-ui: setup-athenz-zms-server
 	kubectl apply -k k8s/athenz-ui/kustomize
 
-setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server setup-athenz-ui
+setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server
 
 deploy-athenz: copy-to-kustomization setup-athenz
 
@@ -45,7 +45,7 @@ check-athenz:
 WAITING_THRESHOLD=300; \
 i=0; \
 while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n\n"; \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
@@ -182,4 +182,4 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "**********************************"
 	@echo ""
 
-test-athenz: test-athenz-servers test-athenz-ui test-zms-cli test-zts-accesstoken test-policies test-verify
+test-athenz: test-athenz-servers test-zms-cli test-zts-accesstoken test-policies test-verify

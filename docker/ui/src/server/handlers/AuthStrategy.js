@@ -48,12 +48,18 @@ Strategy.prototype.authenticate = function (req, options) {
     // username e.g. athenz_admin
     const username = req.headers[this.authUserNameHeader];
     const email = req.headers[this.authUserEmailHeader];
+    // req.username e.g. athenz_admin
     req.username = username;
+    // shortId e.g. athenz_admin
     req.session.shortId = username;
     req.user = {
+        // req.user.userDomain e.g. athenz_admin
         userDomain: `${this.userDomain}.${username}`,
+        // req.user.login e.g. athenz_admin@www.athenz.io
         login: email,
     };
+    // req.name e.g. athenz_admin
+    req.name = username;
 
     // these parameters are used in clients.js
     req.authUserNameHeader = this.authUserNameHeader;

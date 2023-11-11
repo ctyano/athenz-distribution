@@ -13,6 +13,7 @@ COPY athenz/ui /tmp/work
 COPY docker/ui/src/config/extended-config.js /tmp/work/src/config
 COPY docker/ui/src/server/clients.js /tmp/work/src/server
 COPY docker/ui/src/server/handlers/AuthStrategy.js /tmp/work/src/server/handlers
+COPY docker/ui/src/pages/index.js /tmp/work/src/pages
 COPY docker/ui/src/__tests__/server/handlers/AuthStrategy.test.js /tmp/work/src/__tests__/server/handlers
 
 RUN npm install -g npm

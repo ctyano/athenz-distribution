@@ -58,7 +58,7 @@ Strategy.prototype.authenticate = function (req, options) {
     // these parameters are used in clients.js
     req.authUserNameHeader = this.authUserNameHeader;
     req.authUserEmailHeader = this.authUserEmailHeader;
-    req.authUserName = `${this.userDomain}.${username}`;
+    req.authUserName = username;
 
     this.success && this.success();
 };

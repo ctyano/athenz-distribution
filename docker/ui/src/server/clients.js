@@ -63,7 +63,7 @@ function setCookieinClients(req) {
         },
         [req.authUserNameHeader]: function (currentReq) {
             if (currentReq.authUserNameHeader) {
-                debug(`Authenticated user principal was: [${req.authUserNameHeader}: ${currentReq.authUserName}]`);
+                debug(`Authenticated username was: [${req.authUserNameHeader}: ${currentReq.authUserName}]`);
                 return currentReq.authUserName;
             }
             return null;

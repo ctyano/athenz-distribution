@@ -136,9 +136,9 @@ spec:
                 - curl
                 - -s
                 - -H
-                - "X-Auth-Request-Preferred-Username: athenz_admin"
+                - "X-Auth-Request-Preferred-Username: readinessProbe"
                 - -H
-                - "X-Auth-Request-Email: athenz_admin@www.athenz.io"
+                - "X-Auth-Request-Email: readinessProbe@www.athenz.io"
                 - --fail
                 - --resolve
                 - athenz-ui.athenz:4443:::1
@@ -152,9 +152,9 @@ spec:
                 - curl
                 - -s
                 - -H
-                - "X-Auth-Request-Preferred-Username: athenz_admin"
+                - "X-Auth-Request-Preferred-Username: livenessProbe"
                 - -H
-                - "X-Auth-Request-Email: athenz_admin@www.athenz.io"
+                - "X-Auth-Request-Email: livenessProbe@www.athenz.io"
                 - --fail
                 - --resolve
                 - athenz-ui.athenz:4443:::1

@@ -19,17 +19,21 @@ const config = {
                 userIcon: '/static/athenz-logo.png',
                 userMail: '',
                 userLink: {
-                    title: 'User Link',
-                    url: '',
+                    title: 'GitHub User Profile',
+                    url: `https://github.com/${user}`,
                     target: '_blank',
                 },
             };
         },
         headerLinks: [
-            { title: 'Website', url: 'http://www.athenz.io', target: '_blank' },
+            {
+                title: 'Website',
+                url: 'http://www.athenz.io/',
+                target: '_blank',
+            },
             {
                 title: 'Getting Started',
-                url: 'https://github.com/AthenZ/athenz/blob/master/README.md',
+                url: 'https://athenz.github.io/athenz/',
                 target: '_blank',
             },
             {
@@ -39,25 +43,24 @@ const config = {
             },
             {
                 title: 'GitHub',
-                url: 'https://github.com/AthenZ/athenz',
+                url: 'https://github.com/ctyano/athenz-distribution',
                 target: '_blank',
             },
             {
-                title: 'Suggest',
-                url: 'https://github.com/AthenZ/athenz/issues',
+                title: 'Contribute',
+                url: 'https://github.com/ctyano/athenz-distribution/pulls',
                 target: '_blank',
             },
             {
                 title: 'Contact Us',
-                url: 'https://www.athenz.io/contact.html',
+                url: 'https://github.com/ctyano/',
                 target: '_blank',
             },
             {
-                title: 'Blog',
-                url: 'https://www.tumblr.com/blog/athenz-security',
-                target: '_blank',
+                title: 'Logout',
+                url: '/login',
+                target: ''
             },
-            { title: 'Logout', url: '/login', target: '' },
         ],
         productMasterLink: {
             title: 'Product ID',
@@ -66,8 +69,8 @@ const config = {
         },
         servicePageConfig: {
             keyCreationLink: {
-                title: 'Key Creation',
-                url: 'https://yahoo.github.io/athenz/site/reg_service_guide/#key-generation',
+                title: 'Service Identity Registration',
+                url: 'https://athenz.github.io/athenz/reg_service_guide/#service-identity-registration',
                 target: '_blank',
             },
             keyCreationMessage:
@@ -78,6 +81,7 @@ const config = {
         cookieSession: process.env.UI_SESSION_SECRET_PATH || 'keys/cookie-session',
         statusPath: process.env.UI_SESSION_SECRET_PATH || 'keys/cookie-session',
         featureFlag: false,
+        templates: [],
         // https://github.com/AthenZ/athenz/pull/2252
         serverCipherSuites:
             'TLS_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_DHE_RSA_WITH_AES_128_GCM_SHA256:TLS_DHE_RSA_WITH_AES_256_GCM_SHA384:TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256',

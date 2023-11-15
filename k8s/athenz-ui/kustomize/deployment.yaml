@@ -37,80 +37,23 @@ spec:
                 path: ui.public.pem
               - key: ui.cert.pem
                 path: ui.cert.pem
-        - name: athenz-admin-keys
-          secret:
-            secretName: athenz-admin-keys
-            defaultMode: 0555
-            items:
-              - key: athenz_admin.cert.pem
-                path: athenz_admin.cert.pem
-              - key: athenz_admin.private.pem
-                path: athenz_admin.private.pem
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt
-      initContainers:
-        - name: zms-cli
-          image: &athenz-cli-image ghcr.io/ctyano/athenz-cli:latest
-          imagePullPolicy: &athenz-cli-imagePullPolicy IfNotPresent
-          env: &athenz-cli-env
-            - name: TZ
-              value: Asia/Tokyo
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
-                -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server:4443/zms/v1 \
-                -d sys.auth \
-                show-service webui \
-              && \
-              zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
-                -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server:4443/zms/v1 \
-                -d sys.auth \
-                add-public-key webui "${HOSTNAME}" /athenz/ui/ui.public.pem \
-              || \
-              zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
-                -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server:4443/zms/v1 \
-                -d sys.auth \
-                add-service webui "${HOSTNAME}" /athenz/ui/ui.public.pem
-          resources:
-            limits:
-              memory: 32Mi
-              cpu: 100m
-            requests:
-              memory: 16Mi
-              cpu: 50m
-          volumeMounts:
-            - name: athenz-admin-keys
-              mountPath: /athenz/admin
-              readOnly: true
-            - name: athenz-ui-keys
-              mountPath: /athenz/ui
-              readOnly: true
-            - name: athenz-cacert
-              mountPath: /etc/ssl/certs
-              readOnly: true
       containers:
         - name: athenz-ui
           image: ghcr.io/ctyano/athenz-ui:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_ENV
-              value: dev
+              value: production
             - name: DEBUG
               value: AthenzUI:*
+            - name: STATIC_USER_NAME
+              value: athenz_admin
             - name: PORT
               value: "4443"
             - name: ZMS_SERVER_URL
@@ -123,6 +66,8 @@ spec:
               value: /home/athenz/tls/ui.private.pem
             - name: ATHENZ_PUBLIC_CERT
               value: /home/athenz/tls/ui.cert.pem
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/ssl/certs/ca-certificates.crt
           ports:
             - name: https
               containerPort: 4443
@@ -136,9 +81,9 @@ spec:
                 - curl
                 - -s
                 - -H
-                - "X-Auth-Request-Preferred-Username: readinessProbe"
+                - "X-Auth-Request-Preferred-Username: readiness_probe"
                 - -H
-                - "X-Auth-Request-Email: readinessProbe@www.athenz.io"
+                - "X-Auth-Request-Email: readiness_probe@www.athenz.io"
                 - --fail
                 - --resolve
                 - athenz-ui.athenz:4443:::1
@@ -152,24 +97,55 @@ spec:
                 - curl
                 - -s
                 - -H
-                - "X-Auth-Request-Preferred-Username: livenessProbe"
+                - "X-Auth-Request-Preferred-Username: liveness_probe"
                 - -H
-                - "X-Auth-Request-Email: livenessProbe@www.athenz.io"
+                - "X-Auth-Request-Email: liveness_probe@www.athenz.io"
                 - --fail
                 - --resolve
                 - athenz-ui.athenz:4443:::1
                 - https://athenz-ui.athenz:4443/
           resources:
             limits:
-              memory: 2Gi
-              cpu: 2
+              memory: 128Mi
+              cpu: 100m
             requests:
-              memory: 100Mi
-              cpu: 200m
+              memory: 64Mi
+              cpu: 50m
           volumeMounts:
             - name: athenz-ui-keys
               mountPath: /home/athenz/tls
               readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
+        # https://github.com/ghostunnel/ghostunnel
+        - name: ghostunnel
+          image: docker.io/ghostunnel/ghostunnel:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          args:
+            - client
+            - --listen
+            - localhost:3000
+            - --target
+            - localhost:4443
+            - --override-server-name
+            - athenz-ui.athenz
+            - --cacert
+            - /etc/ssl/certs/ca-certificates.crt
+            - --disable-authentication
+          resources:
+            limits:
+              memory: 64Mi
+              cpu: 50m
+            requests:
+              memory: 16Mi
+              cpu: 5m
+          volumeMounts:
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt

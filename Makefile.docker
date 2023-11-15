@@ -21,7 +21,6 @@ copy-to-compose:
 	cp athenz/servers/zts/schema/zts_server.sql docker/db/schema/zts_server.sql
 
 setup-athenz:
-	#docker compose -f docker-compose.yaml up --build --pull always --no-start -d
 	docker compose -f docker-compose.yaml up --pull always --no-start -d
 
 deploy-athenz: copy-to-compose setup-athenz start-db start-zms start-zts check-athenz start-ui

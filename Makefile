@@ -146,7 +146,9 @@ install-rdl-tools:
 patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
 
-build-java: checkout-version install-rdl-tools patch
+build-java: checkout-version install-rdl-tools patch athenz/assembly/z*s/target/athenz-z*s-*-bin.tar.gz
+
+athenz/assembly/z*s/target/athenz-z*s-*-bin.tar.gz:
 	mvn -B clean install \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \
@@ -325,8 +327,8 @@ test-k8s-athenz: install-parsers
 clean-docker-athenz: clean-certificates
 	@$(MAKE) -f Makefile.docker clean-athenz
 
-deploy-docker-athenz: generate-certificates
-	@$(MAKE) -f Makefile.docker deploy-athenz
+deploy-docker-athenz: checkout-version generate-certificates
+	@VERSION=$(VERSION) $(MAKE) -f Makefile.docker deploy-athenz
 
 check-docker-athenz: install-parsers
 	@$(MAKE) -f Makefile.docker check-athenz

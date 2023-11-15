@@ -26,6 +26,7 @@ function Strategy(expressApp, config, secrets) {
 
     this.authUserNameHeader = config.authUserNameHeader.toLowerCase();
     this.authUserEmailHeader = config.authUserEmailHeader.toLowerCase();
+    this.staticUserName = config.staticUserName;
 }
 
 /**
@@ -46,8 +47,8 @@ Strategy.prototype.authenticate = function (req, options) {
     debug(`Authenticating with email: [${this.authUserEmailHeader}: ${req.headers[this.authUserEmailHeader]}]`);
 
     // username e.g. athenz_admin
-    const username = req.headers[this.authUserNameHeader];
-    const email = req.headers[this.authUserEmailHeader];
+    const username = req.headers[this.authUserNameHeader] ? req.headers[this.authUserNameHeader] : this.staticUserName;
+    const email = req.headers[this.authUserEmailHeader] ? req.headers[this.authUserEmailHeader] : `${this.staticUserName}@www.athenz.io`;
     // req.username e.g. athenz_admin
     req.username = username;
     // shortId e.g. athenz_admin
@@ -65,6 +66,8 @@ Strategy.prototype.authenticate = function (req, options) {
     req.authUserNameHeader = this.authUserNameHeader;
     req.authUserEmailHeader = this.authUserEmailHeader;
     req.authUserName = username;
+
+    debug(`Authenticated with authUserName: ${req.authUserName}`);
 
     this.success && this.success();
 };

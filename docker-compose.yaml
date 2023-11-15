@@ -23,11 +23,40 @@ services:
       - ./docker/zts/conf:/conf/zts:rw
     restart: unless-stopped
 
-  athenz-ui:
-    container_name: athenz-ui
+  # https://github.com/ghostunnel/ghostunnel
+  ghostunnel:
+    container_name: ghostunnel
+    image: docker.io/ghostunnel/ghostunnel:latest
+    depends_on:
+      - athenz-ui
+    command:
+      - client
+      - --listen
+      - 0.0.0.0:3000
+      - --target
+      - athenz-ui:443
+      - --override-server-name
+      - athenz-ui
+      - --cacert
+      - /home/athenz/tls/ca.cert.pem
+      - --disable-authentication
+      - --unsafe-listen
     hostname: localhost
     expose:
-      - 443
+      - 3000
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+    networks:
+      - athenz
+    volumes:
+      - ./docker/ui/tls:/home/athenz/tls:ro
+    restart: unless-stopped
+
+  athenz-ui:
+    container_name: athenz-ui
     depends_on:
       - athenz-zms-server
     #image: ghcr.io/ctyano/athenz-ui:v${VERSION}
@@ -36,23 +65,31 @@ services:
       dockerfile: ./docker/ui/Dockerfile
       args:
         VERSION: ${VERSION}
+    hostname: localhost
+    expose:
+      - 443
     ports:
       - target: 443
         published: 443
         protocol: tcp
         mode: host
+    networks:
+      - athenz
     volumes:
+      - ./docker/ui/src/config:/home/athenz/ui/src/config:ro
       - ./docker/ui/tls:/home/athenz/tls:ro
     environment:
       TZ: Asia/Tokyo
-      NODE_ENV: dev
+      NODE_ENV: production
       DEBUG: AthenzUI:*
+      STATIC_USER_NAME: athenz_admin
       PORT: 443
-      ZMS_SERVER_URL: https://zms.athenz.ctyano.com:4443/zms/v1/
+      ZMS_SERVER_URL: https://athenz-zms-server:4443/zms/v1/
       UI_CERT_KEY_PATH: /home/athenz/tls/ui.private.pem
       UI_CERT_PATH: /home/athenz/tls/ui.cert.pem
       ATHENZ_PUBLIC_CERT: /home/athenz/tls/ui.cert.pem
       ATHENZ_PRIVATE_KEY: /home/athenz/tls/ui.private.pem
+      NODE_EXTRA_CA_CERTS: /home/athenz/tls/ca.cert.pem
     restart: unless-stopped
 
   athenz-zms-server:
@@ -63,11 +100,11 @@ services:
       dockerfile: ./docker/zms/Dockerfile
       args:
         VERSION: ${VERSION}
+    depends_on:
+      - athenz-db
     hostname: localhost
     expose:
       - 4443
-    depends_on:
-      - athenz-db
     ports:
       - target: 4443
         published: 4443
@@ -75,7 +112,7 @@ services:
         mode: host
     networks:
       - athenz
-      #- athenz-zms-db
+      - athenz-db
     volumes:
       - ./docker/zms/var:/opt/athenz/zms/var:rw
       - ./docker/zms/conf:/opt/athenz/zms/conf/zms_server:rw
@@ -103,19 +140,19 @@ services:
       dockerfile: ./docker/zts/Dockerfile
       args:
         VERSION: ${VERSION}
-    hostname: localhost
-    expose:
-      - 4443
     depends_on:
       - athenz-db
+    hostname: localhost
+    expose:
+      - 8443
     ports:
       - target: 8443
-        published: 4443
+        published: 8443
         protocol: tcp
         mode: host
     networks:
       - athenz
-      #- athenz-zts-db
+      - athenz-db
     volumes:
       - ./docker/zts/var:/opt/athenz/zts/var:rw
       - ./docker/zts/conf:/opt/athenz/zts/conf/zts_server:rw
@@ -147,7 +184,7 @@ services:
         protocol: tcp
         mode: host
     networks:
-      - athenz
+      - athenz-db
     environment:
       PUID: 1000
       PGID: 1000
@@ -167,6 +204,11 @@ services:
 
 networks:
   athenz:
+    driver: bridge
+    driver_opts:
+      encrypted: "true"
+    attachable: true
+  athenz-db:
     driver: bridge
     driver_opts:
       encrypted: "true"

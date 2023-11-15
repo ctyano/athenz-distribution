@@ -28,7 +28,7 @@ const config = {
         headerLinks: [
             {
                 title: 'Website',
-                url: 'http://www.athenz.io/',
+                url: 'https://www.athenz.io/',
                 target: '_blank',
             },
             {
@@ -78,6 +78,7 @@ const config = {
         },
         userDomain: 'user',
         userDomains: 'user',
+        staticUserName: process.env.STATIC_USER_NAME || '',
         cookieSession: process.env.UI_SESSION_SECRET_PATH || 'keys/cookie-session',
         statusPath: process.env.UI_SESSION_SECRET_PATH || 'keys/cookie-session',
         featureFlag: false,

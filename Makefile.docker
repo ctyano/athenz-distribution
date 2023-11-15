@@ -21,9 +21,10 @@ copy-to-compose:
 	cp athenz/servers/zts/schema/zts_server.sql docker/db/schema/zts_server.sql
 
 setup-athenz:
-	docker compose -f docker-compose.yaml up --build --pull always --no-start -d
+	#docker compose -f docker-compose.yaml up --build --pull always --no-start -d
+	docker compose -f docker-compose.yaml up --pull always --no-start -d
 
-deploy-athenz: copy-to-compose setup-athenz start-db start-zms start-zts check-athenz
+deploy-athenz: copy-to-compose setup-athenz start-db start-zms start-zts check-athenz start-ui
 
 start-db:
 	docker compose start athenz-db
@@ -31,20 +32,20 @@ start-db:
 WAITING_THRESHOLD=60; \
 i=0; \
 while [ $$(( $$(docker compose -f docker-compose.yaml ps athenz-db | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps athenz-db | grep -E "Up " | wc -l) )) ]; do \
-	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		docker compose -f docker-compose.yaml logs athenz-db; \
 		exit 1; \
 	fi; \
 done
 	docker compose -f docker-compose.yaml ps athenz-db
 	@echo ""
-	@echo "**********************************"
-	@echo "**** DB Deployed Successfully ****"
-	@echo "**********************************"
+	@echo "*************************************"
+	@echo "*****  DB Deployed Successfully *****"
+	@echo "*************************************"
 	@echo ""
 
 start-zms:
@@ -54,20 +55,20 @@ start-zms:
 WAITING_THRESHOLD=60; \
 i=0; \
 while [ $$(( $$(docker compose -f docker-compose.yaml ps athenz-zms-server | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps athenz-zms-server | grep -E "Up " | wc -l) )) ]; do \
-	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		docker compose -f docker-compose.yaml logs athenz-zms-server; \
 		exit 1; \
 	fi; \
 done
 	docker compose -f docker-compose.yaml ps athenz-zms-server
 	@echo ""
-	@echo "**********************************"
-	@echo "***  ZMS Deployed Successfully ***"
-	@echo "**********************************"
+	@echo "*************************************"
+	@echo "***** ZMS Deployed Successfully *****"
+	@echo "*************************************"
 	@echo ""
 
 start-zts:
@@ -94,20 +95,64 @@ athenz-conf \
 WAITING_THRESHOLD=60; \
 i=0; \
 while [ $$(( $$(docker compose -f docker-compose.yaml ps athenz-zts-server | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps athenz-zts-server | grep -E "Up " | wc -l) )) ]; do \
-	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		docker compose -f docker-compose.yaml logs athenz-zts-server; \
 		exit 1; \
 	fi; \
 done
 	docker compose -f docker-compose.yaml ps athenz-zts-server
 	@echo ""
-	@echo "**********************************"
-	@echo "***  ZTS Deployed Successfully ***"
-	@echo "**********************************"
+	@echo "*************************************"
+	@echo "***** ZTS Deployed Successfully *****"
+	@echo "*************************************"
+	@echo ""
+
+start-ui:
+	docker compose start athenz-ui
+	SLEEP_SECONDS=10; \
+WAITING_THRESHOLD=60; \
+i=0; \
+while [ $$(( $$(docker compose -f docker-compose.yaml ps athenz-ui | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps athenz-ui | grep -E "Up " | wc -l) )) ]; do \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
+	sleep $${SLEEP_SECONDS}; \
+	i=$$(( i + 1 )); \
+	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		docker compose -f docker-compose.yaml logs athenz-ui; \
+		exit 1; \
+	fi; \
+done
+	docker compose -f docker-compose.yaml ps athenz-ui
+	@echo ""
+	@echo "*************************************"
+	@echo "*****  UI Deployed Successfully *****"
+	@echo "*************************************"
+	@echo ""
+
+start-ghostunnel:
+	docker compose start ghostunnel
+	SLEEP_SECONDS=10; \
+WAITING_THRESHOLD=60; \
+i=0; \
+while [ $$(( $$(docker compose -f docker-compose.yaml ps ghostunnel | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps ghostunnel | grep -E "Up " | wc -l) )) ]; do \
+	printf "\n***** Waiting for ghostunnel($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
+	sleep $${SLEEP_SECONDS}; \
+	i=$$(( i + 1 )); \
+	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		docker compose -f docker-compose.yaml logs ghostunnel; \
+		exit 1; \
+	fi; \
+done
+	docker compose -f docker-compose.yaml ps ghostunnel
+	@echo ""
+	@echo "*************************************"
+	@echo "* Ghosttunnel Deployed Successfully *"
+	@echo "*************************************"
 	@echo ""
 
 check-athenz:
@@ -115,20 +160,20 @@ check-athenz:
 WAITING_THRESHOLD=60; \
 i=0; \
 while [ $$(( $$(docker compose -f docker-compose.yaml ps -a | grep -E "Up " | grep -vE "unhealthy|health:" | wc -l) )) -ne $$(( $$(docker compose -f docker-compose.yaml ps --services | wc -l) )) ]; do \
-	printf "\n\n***** Waiting for athenz($${SLEEP_SECONDS}s) *****\n\n"; \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($${SLEEP_SECONDS}s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		docker compose -f docker-compose.yaml logs; \
 		exit 1; \
 	fi; \
 done
 	docker compose -f docker-compose.yaml ps -a
 	@echo ""
-	@echo "**********************************"
-	@echo "** Athenz Deployed Successfully **"
-	@echo "**********************************"
+	@echo "*************************************"
+	@echo "***  Athenz Deployed Successfully ***"
+	@echo "*************************************"
 	@echo ""
 
 test-athenz-zms-server:
@@ -150,6 +195,19 @@ curl \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
 	https://athenz-zts-server:8443/zts/v1/domain/sys.auth/service \
 | cat; echo
+
+test-athenz-ui:
+	docker compose exec -T athenz-ui \
+curl \
+	-sf \
+	-H"Content-type: application/json" \
+	-H"X-Auth-Request-Preferred-Username: athenz_admin" \
+	-H"X-Auth-Request-Email: athenz_admin@www.athenz.io" \
+	--cacert /home/athenz/tls/ca.cert.pem \
+	--resolve athenz-ui:443:127.0.0.1 \
+	https://athenz-ui:443/ \
+| grep -E "<title>Athenz</title>" >/dev/null \
+&& echo "Athenz UI sccessfully displayed"
 
 test-zms-cli:
 	docker compose exec -T athenz-cli \
@@ -239,9 +297,9 @@ curl \
 
 test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo ""
-	@echo "**********************************"
-	@echo "** Athenz APIs are functioning  **"
-	@echo "**********************************"
+	@echo "*************************************"
+	@echo "**** Athenz APIs are functioning ****"
+	@echo "*************************************"
 	@echo ""
 
-test-athenz: test-athenz-servers test-zms-cli test-zts-accesstoken test-policies test-verify
+test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

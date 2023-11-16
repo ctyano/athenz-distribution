@@ -12,7 +12,7 @@ It is currently owned and maintained by [ctyano](https://github.com/ctyano).
 make clean-k8s-athenz deploy-k8s-athenz
 ```
 
-You may access Athenz UI by forwarding requests: http://localhost:3000
+You may access Athenz UI at http://localhost:3000 by forwarding requests.
 
 ```
 kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
@@ -26,14 +26,16 @@ kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
 make clean-docker-athenz deploy-docker-athenz
 ```
 
-You may access Athenz UI by forwarding requests: http://localhost:3000
+You may access Athenz UI at http://localhost:3000 by forwarding requests.
 
 ```
 make -f Makefile.docker start-ghostunnel
 ```
 
-## Documentation
+## Miscellaneous documents
 
-- [Credential Preparation](docs/CREDS.md)
+- [How to generate keys and certificates](docs/CREDS.md)
 - [CLI instruction](docs/CLI.md)
-- [Distribution](docs/DIST.md)
+- [List of Athenz package distribution](docs/DIST.md)
+
+

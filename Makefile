@@ -134,7 +134,7 @@ buildx-athenz-cli:
 install-rdl-tools:
 	go install github.com/ardielle/ardielle-go/...@master && \
 	go install github.com/ardielle/ardielle-tools/...@master && \
-	export PATH=$$PATH:$$GOPATH
+	export PATH=$$PATH:$$GOPATH/bin
 	mkdir -p athenz/clients/go/zms/bin && \
 	cp $$GOPATH/bin/rdl* athenz/clients/go/zms/bin/ && \
 	mkdir -p athenz/clients/go/zts/bin && \
@@ -146,9 +146,7 @@ install-rdl-tools:
 patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
 
-build-java: checkout-version install-rdl-tools patch athenz/assembly/z*s/target/athenz-z*s-*-bin.tar.gz
-
-athenz/assembly/z*s/target/athenz-z*s-*-bin.tar.gz:
+build-java: checkout-version patch install-rdl-tools
 	mvn -B clean install \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \
@@ -327,7 +325,7 @@ test-k8s-athenz: install-parsers
 clean-docker-athenz: clean-certificates
 	@$(MAKE) -f Makefile.docker clean-athenz
 
-deploy-docker-athenz: checkout-version generate-certificates
+deploy-docker-athenz: build-java generate-certificates
 	@VERSION=$(VERSION) $(MAKE) -f Makefile.docker deploy-athenz
 
 check-docker-athenz: install-parsers

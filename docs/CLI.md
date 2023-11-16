@@ -13,14 +13,14 @@
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zms-cli \
-        -z https://athenz-zms-server:4443/zms/v1 \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
         -key /var/run/athenz/athenz_admin.private.pem \
         -cert /var/run/athenz/athenz_admin.cert.pem \
         list-domain
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zms-cli \
-        -z https://athenz-zms-server:4443/zms/v1 \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
         -key /var/run/athenz/athenz_admin.private.pem \
         -cert /var/run/athenz/athenz_admin.cert.pem \
         -d sys.auth \
@@ -32,7 +32,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -H"Content-type: application/json" \
         -H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
         --cacert /etc/ssl/certs/ca.cert.pem \
-        https://athenz-zms-server:4443/zms/v1/domain \
+        https://athenz-zms-server.athenz:4443/zms/v1/domain \
     | jq -r .
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -41,7 +41,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -H"Content-type: application/json" \
         -H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
         --cacert /etc/ssl/certs/ca.cert.pem \
-        https://athenz-zts-server:4443/zts/v1/domain/sys.auth/service \
+        https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/service \
     | jq -r .
 ```
 
@@ -50,15 +50,15 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     athenz-conf \
-        -z https://athenz-zms-server:4443/zms/v1 \
-        -t https://athenz-zts-server:4443/zts/v1 \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -t https://athenz-zts-server.athenz:4443/zts/v1 \
         -svc-key-file /var/run/athenz/athenz_admin.private.pem \
         -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
         -o /dev/stdout
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-roletoken \
-        -zts https://athenz-zts-server:4443/zts/v1 \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
         -svc-key-file /var/run/athenz/athenz_admin.private.pem \
         -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
         -domain sys.auth \
@@ -68,7 +68,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-accesstoken \
-        -zts https://athenz-zts-server:4443/zts/v1 \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
         -svc-key-file /var/run/athenz/athenz_admin.private.pem \
         -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
         -domain sys.auth \
@@ -90,7 +90,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         --cacert /etc/ssl/certs/ca.cert.pem \
         --key /var/run/athenz/athenz_admin.private.pem \
         --cert /var/run/athenz/athenz_admin.cert.pem \
-        "https://athenz-zts-server:4443/zts/v1/oauth2/keys?rfc=true" \
+        "https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true" \
 | tee ./jwks.json
 
 echo -n sys.auth \
@@ -102,7 +102,7 @@ echo -n sys.auth \
         --cacert /etc/ssl/certs/ca.cert.pem \
         --key /var/run/athenz/athenz_admin.private.pem \
         --cert /var/run/athenz/athenz_admin.cert.pem \
-        "https://athenz-zts-server:4443/zts/v1/domain/$(cat /dev/stdin)/policy/signed" \
+        "https://athenz-zts-server.athenz:4443/zts/v1/domain/$(cat /dev/stdin)/policy/signed" \
 | jq -r '[.protected,.payload,.signature] | join(".")' \
 | step crypto jws verify --jwks=jwks.json \
 && printf "\nValid Policy\n" || printf "\nInvalid Policy\n"

@@ -122,8 +122,8 @@ spec:
                 - -s
                 - --fail
                 - --resolve
-                - athenz-zms-server:4443:127.0.0.1
-                - https://athenz-zms-server:4443/zms/v1/status
+                - athenz-zms-server.athenz:4443:127.0.0.1
+                - https://athenz-zms-server.athenz:4443/zms/v1/status
           livenessProbe:
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -134,8 +134,8 @@ spec:
                 - -s
                 - --fail
                 - --resolve
-                - athenz-zms-server:4443:127.0.0.1
-                - https://athenz-zms-server:4443/zms/v1/status
+                - athenz-zms-server.athenz:4443:127.0.0.1
+                - https://athenz-zms-server.athenz:4443/zms/v1/status
           resources:
             limits:
               memory: 2Gi

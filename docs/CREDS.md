@@ -24,3 +24,9 @@ make generate-zts
 make generate-admin
 ```
 
+## Athenz UI Keys and Certificates
+
+```
+make generate-ui
+```
+

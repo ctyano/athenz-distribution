@@ -1,8 +1,8 @@
 clean-certificates:
 	rm -rf admin/{keys,certs}
-	rm -rf docker/zms/var/{keys,certs}
-	rm -rf docker/zts/var/{keys,certs}
-	rm -rf docker/ui/tls/*.*
+	rm -rf zms/var/{keys,certs}
+	rm -rf zts/var/{keys,certs}
+	rm -rf ui/tls/*.*
 
 clean-docker:
 	docker compose -f docker-compose.yaml down
@@ -11,14 +11,14 @@ clean-athenz: clean-docker clean-certificates
 
 copy-to-compose:
 	mkdir admin ||:
-	cp -r keys certs admin/
-	cp -r keys certs docker/zms/var/
-	cp -r keys certs docker/zts/var/
-	cp -r keys/*.* certs/*.* docker/ui/tls/
-	chmod -R a+r admin docker/zms/var/keys docker/zms/var/certs docker/zts/var/keys docker/zts/var/certs docker/ui/tls
-	chmod -R a+rw docker/zts/conf docker/zts/var
-	cp athenz/servers/zms/schema/zms_server.sql docker/db/schema/zms_server.sql
-	cp athenz/servers/zts/schema/zts_server.sql docker/db/schema/zts_server.sql
+	cp -r ../{keys,certs} admin/
+	cp -r ../{keys,certs} zms/var/
+	cp -r ../{keys,certs} zts/var/
+	cp -r ../{keys,certs}/*.* ui/tls/
+	chmod -R a+r admin zms/var/keys zms/var/certs zts/var/keys zts/var/certs ui/tls
+	chmod -R a+rw zts/conf zts/var
+	cp ../athenz/servers/zms/schema/zms_server.sql db/schema/zms_server.sql
+	cp ../athenz/servers/zts/schema/zts_server.sql db/schema/zts_server.sql
 
 setup-athenz:
 	docker compose -f docker-compose.yaml up --pull always --no-start -d
@@ -183,7 +183,8 @@ curl \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
 	https://athenz-zms-server:4443/zms/v1/domain \
-| cat; echo
+| cat
+	@echo
 
 test-athenz-zts-server:
 	docker compose exec -T athenz-cli \
@@ -193,7 +194,8 @@ curl \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
 	https://athenz-zts-server:8443/zts/v1/domain/sys.auth/service \
-| cat; echo
+| cat
+	@echo
 
 test-athenz-ui:
 	docker compose exec -T athenz-ui \

@@ -4,12 +4,12 @@ This is an unofficial repository to provide tools, packages and instructions for
 
 It is currently owned and maintained by [ctyano](https://github.com/ctyano).
 
-## Minimum Setup Instruction on a Kubernetes Cluster ⎈
+## Minimum setup on a Kubernetes cluster ⎈
 
 ⚠️  Prerequisite: A Kubernetes Cluster must be set up before continuing to further steps.
 
 ```
-make clean-k8s-athenz deploy-k8s-athenz
+make clean-kubernetes-athenz deploy-kubernetes-athenz
 ```
 
 You may access Athenz UI at http://localhost:3000 by forwarding requests.
@@ -18,7 +18,7 @@ You may access Athenz UI at http://localhost:3000 by forwarding requests.
 kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
 ```
 
-## Minimum Setup Instruction on Docker Compose 🐳
+## Minimum setup on Docker 🐳
 
 ⚠️  Prerequisite: Docker compose must be set up before continuing to further steps.
 
@@ -29,7 +29,7 @@ make clean-docker-athenz deploy-docker-athenz
 You may access Athenz UI at http://localhost:3000 by forwarding requests.
 
 ```
-make -f Makefile.docker start-ghostunnel
+docker compose -f docker/docker-compose.yaml start ghostunnel
 ```
 
 ## Miscellaneous documents

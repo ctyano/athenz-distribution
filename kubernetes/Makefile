@@ -1,40 +1,40 @@
 clean-certificates:
-	rm -rf k8s/athenz-cli/kustomize/{keys,certs}
-	rm -rf k8s/athenz-zms-server/kustomize/{keys,certs}
-	rm -rf k8s/athenz-zts-server/kustomize/{keys,certs}
-	rm -rf k8s/athenz-ui/kustomize/{keys,certs}
+	rm -rf athenz-cli/kustomize/{keys,certs}
+	rm -rf athenz-zms-server/kustomize/{keys,certs}
+	rm -rf athenz-zts-server/kustomize/{keys,certs}
+	rm -rf athenz-ui/kustomize/{keys,certs}
 
-clean-k8s:
+clean-namespace:
 	kubectl delete namespace athenz ||:
 
-clean-athenz: clean-k8s clean-certificates
+clean-athenz: clean-namespace clean-certificates
 
 copy-to-kustomization:
-	cp -r keys certs k8s/athenz-cli/kustomize/
-	cp -r keys certs k8s/athenz-zms-server/kustomize/
-	cp -r keys certs k8s/athenz-zts-server/kustomize/
-	cp -r keys certs k8s/athenz-ui/kustomize/
-	cp athenz/servers/zms/schema/zms_server.sql k8s/athenz-db/kustomize/zms_server.sql
-	cp athenz/servers/zts/schema/zts_server.sql k8s/athenz-db/kustomize/zts_server.sql
+	cp -r ../{keys,certs} athenz-cli/kustomize/
+	cp -r ../{keys,certs} athenz-zms-server/kustomize/
+	cp -r ../{keys,certs} athenz-zts-server/kustomize/
+	cp -r ../{keys,certs} athenz-ui/kustomize/
+	cp ../athenz/servers/zms/schema/zms_server.sql athenz-db/kustomize/zms_server.sql
+	cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
 
 load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
 	kind load docker-image ghcr.io/ctyano/athenz-zms-server:latest ghcr.io/ctyano/athenz-zts-server:latest ghcr.io/ctyano/athenz-cli:latest ghcr.io/ctyano/athenz-ui:latest
 
 setup-athenz-db:
-	kubectl apply -k k8s/athenz-db/kustomize
+	kubectl apply -k athenz-db/kustomize
 
 setup-athenz-cli:
-	kubectl apply -k k8s/athenz-cli/kustomize
+	kubectl apply -k athenz-cli/kustomize
 
 setup-athenz-zms-server: setup-athenz-db
-	kubectl apply -k k8s/athenz-zms-server/kustomize
+	kubectl apply -k athenz-zms-server/kustomize
 
 setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server
-	kubectl apply -k k8s/athenz-zts-server/kustomize
+	kubectl apply -k athenz-zts-server/kustomize
 
 setup-athenz-ui: setup-athenz-zms-server
-	kubectl apply -k k8s/athenz-ui/kustomize
+	kubectl apply -k athenz-ui/kustomize
 
 setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server setup-athenz-ui
 
@@ -70,7 +70,8 @@ curl \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /etc/ssl/certs/ca.cert.pem \
 	https://athenz-zms-server.athenz:4443/zms/v1/domain \
-| cat; echo
+| cat
+	@echo
 
 test-athenz-zts-server:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -80,7 +81,8 @@ curl \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /etc/ssl/certs/ca.cert.pem \
 	https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/service \
-| cat; echo
+| cat
+	@echo
 
 test-zms-cli:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \

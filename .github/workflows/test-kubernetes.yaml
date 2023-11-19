@@ -132,7 +132,7 @@ jobs:
         name: Deploy Application
         run: |
           set -ex
-          make load-k8s-images deploy-k8s-athenz
+          make load-kubernetes-images deploy-kubernetes-athenz
 
       # A GitHub Action to check and test application
       -
@@ -140,5 +140,5 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make check-k8s-athenz test-k8s-athenz
+          make check-kubernetes-athenz test-kubernetes-athenz
 

@@ -6,7 +6,7 @@ services:
     container_name: athenz-cli
     #image: ghcr.io/ctyano/athenz-cli:v${VERSION}
     build:
-      context: .
+      context: ..
       dockerfile: ./docker/cli/Dockerfile
       args:
         VERSION: ${VERSION}
@@ -17,10 +17,13 @@ services:
       - athenz
     volumes:
       - ./admin:/var/run/athenz:rw
-      - ./docker/zms/var:/var/zms:rw
-      - ./docker/zms/conf:/conf/zms:rw
-      - ./docker/zts/var:/var/zts:rw
-      - ./docker/zts/conf:/conf/zts:rw
+      - ../docker/zms/var:/var/zms:rw
+      - ../docker/zms/conf:/conf/zms:rw
+      - ../docker/zts/var:/var/zts:rw
+      - ../docker/zts/conf:/conf/zts:rw
+    environment:
+      ZMS: https://athenz-zms-server:4443/zms/v1
+      ZTS: https://athenz-zts-server:8443/zts/v1
     restart: unless-stopped
 
   # https://github.com/ghostunnel/ghostunnel
@@ -52,7 +55,7 @@ services:
     networks:
       - athenz
     volumes:
-      - ./docker/ui/tls:/home/athenz/tls:ro
+      - ../docker/ui/tls:/home/athenz/tls:ro
     restart: unless-stopped
 
   athenz-ui:
@@ -61,7 +64,7 @@ services:
       - athenz-zms-server
     #image: ghcr.io/ctyano/athenz-ui:v${VERSION}
     build:
-      context: .
+      context: ..
       dockerfile: ./docker/ui/Dockerfile
       args:
         VERSION: ${VERSION}
@@ -76,8 +79,8 @@ services:
     networks:
       - athenz
     volumes:
-      - ./docker/ui/src/config:/home/athenz/ui/src/config:ro
-      - ./docker/ui/tls:/home/athenz/tls:ro
+      - ../docker/ui/src/config:/home/athenz/ui/src/config:ro
+      - ../docker/ui/tls:/home/athenz/tls:ro
     environment:
       TZ: Asia/Tokyo
       NODE_ENV: production
@@ -96,7 +99,7 @@ services:
     container_name: athenz-zms-server
     #image: ghcr.io/ctyano/athenz-zms-server:v${VERSION}
     build:
-      context: .
+      context: ..
       dockerfile: ./docker/zms/Dockerfile
       args:
         VERSION: ${VERSION}
@@ -114,8 +117,8 @@ services:
       - athenz
       - athenz-db
     volumes:
-      - ./docker/zms/var:/opt/athenz/zms/var:rw
-      - ./docker/zms/conf:/opt/athenz/zms/conf/zms_server:rw
+      - ../docker/zms/var:/opt/athenz/zms/var:rw
+      - ../docker/zms/conf:/opt/athenz/zms/conf/zms_server:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zms
@@ -136,7 +139,7 @@ services:
     container_name: athenz-zts-server
     #image: ghcr.io/ctyano/athenz-zts-server:v${VERSION}
     build:
-      context: .
+      context: ..
       dockerfile: ./docker/zts/Dockerfile
       args:
         VERSION: ${VERSION}
@@ -154,9 +157,9 @@ services:
       - athenz
       - athenz-db
     volumes:
-      - ./docker/zts/var:/opt/athenz/zts/var:rw
-      - ./docker/zts/conf:/opt/athenz/zts/conf/zts_server:rw
-      - ./docker/zts/conf:/opt/athenz/zts/conf/athenz:rw
+      - ../docker/zts/var:/opt/athenz/zts/var:rw
+      - ../docker/zts/conf:/opt/athenz/zts/conf/zts_server:rw
+      - ../docker/zts/conf:/opt/athenz/zts/conf/athenz:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zts
@@ -174,7 +177,7 @@ services:
     container_name: athenz-db
     #image: ghcr.io/ctyano/athenz-db:v${VERSION}
     build:
-      context: .
+      context: ..
       dockerfile: ./docker/db/Dockerfile
       args:
         VERSION: ${VERSION}

@@ -4,6 +4,7 @@
 
 ### Prerequisite
 
+- docker
 - kubectl
 - jq
 - step

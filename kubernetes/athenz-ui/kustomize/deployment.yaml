@@ -86,7 +86,7 @@ spec:
                 - "X-Auth-Request-Email: readiness_probe@www.athenz.io"
                 - --fail
                 - --resolve
-                - athenz-ui.athenz:4443:::1
+                - athenz-ui.athenz:4443:127.0.0.1
                 - https://athenz-ui.athenz:4443/
           livenessProbe:
             initialDelaySeconds: 20
@@ -102,7 +102,7 @@ spec:
                 - "X-Auth-Request-Email: liveness_probe@www.athenz.io"
                 - --fail
                 - --resolve
-                - athenz-ui.athenz:4443:::1
+                - athenz-ui.athenz:4443:127.0.0.1
                 - https://athenz-ui.athenz:4443/
           resources:
             limits:

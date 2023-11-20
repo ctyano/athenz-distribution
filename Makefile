@@ -307,29 +307,29 @@ generate-ui: generate-ca
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui
 
-clean-k8s-athenz: clean-certificates
-	@$(MAKE) -f Makefile.kubernetes clean-athenz
+clean-kubernetes-athenz: clean-certificates
+	@$(MAKE) -C kubernetes clean-athenz
 
-load-k8s-images: version
-	@$(MAKE) -f Makefile.kubernetes load-images
+load-kubernetes-images: version
+	@$(MAKE) -C kubernetes load-images
 
-deploy-k8s-athenz: generate-certificates
-	@$(MAKE) -f Makefile.kubernetes deploy-athenz
+deploy-kubernetes-athenz: generate-certificates
+	@$(MAKE) -C kubernetes deploy-athenz
 
-check-k8s-athenz: install-parsers
-	@$(MAKE) -f Makefile.kubernetes check-athenz
+check-kubernetes-athenz: install-parsers
+	@$(MAKE) -C kubernetes check-athenz
 
-test-k8s-athenz: install-parsers
-	@$(MAKE) -f Makefile.kubernetes test-athenz
+test-kubernetes-athenz: install-parsers
+	@$(MAKE) -C kubernetes test-athenz
 
 clean-docker-athenz: clean-certificates
-	@$(MAKE) -f Makefile.docker clean-athenz
+	@VERSION=$(VERSION) $(MAKE) -C docker clean-athenz
 
 deploy-docker-athenz: build-java generate-certificates
-	@VERSION=$(VERSION) $(MAKE) -f Makefile.docker deploy-athenz
+	@VERSION=$(VERSION) $(MAKE) -C docker deploy-athenz
 
 check-docker-athenz: install-parsers
-	@$(MAKE) -f Makefile.docker check-athenz
+	@$(MAKE) -C docker check-athenz
 
 test-docker-athenz: install-parsers
-	@$(MAKE) -f Makefile.docker test-athenz
+	@$(MAKE) -C docker test-athenz

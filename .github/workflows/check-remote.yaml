@@ -10,7 +10,11 @@ on:
   # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
-  schedule: [ cron: '0 21 * * 5' ] # Friday 21:00
+  schedule:
+    - cron: '0 21 * * 5' # Friday 21:00 UTC, Saturday 06:00 JST
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 env:

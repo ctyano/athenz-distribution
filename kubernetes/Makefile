@@ -10,10 +10,10 @@ clean-namespace:
 clean-athenz: clean-namespace clean-certificates
 
 copy-to-kustomization:
-	cp -r ../{keys,certs} athenz-cli/kustomize/
-	cp -r ../{keys,certs} athenz-zms-server/kustomize/
-	cp -r ../{keys,certs} athenz-zts-server/kustomize/
-	cp -r ../{keys,certs} athenz-ui/kustomize/
+	cp -r ../keys ../certs athenz-cli/kustomize/
+	cp -r ../keys ../certs athenz-zms-server/kustomize/
+	cp -r ../keys ../certs athenz-zts-server/kustomize/
+	cp -r ../keys ../certs athenz-ui/kustomize/
 	cp ../athenz/servers/zms/schema/zms_server.sql athenz-db/kustomize/zms_server.sql
 	cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
 

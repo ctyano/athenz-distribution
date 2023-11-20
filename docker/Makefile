@@ -11,10 +11,10 @@ clean-athenz: clean-docker clean-certificates
 
 copy-to-compose:
 	mkdir admin ||:
-	cp -r ../{keys,certs} admin/
-	cp -r ../{keys,certs} zms/var/
-	cp -r ../{keys,certs} zts/var/
-	cp -r ../{keys,certs}/*.* ui/tls/
+	cp -r ../keys ../certs admin/
+	cp -r ../keys ../certs zms/var/
+	cp -r ../keys ../certs zts/var/
+	cp -r ../keys/*.* ../certs/*.* ui/tls/
 	chmod -R a+r admin zms/var/keys zms/var/certs zts/var/keys zts/var/certs ui/tls
 	chmod -R a+rw zts/conf zts/var
 	cp ../athenz/servers/zms/schema/zms_server.sql db/schema/zms_server.sql

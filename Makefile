@@ -284,7 +284,7 @@ generate-zts: generate-zms
 	&& openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem \
 	&& openssl pkcs12 -export -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
 	&& openssl pkcs12 -export -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-	&& openssl pkcs12 -export -out certs/zts_signer_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
+	&& openssl pkcs12 -export -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/ca.private.pem -noiter -password pass:athenz \
 	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz \
 	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz \
 	&& keytool --list -keystore certs/zts_truststore.jks -storepass athenz

@@ -53,9 +53,9 @@ spec:
             - name: TZ
               value: Asia/Tokyo
             - name: ZMS
-              value: https://athenz-zms-server.athenz:4443/zms/v1/
+              value: https://athenz-zms-server.athenz:4443/zms/v1
             - name: ZTS
-              value: https://athenz-zts-server.athenz:4443/zts/v1/
+              value: https://athenz-zts-server.athenz:4443/zts/v1
           resources:
             limits:
               memory: 1Gi

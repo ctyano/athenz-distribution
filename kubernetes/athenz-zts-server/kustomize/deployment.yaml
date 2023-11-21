@@ -80,9 +80,9 @@ spec:
             - name: TZ
               value: Asia/Tokyo
             - name: ZMS
-              value: https://athenz-zms-server.athenz:4443/zms/v1/
+              value: https://athenz-zms-server.athenz:4443/zms/v1
             - name: ZTS
-              value: https://athenz-zts-server.athenz:4443/zts/v1/
+              value: https://athenz-zts-server.athenz:4443/zts/v1
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -102,13 +102,23 @@ spec:
                 -d sys.auth \
                 add-public-key zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
               || \
+              ( \
               zms-cli \
                 -key /athenz/admin/athenz_admin.private.pem \
                 -cert /athenz/admin/athenz_admin.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z https://athenz-zms-server.athenz:4443/zms/v1 \
                 -d sys.auth \
-                add-service zts "${HOSTNAME}" /athenz/zts/zts.public.pem
+                add-service zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
+              && \
+              zms-cli \
+                -key /athenz/admin/athenz_admin.private.pem \
+                -cert /athenz/admin/athenz_admin.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -d sys.auth \
+                set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider \
+              )
           resources:
             limits:
               memory: 32Mi

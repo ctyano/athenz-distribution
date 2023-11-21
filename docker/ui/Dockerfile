@@ -78,7 +78,6 @@ RUN npm install -g npm
 RUN addgroup -g ${GID} ${APP_NAME} && \
   adduser -S -D -H -s /sbin/nologin -u ${UID} -G ${APP_NAME} ${APP_NAME}
 USER ${APP_NAME}:${APP_NAME}
-
 WORKDIR /home/athenz
 
 ENV NODE_ENV production 

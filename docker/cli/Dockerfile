@@ -68,7 +68,7 @@ LABEL org.opencontainers.image.url="ghcr.io/ctyano/athenz-cli"
 LABEL org.opencontainers.image.documentation="https://www.athenz.io/"
 LABEL org.opencontainers.image.source="https://github.com/AthenZ/athenz"
 
-ENV APP_NAME athenz-cli
+ENV APP_NAME athenz
 
 COPY --from=builder /go/bin/athenz-conf /usr/bin/athenz-conf
 COPY --from=builder /go/bin/zms-cli /usr/bin/zms-cli
@@ -90,5 +90,6 @@ ARG UID=10001
 RUN addgroup -g ${GID} ${APP_NAME} && \
   adduser -S -D -H -s /sbin/nologin -u ${UID} -G ${APP_NAME} ${APP_NAME}
 USER ${APP_NAME}:${APP_NAME}
+WORKDIR /home/athenz
 
 ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]

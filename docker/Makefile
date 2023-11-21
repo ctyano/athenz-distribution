@@ -82,6 +82,14 @@ zms-cli \
 	-d sys.auth \
 	add-service zts "0" /var/zts/keys/zts.public.pem
 	docker compose exec -T athenz-cli \
+zms-cli \
+	-c /var/run/athenz/certs/ca.cert.pem \
+	-key /var/run/athenz/keys/athenz_admin.private.pem \
+	-cert /var/run/athenz/certs/athenz_admin.cert.pem \
+	-z https://athenz-zms-server:4443/zms/v1 \
+	-d sys.auth \
+	set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider
+	docker compose exec -T athenz-cli \
 athenz-conf \
 	-c /var/run/athenz/certs/ca.cert.pem \
 	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \

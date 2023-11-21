@@ -28,6 +28,14 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         add-service zts 0 zts/keys/zts_public.pem
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zms-cli \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -key /var/run/athenz/athenz_admin.private.pem \
+        -cert /var/run/athenz/athenz_admin.cert.pem \
+        -d sys.auth \
+        set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider
+
+kubectl -n athenz exec deployment/athenz-cli -it -- \
     curl \
         -s \
         -H"Content-type: application/json" \
@@ -44,6 +52,33 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         --cacert /etc/ssl/certs/ca.cert.pem \
         https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/service \
     | jq -r .
+```
+
+### Retriving identity certificate
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zms-svctoken \
+        -domain home.athenz_admin \
+        -service showcase \
+        -private-key /var/run/athenz/athenz_admin.private.pem \
+        -key-version 0 \
+    | tr -d '\n' \
+    | tee /tmp/.ntoken
+
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-svccert \
+      -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+      -domain home.athenz_admin \
+      -service showcase \
+      -provider sys.auth.zts \
+      -instance $(hostname) \
+      -attestation-data /tmp/.ntoken \
+      -dns-domain zts.athenz.cloud \
+      -private-key /var/run/athenz/athenz_admin.private.pem \
+      -key-version 0 \
+      -cert-file /tmp/home.athenz_admin.showcase.cert.pem \
+      -signer-cert-file /tmp/ca.cert.pem
 ```
 
 ### Retriving tokens and public keys
@@ -138,7 +173,43 @@ docker exec -it athenz-cli \
         -key /admin/athenz_admin.private.pem \
         -cert /admin/athenz_admin.cert.pem \
         -d sys.auth \
+        set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider
+
+docker exec -it athenz-cli \
+    zms-cli \
+        -z https://athenz-zms-server:4443/zms/v1 \
+        -c /admin/ca.cert.pem \
+        -key /admin/athenz_admin.private.pem \
+        -cert /admin/athenz_admin.cert.pem \
+        -d sys.auth \
         show-domain
+```
+
+### Retriving identity certificate
+
+```
+docker exec -it athenz-cli /bin/sh -c \
+    zms-svctoken \
+        -domain home.athenz_admin \
+        -service showcase \
+        -private-key /admin/athenz_admin.private.pem \
+        -key-version 0 \
+    | tr -d '\n' \
+    | tee /admin/.ntoken
+
+docker exec -it athenz-cli /bin/sh -c \
+    zts-svccert \
+      -zts https://athenz-zts-server:4443/zts/v1 \
+      -domain home.athenz_admin \
+      -service showcase \
+      -provider sys.auth.zts \
+      -instance $(hostname) \
+      -attestation-data /admin/.ntoken \
+      -dns-domain zts.athenz.cloud \
+      -private-key /admin/athenz_admin.private.pem \
+      -key-version 0 \
+      -cert-file /admin/home.athenz_admin.showcase.cert.pem \
+      -signer-cert-file /admin/ca.cert.pem
 ```
 
 ### Retriving tokens and public keys

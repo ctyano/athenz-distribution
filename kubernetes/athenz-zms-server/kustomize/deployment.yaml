@@ -33,8 +33,10 @@ spec:
             items:
               - key: zms_keystore.pkcs12
                 path: zms_keystore.pkcs12
-              - key: zms_truststore.jks
-                path: zms_truststore.jks
+              #- key: zms_truststore.jks
+              #  path: zms_truststore.jks
+              - key: zms_truststore.pkcs12
+                path: zms_truststore.pkcs12
         - name: athenz-zms-keys
           secret:
             secretName: athenz-zms-keys

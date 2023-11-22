@@ -260,50 +260,59 @@ clean-certificates:
 
 generate-ca:
 	mkdir keys certs ||:
-	openssl genrsa -out keys/ca.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem \
-	&& openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
+	openssl genrsa -out keys/ca.private.pem 4096
+	openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem
+	openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
 
 generate-zms: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out keys/zms.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/zms.private.pem -out keys/zms.public.pem \
-	&& openssl req -config openssl/zms.openssl.config -new -key keys/zms.private.pem -out certs/zms.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem \
-	&& openssl pkcs12 -export -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -noiter -password pass:athenz \
-	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz \
-	&& keytool --list -keystore certs/zms_truststore.jks -storepass athenz
+	openssl genrsa -out keys/zms.private.pem 4096
+	openssl rsa -pubout -in keys/zms.private.pem -out keys/zms.public.pem
+	openssl req -config openssl/zms.openssl.config -new -key keys/zms.private.pem -out certs/zms.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem
+	openssl pkcs12 -export -noiter -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -password pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zms_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -passout pass:athenz
+	openssl pkcs12 -in certs/zms_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
+	#openssl pkcs12 -export -noiter -out certs/zms_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz
+	#keytool --list -keystore certs/zms_truststore.jks -storepass athenz
 
 generate-zts: generate-zms
 	mkdir keys certs ||:
-	openssl genrsa -out keys/zts.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/zts.private.pem -out keys/zts.public.pem \
-	&& openssl req -config openssl/zts.openssl.config -new -key keys/zts.private.pem -out certs/zts.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/zts.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zts.cert.pem -days 99999 -extfile openssl/zts.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem \
-	&& openssl pkcs12 -export -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-	&& openssl pkcs12 -export -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-	&& openssl pkcs12 -export -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/ca.private.pem -noiter -password pass:athenz \
-	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz \
-	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz \
-	&& keytool --list -keystore certs/zts_truststore.jks -storepass athenz
+	openssl genrsa -out keys/zts.private.pem 4096
+	openssl rsa -pubout -in keys/zts.private.pem -out keys/zts.public.pem
+	openssl req -config openssl/zts.openssl.config -new -key keys/zts.private.pem -out certs/zts.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/zts.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zts.cert.pem -days 99999 -extfile openssl/zts.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem
+	openssl pkcs12 -export -noiter -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -password pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -password pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/ca.private.pem -password pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zts_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -passout pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zms_client_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -passout pass:athenz
+	openssl pkcs12 -in certs/zts_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
+	openssl pkcs12 -in certs/zms_client_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
+	#openssl pkcs12 -export -noiter -out certs/zts_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -export -noiter -out certs/zms_client_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz
+	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz
+	#keytool --list -keystore certs/zts_truststore.jks -storepass athenz
 
 generate-admin: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out keys/athenz_admin.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/athenz_admin.private.pem -out keys/athenz_admin.public.pem \
-	&& openssl req -config openssl/athenz_admin.openssl.config -new -key keys/athenz_admin.private.pem -out certs/athenz_admin.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
+	openssl genrsa -out keys/athenz_admin.private.pem 4096
+	openssl rsa -pubout -in keys/athenz_admin.private.pem -out keys/athenz_admin.public.pem
+	openssl req -config openssl/athenz_admin.openssl.config -new -key keys/athenz_admin.private.pem -out certs/athenz_admin.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
 
 generate-ui: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out keys/ui.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/ui.private.pem -out keys/ui.public.pem \
-	&& openssl req -config openssl/ui.openssl.config -new -key keys/ui.private.pem -out certs/ui.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/ui.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/ui.cert.pem -days 99999 -extfile openssl/ui.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/ui.cert.pem
+	openssl genrsa -out keys/ui.private.pem 4096
+	openssl rsa -pubout -in keys/ui.private.pem -out keys/ui.public.pem
+	openssl req -config openssl/ui.openssl.config -new -key keys/ui.private.pem -out certs/ui.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/ui.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/ui.cert.pem -days 99999 -extfile openssl/ui.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/ui.cert.pem
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui
 

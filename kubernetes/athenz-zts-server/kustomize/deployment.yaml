@@ -33,14 +33,18 @@ spec:
             items:
               - key: zts_keystore.pkcs12
                 path: zts_keystore.pkcs12
-              - key: zts_truststore.jks
-                path: zts_truststore.jks
+              #- key: zts_truststore.jks
+              #  path: zts_truststore.jks
+              - key: zts_truststore.pkcs12
+                path: zts_truststore.pkcs12
               - key: zts_signer_keystore.pkcs12
                 path: zts_signer_keystore.pkcs12
               - key: zms_client_keystore.pkcs12
                 path: zms_client_keystore.pkcs12
-              - key: zms_client_truststore.jks
-                path: zms_client_truststore.jks
+              #- key: zms_client_truststore.jks
+              #  path: zms_client_truststore.jks
+              - key: zms_client_truststore.pkcs12
+                path: zms_client_truststore.pkcs12
         - name: athenz-zts-keys
           secret:
             secretName: athenz-zts-keys
@@ -83,39 +87,41 @@ spec:
               value: https://athenz-zms-server.athenz:4443/zms/v1
             - name: ZTS
               value: https://athenz-zts-server.athenz:4443/zts/v1
+            - name: USER
+              value: athenz_admin
           command: ["/bin/sh", "-c"]
           args:
             - |
               zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -z ${ZMS} \
                 -d sys.auth \
                 show-service zts \
               && \
               zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -z ${ZMS} \
                 -d sys.auth \
                 add-public-key zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
               || \
               ( \
               zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -z ${ZMS} \
                 -d sys.auth \
                 add-service zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
               && \
               zms-cli \
-                -key /athenz/admin/athenz_admin.private.pem \
-                -cert /athenz/admin/athenz_admin.cert.pem \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
-                -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -z ${ZMS} \
                 -d sys.auth \
                 set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider \
               )
@@ -134,7 +140,8 @@ spec:
               mountPath: /athenz/zts
               readOnly: true
             - name: athenz-cacert
-              mountPath: /etc/ssl/certs
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
               readOnly: true
         - name: athenz-conf
           image: *athenz-cli-image
@@ -163,7 +170,8 @@ spec:
             - name: athenz-conf
               mountPath: /athenz/conf
             - name: athenz-cacert
-              mountPath: /etc/ssl/certs
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
               readOnly: true
         - name: athenz-auth-core
           image: ghcr.io/ctyano/athenz-auth-core:latest

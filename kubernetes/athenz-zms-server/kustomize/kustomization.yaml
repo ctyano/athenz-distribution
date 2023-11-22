@@ -17,7 +17,8 @@ secretGenerator:
     type: Opaque
     files:
       - zms_keystore.pkcs12=certs/zms_keystore.pkcs12
-      - zms_truststore.jks=certs/zms_truststore.jks
+      #- zms_truststore.jks=certs/zms_truststore.jks
+      - zms_truststore.pkcs12=certs/zms_truststore.pkcs12
   - name: athenz-zms-keys
     type: Opaque
     files:

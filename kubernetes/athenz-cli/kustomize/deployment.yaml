@@ -39,7 +39,7 @@ spec:
             name: athenz-cacert
             items:
               - key: ca.cert.pem
-                path: ca.cert.pem
+                path: ca-certificates.crt
       containers:
         # Examples:
         # zms-cli -i user.athenz_admin -key /var/run/athenz/athenz_admin.private.pem -cert /var/run/athenz/athenz_admin.cert.pem -z https://athenz-zms-server.athenz:4443/zms/v1 list-domain
@@ -68,5 +68,6 @@ spec:
               mountPath: /var/run/athenz
               readOnly: true
             - name: athenz-cacert
-              mountPath: /etc/ssl/certs
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
               readOnly: true

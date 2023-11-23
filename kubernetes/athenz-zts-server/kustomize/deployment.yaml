@@ -80,7 +80,7 @@ spec:
           emptyDir: {}
       initContainers:
         - name: zms-cli
-          image: &athenz-cli-image ghcr.io/ctyano/athenz-cli:latest
+          image: &athenz-cli-image ghcr.io/ctyano/athenz-cli:test
           imagePullPolicy: &athenz-cli-imagePullPolicy IfNotPresent
           env: &athenz-cli-env
             - name: TZ
@@ -193,9 +193,8 @@ spec:
               mountPath: /athenz/plugins
       containers:
         - name: athenz-zts-server
-          image: ghcr.io/ctyano/athenz-zts-server:latest
-          #imagePullPolicy: IfNotPresent
-          imagePullPolicy: Always
+          image: ghcr.io/ctyano/athenz-zts-server:test
+          imagePullPolicy: IfNotPresent
           env:
             - name: TZ
               value: Asia/Tokyo

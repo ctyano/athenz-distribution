@@ -76,9 +76,8 @@ spec:
               mountPath: /athenz/plugins
       containers:
         - name: athenz-zms-server
-          image: ghcr.io/ctyano/athenz-zms-server:latest
-          #imagePullPolicy: IfNotPresent
-          imagePullPolicy: Always
+          image: ghcr.io/ctyano/athenz-zms-server:test
+          imagePullPolicy: IfNotPresent
           env:
             - name: TZ
               value: Asia/Tokyo

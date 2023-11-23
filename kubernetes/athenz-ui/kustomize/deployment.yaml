@@ -45,7 +45,7 @@ spec:
                 path: ca-certificates.crt
       containers:
         - name: athenz-ui
-          image: ghcr.io/ctyano/athenz-ui:latest
+          image: ghcr.io/ctyano/athenz-ui:test
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_ENV

@@ -72,32 +72,37 @@ build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-ath
 build-athenz-db:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:test; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:test; \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zts-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:test; \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-ui:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:test; \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-cli:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:test; \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 

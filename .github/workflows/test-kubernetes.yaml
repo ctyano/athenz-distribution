@@ -106,9 +106,9 @@ jobs:
         with:
           cluster_name: kind
 
-      # A GitHub Action to build Docker container images
+      # A GitHub Action to build Docker container images and deploy
       -
-        name: Build Docker container images
+        name: Build Docker container images and deploy
         run: |
           # Get latest release tag with:
           #   curl -s https://api.github.com/repos/AthenZ/athenz/releases \
@@ -129,14 +129,7 @@ jobs:
             )"
           fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${ATHENZ_PACKAGE_VERSION} make build
-
-      # A GitHub Action to deploy application with Kubernetes IN Docker
-      -
-        name: Deploy Application
-        run: |
-          set -ex
-          make load-kubernetes-images deploy-kubernetes-athenz
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${ATHENZ_PACKAGE_VERSION} make build load-kubernetes-images deploy-kubernetes-athenz
 
       # A GitHub Action to check and test application
       -

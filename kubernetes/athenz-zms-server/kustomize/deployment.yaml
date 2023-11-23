@@ -35,8 +35,8 @@ spec:
                 path: zms_keystore.pkcs12
               #- key: zms_truststore.jks
               #  path: zms_truststore.jks
-              - key: zms_truststore.pkcs12
-                path: zms_truststore.pkcs12
+              #- key: zms_truststore.pkcs12
+              #  path: zms_truststore.pkcs12
         - name: athenz-zms-keys
           secret:
             secretName: athenz-zms-keys
@@ -48,6 +48,8 @@ spec:
           configMap:
             name: athenz-zms-conf
         - name: athenz-plugins
+          emptyDir: {}
+        - name: athenz-trust-store
           emptyDir: {}
         - name: athenz-cacert
           configMap:
@@ -110,6 +112,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: ZMS_TRUSTSTORE_PEM_PATH
+              value: /etc/ssl/certs/ca-certificates.crt
           ports:
             - name: https
               containerPort: 4443
@@ -155,6 +159,8 @@ spec:
             - name: athenz-zms-cert-stores
               mountPath: /opt/athenz/zms/var/certs
               readOnly: true
+            - name: athenz-trust-store
+              mountPath: /var/run/athenz/truststore
             - name: athenz-plugins
               mountPath: /athenz/plugins
             - name: athenz-cacert

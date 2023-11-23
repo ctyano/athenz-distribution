@@ -255,6 +255,11 @@ install-step: install-pathman
 
 install-parsers: install-jq install-yq install-step
 
+install-golang:
+	which go \
+|| (curl -sf https://webi.sh/golang | sh \
+&& ~/.local/bin/pathman add ~/.local/bin)
+
 clean-certificates:
 	rm -rf keys certs
 
@@ -272,11 +277,10 @@ generate-zms: generate-ca
 	openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req
 	openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem
 	openssl pkcs12 -export -noiter -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -password pass:athenz
-	openssl pkcs12 -export -noiter -out certs/zms_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -passout pass:athenz
-	openssl pkcs12 -in certs/zms_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
-	#openssl pkcs12 -export -noiter -out certs/zms_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
 	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz
 	#keytool --list -keystore certs/zms_truststore.jks -storepass athenz
+	#openssl pkcs12 -export -noiter -out certs/zms_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -in certs/zms_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
 
 generate-zts: generate-zms
 	mkdir keys certs ||:
@@ -288,15 +292,13 @@ generate-zts: generate-zms
 	openssl pkcs12 -export -noiter -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -password pass:athenz
 	openssl pkcs12 -export -noiter -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -password pass:athenz
 	openssl pkcs12 -export -noiter -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/ca.private.pem -password pass:athenz
-	openssl pkcs12 -export -noiter -out certs/zts_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -passout pass:athenz
-	openssl pkcs12 -export -noiter -out certs/zms_client_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -passout pass:athenz
-	openssl pkcs12 -in certs/zts_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
-	openssl pkcs12 -in certs/zms_client_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
-	#openssl pkcs12 -export -noiter -out certs/zts_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
-	#openssl pkcs12 -export -noiter -out certs/zms_client_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
 	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz
 	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz
 	#keytool --list -keystore certs/zts_truststore.jks -storepass athenz
+	#openssl pkcs12 -export -noiter -out certs/zts_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -export -noiter -out certs/zms_client_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -in certs/zts_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
+	#openssl pkcs12 -in certs/zms_client_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
 
 generate-admin: generate-ca
 	mkdir keys certs ||:

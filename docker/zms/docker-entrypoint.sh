@@ -32,7 +32,7 @@ if [ ! -z "${ZMS_TRUSTSTORE_PASS}" ]; then
     JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZMS_TRUSTSTORE_PASS}"
 fi
 if [ ! -z "${ZMS_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool -import -noprompt -file ${ZMS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZMS_TRUSTSTORE_PASS:-athenz}
+    keytool -import -noprompt -file ${ZMS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZMS_TRUSTSTORE_PASS:-athenz}
 fi
 # system properties for private keys
 [ ! -z "${ZMS_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZMS_PRIVATE_KEY}"

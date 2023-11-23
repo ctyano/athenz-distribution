@@ -36,14 +36,14 @@ if [ ! -z "${ZTS_SIGNER_TRUSTSTORE_PASS}" ]; then
     JAVA_OPTS="${JAVA_OPTS} -Djavax.net.ssl.trustStorePassword=${ZTS_SIGNER_TRUSTSTORE_PASS}"
 fi
 if [ ! -z "${ZTS_SIGNER_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool -import -noprompt -file ${ZTS_SIGNER_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz}
+    keytool -import -noprompt -file ${ZTS_SIGNER_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz}
 fi
 [ ! -z "${ZMS_CLIENT_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.keystore_password=${ZMS_CLIENT_KEYSTORE_PASS}"
 if [ ! -z "${ZMS_CLIENT_TRUSTSTORE_PASS}" ]; then
     JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.client.truststore_password=${ZMS_CLIENT_TRUSTSTORE_PASS}"
 fi
 if [ ! -z "${ZMS_CLIENT_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool -import -noprompt -file ${ZMS_CLIENT_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.truststore_path=" | cut -d= -f2) -storepass ${ZMS_CLIENT_TRUSTSTORE_PASS:-athenz}
+    keytool -import -noprompt -file ${ZMS_CLIENT_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.truststore_path=" | cut -d= -f2) -storepass ${ZMS_CLIENT_TRUSTSTORE_PASS:-athenz}
 fi
 # system properties for private keys
 [ ! -z "${ZTS_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZTS_PRIVATE_KEY}"

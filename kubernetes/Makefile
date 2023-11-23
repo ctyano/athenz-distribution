@@ -19,7 +19,7 @@ copy-to-kustomization:
 
 load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
-	kind load docker-image ghcr.io/ctyano/athenz-zms-server:latest ghcr.io/ctyano/athenz-zts-server:latest ghcr.io/ctyano/athenz-cli:latest ghcr.io/ctyano/athenz-ui:latest
+	kind load docker-image ghcr.io/$$USER/athenz-zms-server:test ghcr.io/$$USER/athenz-zts-server:test ghcr.io/$$USER/athenz-cli:test ghcr.io/$$USER/athenz-ui:test
 
 setup-athenz-db:
 	kubectl apply -k athenz-db/kustomize

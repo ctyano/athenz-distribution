@@ -31,12 +31,12 @@ spec:
             secretName: athenz-zts-cert-stores
             defaultMode: 0555
             items:
-              #- key: zts_keystore.pkcs12
-              #  path: zts_keystore.pkcs12
+              - key: zts_keystore.pkcs12
+                path: zts_keystore.pkcs12
               #- key: zts_truststore.jks
               #  path: zts_truststore.jks
-              - key: zts_truststore.pkcs12
-                path: zts_truststore.pkcs12
+              #- key: zts_truststore.pkcs12
+              #  path: zts_truststore.pkcs12
               - key: zts_signer_keystore.pkcs12
                 path: zts_signer_keystore.pkcs12
               - key: zms_client_keystore.pkcs12

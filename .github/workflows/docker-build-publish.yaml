@@ -186,7 +186,7 @@ jobs:
       -
         name: Cache Go Modules
         id: cache-go
-        # users: https://github.com/actions/cache/tags
+        # uses: https://github.com/actions/cache/tags
         uses: actions/cache@v3
         with:
           path: |
@@ -195,6 +195,30 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
+      # This action provides the following functionality for GitHub Actions runners:
+      # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
+      # - Extracting and caching custom version of Java from a local file.
+      # - Configuring runner for publishing using Apache Maven.
+      # - Configuring runner for publishing using Gradle.
+      # - Configuring runner for using GPG private key.
+      # - Registering problem matchers for error output.
+      # - Caching dependencies managed by Apache Maven.
+      # - Caching dependencies managed by Gradle.
+      # - Caching dependencies managed by sbt.
+      # - [Maven Toolchains declaration](https://maven.apache.org/guides/mini/guide-using-toolchains.html) for specified JDK versions.
+      # 
+      # This action allows you to work with Java and Scala projects.
+      # https://github.com/actions/setup-java
+      -
+        name: Setup Java
+        id: setup-java
+        # uses: https://github.com/actions/setup-java/tags
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action

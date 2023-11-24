@@ -28,7 +28,12 @@ JAVA_OPTS="${JAVA_OPTS} -Dlogback.configurationFile=${CONF_PATH}/logback.xml"
 [ ! -z "${ZMS_DB_ADMIN_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_password=${ZMS_DB_ADMIN_PASS}"
 [ ! -z "${ZMS_RODB_ADMIN_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.jdbc_ro_password=${ZMS_RODB_ADMIN_PASS}"
 [ ! -z "${ZMS_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZMS_KEYSTORE_PASS}"
-[ ! -z "${ZMS_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZMS_TRUSTSTORE_PASS}"
+if [ ! -z "${ZMS_TRUSTSTORE_PASS}" ]; then
+    JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZMS_TRUSTSTORE_PASS}"
+fi
+if [ ! -z "${ZMS_TRUSTSTORE_PEM_PATH}" ]; then
+    keytool -import -noprompt -file ${ZMS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZMS_TRUSTSTORE_PASS:-athenz}
+fi
 # system properties for private keys
 [ ! -z "${ZMS_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZMS_PRIVATE_KEY}"
 [ ! -z "${ZMS_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key_id=${ZMS_PRIVATE_KEY_ID}"

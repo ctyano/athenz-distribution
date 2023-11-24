@@ -19,7 +19,7 @@ copy-to-kustomization:
 
 load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
-	kind load docker-image ghcr.io/ctyano/athenz-zms-server:latest ghcr.io/ctyano/athenz-zts-server:latest ghcr.io/ctyano/athenz-cli:latest ghcr.io/ctyano/athenz-ui:latest
+	kind load docker-image ghcr.io/$$USER/athenz-zms-server:test ghcr.io/$$USER/athenz-zts-server:test ghcr.io/$$USER/athenz-cli:test ghcr.io/$$USER/athenz-ui:test
 
 setup-athenz-db:
 	kubectl apply -k athenz-db/kustomize
@@ -51,6 +51,7 @@ while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; d
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
 		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
+		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
 		kubectl -n athenz get all; \
 		exit 1; \
 	fi; \
@@ -68,7 +69,7 @@ curl \
 	-sf \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
+	--cacert /etc/ssl/certs/ca-certificates.crt \
 	https://athenz-zms-server.athenz:4443/zms/v1/domain \
 | cat
 	@echo
@@ -79,7 +80,7 @@ curl \
 	-sf \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
+	--cacert /etc/ssl/certs/ca-certificates.crt \
 	https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/service \
 | cat
 	@echo
@@ -98,7 +99,7 @@ curl \
 	-sf \
 	-H"X-Auth-Request-Preferred-Username: athenz_admin" \
 	-H"X-Auth-Request-Email: athenz_admin@www.athenz.io" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
+	--cacert /etc/ssl/certs/ca-certificates.crt \
 	https://athenz-ui.athenz:443/ \
 | grep -E "<title>Athenz</title>" >/dev/null \
 && echo "Athenz UI sccessfully displayed"
@@ -131,7 +132,7 @@ test-jwks:
 curl \
 	-sf \
 	-H"Content-type: application/json" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
+	--cacert /etc/ssl/certs/ca-certificates.crt \
 	--key /var/run/athenz/athenz_admin.private.pem \
 	--cert /var/run/athenz/athenz_admin.cert.pem \
 	"https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true" \
@@ -144,7 +145,7 @@ curl \
 	-sfXPOST \
 	-H "Content-type: application/json" \
 	-d"{\"policyVersions\":{\"\":\"\"}}" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
+	--cacert /etc/ssl/certs/ca-certificates.crt \
 	--key /var/run/athenz/athenz_admin.private.pem \
 	--cert /var/run/athenz/athenz_admin.cert.pem \
 	"https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/policy/signed" \
@@ -169,7 +170,7 @@ curl \
 	-sfXPOST \
 	-H "Content-type: application/json" \
 	-d"{\"policyVersions\":{\"\":\"\"}}" \
-	--cacert /etc/ssl/certs/ca.cert.pem \
+	--cacert /etc/ssl/certs/ca-certificates.crt \
 	--key /var/run/athenz/athenz_admin.private.pem \
 	--cert /var/run/athenz/athenz_admin.cert.pem \
 	"https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/policy/signed" \

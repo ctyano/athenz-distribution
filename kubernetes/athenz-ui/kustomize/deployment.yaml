@@ -37,6 +37,12 @@ spec:
                 path: ui.public.pem
               - key: ui.cert.pem
                 path: ui.cert.pem
+        - name: athenz-ui-config
+          configMap:
+            name: athenz-ui-config
+            items:
+              - key: extended-config.js
+                path: extended-config.js
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
@@ -45,7 +51,7 @@ spec:
                 path: ca-certificates.crt
       containers:
         - name: athenz-ui
-          image: ghcr.io/ctyano/athenz-ui:latest
+          image: ghcr.io/ctyano/athenz-ui:test
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_ENV
@@ -118,6 +124,10 @@ spec:
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
+              readOnly: true
+            - name: athenz-ui-config
+              mountPath: /home/athenz/src/config/extended-config.js
+              subPath: extended-config.js
               readOnly: true
         # https://github.com/ghostunnel/ghostunnel
         - name: ghostunnel

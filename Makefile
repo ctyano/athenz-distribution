@@ -72,32 +72,37 @@ build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-ath
 build-athenz-db:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:test; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:test; \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zts-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:test; \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-ui:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:test; \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-cli:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	TEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:test; \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -t $$TEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 
@@ -131,7 +136,12 @@ buildx-athenz-cli:
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-install-rdl-tools:
+install-golang:
+	which go \
+|| (curl -sf https://webi.sh/golang | sh \
+&& ~/.local/bin/pathman add ~/.local/bin)
+
+install-rdl-tools: install-golang
 	go install github.com/ardielle/ardielle-go/...@master && \
 	go install github.com/ardielle/ardielle-tools/...@master && \
 	export PATH=$$PATH:$$GOPATH/bin
@@ -260,50 +270,56 @@ clean-certificates:
 
 generate-ca:
 	mkdir keys certs ||:
-	openssl genrsa -out keys/ca.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem \
-	&& openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
+	openssl genrsa -out keys/ca.private.pem 4096
+	openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem
+	openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
 
 generate-zms: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out keys/zms.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/zms.private.pem -out keys/zms.public.pem \
-	&& openssl req -config openssl/zms.openssl.config -new -key keys/zms.private.pem -out certs/zms.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem \
-	&& openssl pkcs12 -export -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -noiter -password pass:athenz \
-	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz \
-	&& keytool --list -keystore certs/zms_truststore.jks -storepass athenz
+	openssl genrsa -out keys/zms.private.pem 4096
+	openssl rsa -pubout -in keys/zms.private.pem -out keys/zms.public.pem
+	openssl req -config openssl/zms.openssl.config -new -key keys/zms.private.pem -out certs/zms.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/zms.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms.cert.pem -days 99999 -extfile openssl/zms.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/zms.cert.pem
+	openssl pkcs12 -export -noiter -out certs/zms_keystore.pkcs12 -in certs/zms.cert.pem -inkey keys/zms.private.pem -password pass:athenz
+	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_truststore.jks -storepass athenz
+	#keytool --list -keystore certs/zms_truststore.jks -storepass athenz
+	#openssl pkcs12 -export -noiter -out certs/zms_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -in certs/zms_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
 
 generate-zts: generate-zms
 	mkdir keys certs ||:
-	openssl genrsa -out keys/zts.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/zts.private.pem -out keys/zts.public.pem \
-	&& openssl req -config openssl/zts.openssl.config -new -key keys/zts.private.pem -out certs/zts.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/zts.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zts.cert.pem -days 99999 -extfile openssl/zts.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem \
-	&& openssl pkcs12 -export -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-	&& openssl pkcs12 -export -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -noiter -password pass:athenz \
-	&& openssl pkcs12 -export -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/ca.private.pem -noiter -password pass:athenz \
-	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz \
-	&& keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz \
-	&& keytool --list -keystore certs/zts_truststore.jks -storepass athenz
+	openssl genrsa -out keys/zts.private.pem 4096
+	openssl rsa -pubout -in keys/zts.private.pem -out keys/zts.public.pem
+	openssl req -config openssl/zts.openssl.config -new -key keys/zts.private.pem -out certs/zts.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/zts.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zts.cert.pem -days 99999 -extfile openssl/zts.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/zts.cert.pem
+	openssl pkcs12 -export -noiter -out certs/zts_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -password pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zms_client_keystore.pkcs12 -in certs/zts.cert.pem -inkey keys/zts.private.pem -password pass:athenz
+	openssl pkcs12 -export -noiter -out certs/zts_signer_keystore.pkcs12 -in certs/ca.cert.pem -inkey keys/ca.private.pem -password pass:athenz
+	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zts_truststore.jks -storepass athenz
+	#keytool -import -noprompt -file certs/ca.cert.pem -alias ca -keystore certs/zms_client_truststore.jks -storepass athenz
+	#keytool --list -keystore certs/zts_truststore.jks -storepass athenz
+	#openssl pkcs12 -export -noiter -out certs/zts_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -export -noiter -out certs/zms_client_truststore.pkcs12 -in certs/ca.cert.pem -nokeys -caname ca -passout pass:athenz
+	#openssl pkcs12 -in certs/zts_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
+	#openssl pkcs12 -in certs/zms_client_truststore.pkcs12 -cacerts -nokeys -out - -password pass:athenz | head -n3
 
 generate-admin: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out keys/athenz_admin.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/athenz_admin.private.pem -out keys/athenz_admin.public.pem \
-	&& openssl req -config openssl/athenz_admin.openssl.config -new -key keys/athenz_admin.private.pem -out certs/athenz_admin.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
+	openssl genrsa -out keys/athenz_admin.private.pem 4096
+	openssl rsa -pubout -in keys/athenz_admin.private.pem -out keys/athenz_admin.public.pem
+	openssl req -config openssl/athenz_admin.openssl.config -new -key keys/athenz_admin.private.pem -out certs/athenz_admin.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/athenz_admin.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/athenz_admin.cert.pem -days 99999 -extfile openssl/athenz_admin.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/athenz_admin.cert.pem
 
 generate-ui: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out keys/ui.private.pem 4096 \
-	&& openssl rsa -pubout -in keys/ui.private.pem -out keys/ui.public.pem \
-	&& openssl req -config openssl/ui.openssl.config -new -key keys/ui.private.pem -out certs/ui.csr.pem -extensions ext_req \
-	&& openssl x509 -req -in certs/ui.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/ui.cert.pem -days 99999 -extfile openssl/ui.openssl.config -extensions ext_req \
-	&& openssl verify -CAfile certs/ca.cert.pem certs/ui.cert.pem
+	openssl genrsa -out keys/ui.private.pem 4096
+	openssl rsa -pubout -in keys/ui.private.pem -out keys/ui.public.pem
+	openssl req -config openssl/ui.openssl.config -new -key keys/ui.private.pem -out certs/ui.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/ui.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/ui.cert.pem -days 99999 -extfile openssl/ui.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/ui.cert.pem
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui
 

@@ -119,6 +119,7 @@ services:
     volumes:
       - ../docker/zms/var:/opt/athenz/zms/var:rw
       - ../docker/zms/conf:/opt/athenz/zms/conf/zms_server:rw
+      - ../docker/zms/truststore:/var/run/athenz/truststore:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zms
@@ -161,6 +162,7 @@ services:
       - ../docker/zts/var:/opt/athenz/zts/var:rw
       - ../docker/zts/conf:/opt/athenz/zts/conf/zts_server:rw
       - ../docker/zts/conf:/opt/athenz/zts/conf/athenz:rw
+      - ../docker/zts/truststore:/var/run/athenz/truststore:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zts

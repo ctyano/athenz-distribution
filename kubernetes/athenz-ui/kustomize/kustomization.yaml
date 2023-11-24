@@ -27,7 +27,6 @@ secretGenerator:
 
 configMapGenerator:
   - name: athenz-ui-config
-    type: Opaque
     files:
       - extended-config.js=config/extended-config.js
   - name: athenz-cacert

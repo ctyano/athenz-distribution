@@ -17,10 +17,10 @@ services:
       - athenz
     volumes:
       - ./admin:/var/run/athenz:rw
-      - ../docker/zms/var:/var/zms:rw
-      - ../docker/zms/conf:/conf/zms:rw
-      - ../docker/zts/var:/var/zts:rw
-      - ../docker/zts/conf:/conf/zts:rw
+      - ./zms/var:/var/zms:rw
+      - ./zms/conf:/conf/zms:rw
+      - ./zts/var:/var/zts:rw
+      - ./zts/conf:/conf/zts:rw
     environment:
       ZMS: https://athenz-zms-server:4443/zms/v1
       ZTS: https://athenz-zts-server:8443/zts/v1
@@ -55,7 +55,7 @@ services:
     networks:
       - athenz
     volumes:
-      - ../docker/ui/tls:/home/athenz/tls:ro
+      - ./ui/tls:/home/athenz/tls:ro
     restart: unless-stopped
 
   athenz-ui:
@@ -79,8 +79,10 @@ services:
     networks:
       - athenz
     volumes:
-      - ../docker/ui/src/config:/home/athenz/src/config:ro
-      - ../docker/ui/tls:/home/athenz/tls:ro
+      - ./ui/tls:/home/athenz/tls:ro
+      - type: bind
+        source: ./ui/src/config/extended-config.js
+        target: /home/athenz/src/config/extended-config.js
     environment:
       TZ: Asia/Tokyo
       NODE_ENV: production
@@ -117,9 +119,9 @@ services:
       - athenz
       - athenz-db
     volumes:
-      - ../docker/zms/var:/opt/athenz/zms/var:rw
-      - ../docker/zms/conf:/opt/athenz/zms/conf/zms_server:rw
-      - ../docker/zms/truststore:/var/run/athenz/truststore:rw
+      - ./zms/var:/opt/athenz/zms/var:rw
+      - ./zms/conf:/opt/athenz/zms/conf/zms_server:rw
+      - ./zms/truststore:/var/run/athenz/truststore:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zms
@@ -159,10 +161,10 @@ services:
       - athenz
       - athenz-db
     volumes:
-      - ../docker/zts/var:/opt/athenz/zts/var:rw
-      - ../docker/zts/conf:/opt/athenz/zts/conf/zts_server:rw
-      - ../docker/zts/conf:/opt/athenz/zts/conf/athenz:rw
-      - ../docker/zts/truststore:/var/run/athenz/truststore:rw
+      - ./zts/var:/opt/athenz/zts/var:rw
+      - ./zts/conf:/opt/athenz/zts/conf/zts_server:rw
+      - ./zts/conf:/opt/athenz/zts/conf/athenz:rw
+      - ./zts/truststore:/var/run/athenz/truststore:rw
       - athenz-plugins:/athenz/plugins
     environment:
       ROOT: /opt/athenz/zts

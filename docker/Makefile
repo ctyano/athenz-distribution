@@ -16,7 +16,7 @@ copy-to-compose:
 	cp -r ../keys ../certs zts/var/
 	cp -r ../keys/*.* ../certs/*.* ui/tls/
 	chmod -R a+r admin zms/var/keys zms/var/certs zts/var/keys zts/var/certs ui/tls
-	chmod -R a+rw zts/conf zts/var
+	chmod -R a+rw zms/truststore zts/truststore zts/conf zts/var
 	cp ../athenz/servers/zms/schema/zms_server.sql db/schema/zms_server.sql
 	cp ../athenz/servers/zts/schema/zts_server.sql db/schema/zts_server.sql
 

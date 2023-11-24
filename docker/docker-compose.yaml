@@ -79,7 +79,7 @@ services:
     networks:
       - athenz
     volumes:
-      - ../docker/ui/src/config:/home/athenz/ui/src/config:ro
+      - ../docker/ui/src/config:/home/athenz/src/config:ro
       - ../docker/ui/tls:/home/athenz/tls:ro
     environment:
       TZ: Asia/Tokyo

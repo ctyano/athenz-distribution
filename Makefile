@@ -136,7 +136,12 @@ buildx-athenz-cli:
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-install-rdl-tools:
+install-golang:
+	which go \
+|| (curl -sf https://webi.sh/golang | sh \
+&& ~/.local/bin/pathman add ~/.local/bin)
+
+install-rdl-tools: install-golang
 	go install github.com/ardielle/ardielle-go/...@master && \
 	go install github.com/ardielle/ardielle-tools/...@master && \
 	export PATH=$$PATH:$$GOPATH/bin
@@ -259,11 +264,6 @@ install-step: install-pathman
 && ~/.local/bin/pathman add ~/.local/bin)
 
 install-parsers: install-jq install-yq install-step
-
-install-golang:
-	which go \
-|| (curl -sf https://webi.sh/golang | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
 
 clean-certificates:
 	rm -rf keys certs

@@ -29,6 +29,9 @@ JAVA_OPTS="${JAVA_OPTS} -Dlogback.configurationFile=${CONF_PATH}/logback.xml"
 [ ! -z "${ZTS_DB_ADMIN_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.cert_jdbc_password=${ZTS_DB_ADMIN_PASS}"
 [ ! -z "${ZTS_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZTS_KEYSTORE_PASS}"
 [ ! -z "${ZTS_TRUSTSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_trust_store_password=${ZTS_TRUSTSTORE_PASS}"
+if [ ! -z "${ZTS_TRUSTSTORE_PEM_PATH}" ]; then
+    keytool -import -noprompt -file ${ZTS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_TRUSTSTORE_PASS:-athenz}
+fi
 [ ! -z "${ZTS_SIGNER_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.keystore_signer.keystore_password=${ZTS_SIGNER_KEYSTORE_PASS}"
 [ ! -z "${ZTS_SIGNER_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.ssl_key_store_password=${ZTS_SIGNER_KEYSTORE_PASS}"
 if [ ! -z "${ZTS_SIGNER_TRUSTSTORE_PASS}" ]; then

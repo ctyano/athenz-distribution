@@ -18,11 +18,9 @@ secretGenerator:
     files:
       - zts_keystore.pkcs12=certs/zts_keystore.pkcs12
       #- zts_truststore.jks=certs/zts_truststore.jks
-      #- zts_truststore.pkcs12=certs/zts_truststore.pkcs12
       - zts_signer_keystore.pkcs12=certs/zts_signer_keystore.pkcs12
       - zms_client_keystore.pkcs12=certs/zms_client_keystore.pkcs12
       #- zms_client_truststore.jks=certs/zms_client_truststore.jks
-      #- zms_client_truststore.pkcs12=certs/zms_client_truststore.pkcs12
   - name: athenz-zts-keys
     type: Opaque
     files:

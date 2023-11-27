@@ -69,9 +69,7 @@ curl \
 	-sf \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-	--cacert /etc/ssl/certs/ca-certificates.crt \
-	https://athenz-zms-server.athenz:4443/zms/v1/domain \
-| cat
+	https://athenz-zms-server.athenz:4443/zms/v1/domain
 	@echo
 
 test-athenz-zts-server:
@@ -80,9 +78,7 @@ curl \
 	-sf \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-	--cacert /etc/ssl/certs/ca-certificates.crt \
-	https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/service \
-| cat
+	https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/service
 	@echo
 
 test-zms-cli:
@@ -99,7 +95,6 @@ curl \
 	-sf \
 	-H"X-Auth-Request-Preferred-Username: athenz_admin" \
 	-H"X-Auth-Request-Email: athenz_admin@www.athenz.io" \
-	--cacert /etc/ssl/certs/ca-certificates.crt \
 	https://athenz-ui.athenz:443/ \
 | grep -E "<title>Athenz</title>" >/dev/null \
 && echo "Athenz UI sccessfully displayed"
@@ -132,7 +127,6 @@ test-jwks:
 curl \
 	-sf \
 	-H"Content-type: application/json" \
-	--cacert /etc/ssl/certs/ca-certificates.crt \
 	--key /var/run/athenz/athenz_admin.private.pem \
 	--cert /var/run/athenz/athenz_admin.cert.pem \
 	"https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true" \
@@ -145,7 +139,6 @@ curl \
 	-sfXPOST \
 	-H "Content-type: application/json" \
 	-d"{\"policyVersions\":{\"\":\"\"}}" \
-	--cacert /etc/ssl/certs/ca-certificates.crt \
 	--key /var/run/athenz/athenz_admin.private.pem \
 	--cert /var/run/athenz/athenz_admin.cert.pem \
 	"https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/policy/signed" \
@@ -170,7 +163,6 @@ curl \
 	-sfXPOST \
 	-H "Content-type: application/json" \
 	-d"{\"policyVersions\":{\"\":\"\"}}" \
-	--cacert /etc/ssl/certs/ca-certificates.crt \
 	--key /var/run/athenz/athenz_admin.private.pem \
 	--cert /var/run/athenz/athenz_admin.cert.pem \
 	"https://athenz-zts-server.athenz:4443/zts/v1/domain/sys.auth/policy/signed" \

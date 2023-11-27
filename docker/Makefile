@@ -190,8 +190,7 @@ curl \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
-	https://athenz-zms-server:4443/zms/v1/domain \
-| cat
+	https://athenz-zms-server:4443/zms/v1/domain
 	@echo
 
 test-athenz-zts-server:
@@ -201,8 +200,7 @@ curl \
 	-H"Content-type: application/json" \
 	-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
 	--cacert /var/run/athenz/certs/ca.cert.pem \
-	https://athenz-zts-server:8443/zts/v1/domain/sys.auth/service \
-| cat
+	https://athenz-zts-server:8443/zts/v1/domain/sys.auth/service
 	@echo
 
 test-athenz-ui:

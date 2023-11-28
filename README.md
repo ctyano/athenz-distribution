@@ -34,8 +34,7 @@ docker compose -f docker/docker-compose.yaml start ghostunnel
 
 ## Miscellaneous documents
 
-- [How to generate keys and certificates](docs/CREDS.md)
+- [How to generate keys and certificates](docs/CERTIFICATES.md)
 - [CLI instruction](docs/CLI.md)
-- [List of Athenz package distribution](docs/DIST.md)
-
+- [List of Athenz package distribution](docs/DISTRIBUTIONS.md)
 

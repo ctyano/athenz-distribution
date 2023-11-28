@@ -1,6 +1,8 @@
-# Credential Preparation
+# Certificate Preparation
 
 ## Root CA
+
+A shortcut way to generate a root CA:
 
 ```
 make clean-certificates generate-ca
@@ -8,39 +10,31 @@ make clean-certificates generate-ca
 
 ## ZMS Keys and Certificates
 
-the default `generate-zms` requires `keytool`.
+A shortcut way to generate certificates for Athenz ZMS:
 
 ```
 make generate-zms
 ```
 
-or without keytool (without Java)
-
-```
-make generate-zms-with-docker
-```
-
 ## ZTS Keys and Certificates
 
-the default `generate-zts` requires `keytool`.
+A shortcut way to generate certificates for Athenz ZTS:
 
 ```
 make generate-zts
 ```
 
-or without keytool (without Java)
-
-```
-make generate-zts-with-docker
-```
-
 ## Athenz Admin Keys and Certificates
+
+A shortcut way to generate certificates for administrator:
 
 ```
 make generate-admin
 ```
 
 ## Athenz UI Keys and Certificates
+
+A shortcut way to generate certificates for Athenz UI:
 
 ```
 make generate-ui

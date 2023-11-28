@@ -78,11 +78,23 @@ const config = {
         },
         userDomain: 'user',
         userDomains: 'user',
+        templates: ['zts_instance_launch_provider'],
+        allProviders: [
+            {
+                id: 'zts_instance_launch_provider',
+                name: 'Athenz ZTS to issue a X.509 identity certificate for the workload',
+            },
+        ],
+        allPrefixes: [
+            {
+                name: 'ZTS Identity Provisioning - Copper Argos',
+                prefix: ':role.zts_instance_launch_provider',
+            },
+        ],
         staticUserName: process.env.STATIC_USER_NAME || '',
         cookieSession: process.env.UI_SESSION_SECRET_PATH || 'keys/cookie-session',
         statusPath: process.env.UI_SESSION_SECRET_PATH || 'keys/cookie-session',
         featureFlag: false,
-        templates: [],
         // https://github.com/AthenZ/athenz/pull/2252
         serverCipherSuites:
             'TLS_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384:TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:TLS_DHE_RSA_WITH_AES_128_GCM_SHA256:TLS_DHE_RSA_WITH_AES_256_GCM_SHA384:TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256',

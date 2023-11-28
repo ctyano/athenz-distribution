@@ -37,11 +37,14 @@ ifeq ($(XPLATFORMS),)
 XPLATFORMS := linux/amd64,linux/arm64
 endif
 XPLATFORM_ARGS := --platform=$(XPLATFORMS)
+
 BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)'
 
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/$${USER}/
 endif
+
+JDK_IMAGE := docker.io/library/openjdk:22-slim-bullseye
 
 ifeq ($(GOOS),)
 GOOS=$(shell go env GOOS | sed -e "s/'//g")
@@ -152,6 +155,7 @@ patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
 
 build-java: checkout-version patch install-rdl-tools
+	docker run -v $$PWD/athenz:/athenz --rm --name jdk $(JDK_IMAGE)
 	mvn -B clean install \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \

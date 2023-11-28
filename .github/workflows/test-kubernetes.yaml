@@ -136,7 +136,7 @@ jobs:
         name: Deploy Application
         run: |
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${ATHENZ_PACKAGE_VERSION} make deploy-kubernetes-athenz
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make deploy-kubernetes-athenz
 
       # A GitHub Action to check and test application
       -

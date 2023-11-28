@@ -10,7 +10,7 @@ Docker(OCI) image distributions:
   - [athenz-cli](https://github.com/users/ctyano/packages/container/package/athenz-cli)
   - [athenz-ui](https://github.com/users/ctyano/packages/container/package/athenz-ui)
 
-## Linux packages
+## Linux packages (Under development)
 
 Linux package distributions for several platforms:
 

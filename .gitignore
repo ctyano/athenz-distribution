@@ -6,6 +6,7 @@ zts_store
 athenz.conf
 jwks.json
 cookie-session
+.m2
 .npm
 athenz
 plugins

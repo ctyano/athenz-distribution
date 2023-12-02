@@ -35,7 +35,8 @@ WORKDIR /opt/athenz/zms
 
 COPY athenz/assembly/zms/target/athenz-zms-${VERSION}-bin.tar.gz .
 RUN tar xvzf ./athenz-zms-${VERSION}-bin.tar.gz -C /tmp \
-    && mv /tmp/athenz-zms-${VERSION}*/* /opt/athenz/zms/
+    && mv /tmp/athenz-zms-${VERSION}*/* /opt/athenz/zms/ \
+    && rm -f ./athenz-zms-${VERSION}-bin.tar.gz
 
 ENV ROOT=''
 ENV JAVA_OPTS=''

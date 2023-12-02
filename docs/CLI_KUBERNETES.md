@@ -41,17 +41,17 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-svccert \
-      -zts https://athenz-zts-server.athenz:4443/zts/v1 \
-      -domain home.athenz_admin \
-      -service showcase \
-      -provider sys.auth.zts \
-      -instance $(hostname) \
-      -attestation-data /tmp/.ntoken \
-      -dns-domain zts.athenz.cloud \
-      -private-key /var/run/athenz/athenz_admin.private.pem \
-      -key-version 0 \
-      -cert-file /tmp/home.athenz_admin.showcase.cert.pem \
-      -signer-cert-file /tmp/ca.cert.pem
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -domain home.athenz_admin \
+        -service showcase \
+        -provider sys.auth.zts \
+        -instance $(hostname) \
+        -attestation-data /tmp/.ntoken \
+        -dns-domain zts.athenz.cloud \
+        -private-key /var/run/athenz/athenz_admin.private.pem \
+        -key-version 0 \
+        -cert-file /tmp/home.athenz_admin.showcase.cert.pem \
+        -signer-cert-file /tmp/ca.cert.pem
 ```
 
 ### Retriving tokens
@@ -64,8 +64,8 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
         -domain sys.auth \
         -role admin \
-        | rev | cut -d';' -f2- | rev \
-        | tr ';' '\n'
+    | rev | cut -d';' -f2- | rev \
+    | tr ';' '\n'
 
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-accesstoken \
@@ -74,9 +74,20 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
         -domain sys.auth \
         -roles admin \
-        | jq -r .access_token \
-        | jq -Rr 'split(".") | .[0,1] | @base64d' \
-        | jq -r .
+    | jq -r .access_token \
+    | jq -Rr 'split(".") | .[0,1] | @base64d' \
+    | jq -r .
+
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-accesstoken \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+        -domain sys.auth \
+        -roles admin \
+    | jq -r .access_token \
+    | step crypto jws verify --jwks=keys/jwks.json \
+    && printf "\nValid Access Token\n" || printf "\nInvalid Access Token\n"
 ```
 
 ### Retriving public keys
@@ -97,7 +108,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         --key /var/run/athenz/athenz_admin.private.pem \
         --cert /var/run/athenz/athenz_admin.cert.pem \
         "https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true" \
-| tee keys/jwks.json
+    | tee keys/jwks.json
 ```
 
 ### Retriving Policies
@@ -105,17 +116,16 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 https://datatracker.ietf.org/doc/html/draft-smith-oauth-json-web-document-00
 
 ```
-DOMAIN=sys.auth \
-; kubectl -n athenz exec deployment/athenz-cli -it -- \
+kubectl -n athenz exec deployment/athenz-cli -it -- \
     curl \
-        -sXPOST \
         -H "Content-type: application/json" \
+        -sXPOST \
         -d"{\"policyVersions\":{\"\":\"\"}}" \
         --key /var/run/athenz/athenz_admin.private.pem \
         --cert /var/run/athenz/athenz_admin.cert.pem \
         "https://athenz-zts-server.athenz:4443/zts/v1/domain/${DOMAIN:-sys.auth}/policy/signed" \
-| jq -r '[.protected,.payload,.signature] | join(".")' \
-| step crypto jws verify --jwks=keys/jwks.json \
-&& printf "\nValid Policy\n" || printf "\nInvalid Policy\n"
+    | jq -r '[.protected,.payload,.signature] | join(".")' \
+    | step crypto jws verify --jwks=keys/jwks.json \
+    && printf "\nValid Policy\n" || printf "\nInvalid Policy\n"
 ```
 

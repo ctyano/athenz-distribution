@@ -1,3 +1,33 @@
+ARG VERSION=
+# date -u +'%Y-%m-%dT%H:%M:%SZ'
+ARG BUILD_DATE
+# git rev-parse --short HEAD
+ARG VCS_REF
+
+ARG GID=1001
+ARG UID=10001
+
+FROM docker.io/library/openjdk:22-slim-bullseye AS builder
+
+ARG VERSION=
+# date -u +'%Y-%m-%dT%H:%M:%SZ'
+ARG BUILD_DATE
+# git rev-parse --short HEAD
+ARG VCS_REF
+
+ARG GID=1001
+ARG UID=10001
+
+# add athenz user
+RUN groupadd -g ${GID} athenz && \
+  useradd -M -r -s /sbin/nologin -u ${UID} -g athenz athenz
+USER athenz
+WORKDIR /opt/athenz/zms
+COPY athenz/assembly/zms/target/athenz-zms-${VERSION}-bin.tar.gz .
+RUN tar xvzf ./athenz-zms-${VERSION}-bin.tar.gz -C /tmp \
+    && mv /tmp/athenz-zms-${VERSION}*/* /opt/athenz/zms/ \
+    && rm -f ./athenz-zms-${VERSION}-bin.tar.gz
+
 FROM docker.io/library/openjdk:22-slim-bullseye
 
 ARG VERSION=
@@ -5,6 +35,9 @@ ARG VERSION=
 ARG BUILD_DATE
 # git rev-parse --short HEAD
 ARG VCS_REF
+
+ARG GID=1001
+ARG UID=10001
 
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$VCS_REF
@@ -16,9 +49,6 @@ LABEL org.opencontainers.image.licenses="Private"
 LABEL org.opencontainers.image.url="ghcr.io/ctyano/athenz-cli"
 LABEL org.opencontainers.image.documentation="https://www.athenz.io/"
 LABEL org.opencontainers.image.source="https://github.com/AthenZ/athenz"
-
-ARG GID=1001
-ARG UID=10001
 
 #RUN apk add --no-cache bash
 RUN apt-get update
@@ -33,10 +63,7 @@ USER athenz
 
 WORKDIR /opt/athenz/zms
 
-COPY athenz/assembly/zms/target/athenz-zms-${VERSION}-bin.tar.gz .
-RUN tar xvzf ./athenz-zms-${VERSION}-bin.tar.gz -C /tmp \
-    && mv /tmp/athenz-zms-${VERSION}*/* /opt/athenz/zms/ \
-    && rm -f ./athenz-zms-${VERSION}-bin.tar.gz
+COPY --from=builder /opt/athenz/zms /opt/athenz/zms
 
 ENV ROOT=''
 ENV JAVA_OPTS=''

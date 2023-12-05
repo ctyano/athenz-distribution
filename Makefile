@@ -155,7 +155,6 @@ patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
 
 build-java: checkout-version patch install-rdl-tools
-	docker run -v $$PWD/athenz:/athenz --rm --name jdk $(JDK_IMAGE)
 	mvn -B clean install \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \

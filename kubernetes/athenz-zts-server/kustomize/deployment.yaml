@@ -126,6 +126,14 @@ spec:
                 -z ${ZMS} \
                 -d sys.auth \
                 set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider \
+              && \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                set-domain-template instance_provider dnssuffix=zts.athenz.cloud provider=sys.auth.zts \
               )
           resources:
             limits:

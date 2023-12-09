@@ -1,0 +1,253 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identityprovider-deployment
+  labels:
+    app: identityprovider-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identityprovider-deployment
+  template:
+    metadata:
+      labels:
+        app: identityprovider-deployment
+    spec:
+      serviceAccountName: athenz-sia
+      securityContext:
+        fsGroup: 1000
+      imagePullSecrets:
+        - name: ghcr
+      volumes:
+        - name: envoy
+          configMap:
+            name: copperargos-envoy
+            items:
+              - key: config.yaml
+                path: config.yaml
+              - key: sds_tls_certificate.yaml
+                path: sds_tls_certificate.yaml
+        - name: athenz-tls-certs
+          emptyDir: {}
+        - name: policy
+          configMap:
+            name: identityprovider-policy
+        - name: config
+          configMap:
+            name: identityprovider-config
+            items:
+            - key: config.yaml
+              path: config.yaml
+        - name: athenz-cacert
+          configMap:
+            name: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+      initContainers:
+        - name: sia-init
+          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
+          args: &sia-args
+            - --mode=init
+            - --delay-jitter-seconds=5
+          envFrom: &sia-envFrom
+            - configMapRef:
+                name: athenz-sia
+          env: &sia-env
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SERVICEACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: PROVIDER_SERVICE
+              value: ""
+            - name: BACKUP
+              value: read
+          resources: &sia-resources
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts: &sia-volumeMounts
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
+      containers:
+        - name: sia
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
+          args:
+            - --mode=refresh
+            - --token-server-addr=:8180
+            - --authorization-server-addr=:8280
+            - --metrics-server-addr=:9999
+          envFrom: *sia-envFrom
+          env: *sia-env
+          ports:
+            - name: token-sidecar
+              containerPort: 8180
+              protocol: TCP
+            - name: authorization
+              containerPort: 8280
+              protocol: TCP
+            - name: exporter
+              containerPort: 9999
+              protocol: TCP
+          resources: *sia-resources
+          volumeMounts: *sia-volumeMounts
+        - name: opa
+          image: docker.io/openpolicyagent/opa:latest-static
+          imagePullPolicy: IfNotPresent
+          resources: &opa-resources
+            limits:
+              cpu: 1
+              memory: 1Gi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          args:
+            - run
+            - --server
+            - --log-format=$(IDENTITYPROVIDER_OPA_LOG_FORMAT)
+            - --log-level=$(IDENTITYPROVIDER_OPA_LOG_LEVEL)
+            - --config-file=/etc/opa/config/config.yaml
+            - --authentication=token
+            - --authorization=basic
+            - --addr
+            - http://127.0.0.1:8181
+            - --ignore
+            - .*
+            - --skip-version-check
+            - /etc/opa/policy
+          envFrom: &opa-envFrom
+            - configMapRef:
+                name: athenz-identityprovider
+          ports:
+            - name: http
+              containerPort: 8181
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 443
+              scheme: HTTPS
+            initialDelaySeconds: 300
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 443
+              scheme: HTTPS
+            initialDelaySeconds: 0
+            periodSeconds: 10
+          volumeMounts:
+            - name: policy
+              mountPath: /etc/opa/policy
+              readOnly: true
+            - name: config
+              mountPath: /etc/opa/config
+              readOnly: true
+        - name: kube-mgmt
+          image: docker.io/openpolicyagent/kube-mgmt:latest
+          imagePullPolicy: IfNotPresent
+          resources: &kube-mgmt-resources
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          args:
+            - --opa-url=http://127.0.0.1:8080/v1
+            - --opa-auth-token-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+            - --enable-policies=false
+            - --enable-data=false
+            - --policies=''
+            - --replicate=v1/pods
+            - --replicate-path=kubernetes
+        - name: kubectl
+          image: docker.io/portainer/kubectl-shell:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+          ports:
+            - name: kubectl-proxy
+              containerPort: 8001
+              protocol: TCP
+          args:
+            - kubectl
+            - proxy
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+              readOnly: true
+        - name: envoy
+          # Envoy crashes in Raspberry Pi 4
+          image: docker.io/envoyproxy/envoy:v1.26-latest
+          #image: docker.io/thegrandpkizzle/envoy:1.26.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          command: 
+            - /usr/local/bin/envoy
+          args:
+            - -c
+            - /etc/envoy/config.yaml
+            - -l
+            - debug
+          resources: &envoy-resources
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: envoy
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+              readOnly: true
+        - name: echoserver
+          image: docker.io/ealen/echo-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+          resources: *envoy-resources

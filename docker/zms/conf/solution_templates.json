@@ -1,69 +1,54 @@
 {
     "templates" : {
-        "user_provisioning": {
+        "instance_provider": {
             "metadata":
             {
                 "latestVersion": 1,
                 "timestamp": "2020-06-16T00:00:00.000Z",
-                "description": "Athenz User provisioning template",
-                "keywordsToReplace": "",
+                "description": "instance provider template",
+                "keywordsToReplace": "_provider_,_dnssuffix_",
                 "autoUpdate": false
             },
             "roles": [
                 {
-                    "name": "_domain_:role.user",
-                    "modified": "1970-01-01T00:00:00.000Z"
-                },
-                {
-                    "name": "_domain_:role.superuser",
-                    "modified": "1970-01-01T00:00:00.000Z"
-                },
-                {
-                    "name": "_domain_:role.builders",
+                    "name": "_domain_:role.providers",
+                    "modified": "1970-01-01T00:00:00.000Z",
                     "roleMembers": [
                         {
-                            "memberName": "sys.builder"
+                            "memberName": "_provider_"
                         }
-                    ],
-                    "modified": "1970-01-01T00:00:00.000Z"
+                    ]
+                },
+                {
+                    "name": "_domain_:role.provider._provider_",
+                    "modified": "1970-01-01T00:00:00.000Z",
+                    "roleMembers": [
+                        {
+                            "memberName": "_provider_"
+                        }
+                    ]
                 }
             ],
             "policies": [
                 {
-                    "name": "_domain_:policy.user",
+                    "name": "_domain_:policy.providers",
                     "modified": "1970-01-01T00:00:00.000Z",
                     "assertions": [
                         {
-                            "resource": "_domain_:node.*",
-                            "role": "_domain_:role.user",
-                            "action": "node_user"
+                            "resource": "_domain_:instance",
+                            "role": "_domain_:role.providers",
+                            "action": "launch"
                         }
                     ]
                 },
                 {
-                    "name": "_domain_:policy.superuser",
+                    "name": "_domain_:policy.provider._provider_",
                     "modified": "1970-01-01T00:00:00.000Z",
                     "assertions": [
                         {
-                            "resource": "_domain_:node.*",
-                            "role": "_domain_:role.superuser",
-                            "action": "node_sudo"
-                        }
-                    ]
-                },
-                {
-                    "name": "_domain_:policy.builders",
-                    "modified": "1970-01-01T00:00:00.000Z",
-                    "assertions": [
-                        {
-                            "resource": "_domain_:build",
-                            "role": "_domain_:role.builders",
-                            "action": "read"
-                        },
-                        {
-                            "resource": "_domain_:build",
-                            "role": "_domain_:role.builders",
-                            "action": "delete"
+                            "resource": "_domain_:dns._dnssuffix_",
+                            "role": "_domain_:role.provider._provider_",
+                            "action": "launch"
                         }
                     ]
                 }
@@ -97,60 +82,6 @@
                         {
                             "resource": "_domain_:service._service_",
                             "role": "_domain_:role.zts_instance_launch_provider",
-                            "action": "launch"
-                        }
-                    ]
-                }
-            ]
-        },
-        "zts_instance_provider": {
-            "metadata":
-            {
-                "latestVersion": 1,
-                "timestamp": "2020-06-16T00:00:00.000Z",
-                "description": "ZTS instance provider template for sys.auth domain",
-                "keywordsToReplace": "_dnssuffix_",
-                "autoUpdate": false
-            },
-            "roles": [
-                {
-                    "name": "_domain_:role.providers",
-                    "modified": "1970-01-01T00:00:00.000Z",
-                    "roleMembers": [
-                        {
-                            "memberName": "sys.auth.zts"
-                        }
-                    ]
-                },
-                {
-                    "name": "_domain_:role.provider.sys.auth.zts",
-                    "modified": "1970-01-01T00:00:00.000Z",
-                    "roleMembers": [
-                        {
-                            "memberName": "sys.auth.zts"
-                        }
-                    ]
-                }
-            ],
-            "policies": [
-                {
-                    "name": "_domain_:policy.providers",
-                    "modified": "1970-01-01T00:00:00.000Z",
-                    "assertions": [
-                        {
-                            "resource": "_domain_:instance",
-                            "role": "_domain_:role.providers",
-                            "action": "launch"
-                        }
-                    ]
-                },
-                {
-                    "name": "_domain_:policy.role.provider.sys.auth.zts",
-                    "modified": "1970-01-01T00:00:00.000Z",
-                    "assertions": [
-                        {
-                            "resource": "_domain_:dns._dnssuffix_",
-                            "role": "_domain_:role.provider.sys.auth.zts",
                             "action": "launch"
                         }
                     ]

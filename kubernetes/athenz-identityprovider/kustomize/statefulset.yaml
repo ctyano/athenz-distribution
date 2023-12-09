@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: identityprovider-statefulset
+  labels:
+    app: identityprovider-statefulset
+spec:
+  replicas: 1
+  serviceName: identityprovider-statefulset
+  selector:
+    matchLabels:
+      app: identityprovider-statefulset
+  template:
+    metadata:
+      labels:
+        app: identityprovider-statefulset
+    spec:
+      serviceAccountName: identityprovider
+      imagePullSecrets:
+        - name: ghcr
+      volumes:
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
+        - name: athenz-tls-certs
+          emptyDir: {}
+        - name: athenz-cacert
+          configMap:
+            name: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+      initContainers:
+        - name: sia-init
+          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          imagePullPolicy: &sia-imagePullPolicy Always
+          resources: &sia-resources
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+          args: &sia-init-args
+            - --mode=init
+            - --delay-jitter-seconds=5
+            - --token-server-addr=""
+            - --metrics-server-addr=""
+            - --delete-instance-id
+          envFrom: &sia-envFrom
+            - configMapRef:
+                name: athenz-sia
+          env: &sia-env
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SERVICEACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: BACKUP
+              value: write
+            - name: TOKEN_SERVER_ADDR
+              value: ""
+            - name: METRICS_SERVER_ADDR
+              value: ""
+            - name: AUTHORIZATION_SERVER_ADDR
+              value: ""
+          volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
+      containers:
+        - name: sia
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
+          resources: *sia-resources
+          args: &sia-args
+            - --mode=refresh
+          envFrom: *sia-envFrom
+          env: *sia-env
+          volumeMounts: *sia-volumeMounts

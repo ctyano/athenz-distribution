@@ -1,0 +1,76 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+resources:
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
+  - deployment.yaml
+  - namespace.yaml
+  - role.yaml
+  - rolebinding.yaml
+  - secret.yaml
+  - service.yaml
+  - serviceaccount.yaml
+  - statefulset.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: athenz-sia
+    envs:
+      - athenz-sia/athenz-sia.env
+  - name: athenz-identityprovider
+    envs:
+      - athenz-identityprovider/athenz-identityprovider.env
+  - name: copperargos-envoy
+    files:
+      - config.yaml=envoy/config.yaml
+      - sds_tls_certificate.yaml=envoy/sds_tls_certificate.yaml
+  - name: identityprovider-config
+    files:
+      - config.yaml=athenz-identityprovider/config.yaml
+  - name: identityprovider-policy
+    files:
+      - system.authz.rego=athenz-identityprovider/policy/system.authz.rego
+      - identityprovider.rego=athenz-identityprovider/policy/identityprovider.rego
+      - system.log.rego=athenz-identityprovider/policy/system.log.rego
+      - config.yaml=athenz-identityprovider/policy/config.yaml
+#  - name: athenz-cacert
+#    files:
+#      - ca.cert.pem=certs/ca.cert.pem
+
+replacements:
+  - source:
+      version: v1
+      kind: ConfigMap
+      name: athenz-sia
+      fieldpath: data.SERVICEACCOUNT
+    targets:
+      - select:
+          version: v1
+          kind: ServiceAccount
+          name: identityprovider-serviceaccount
+        fieldPaths:
+          - metadata.name
+        options:
+          create: true
+      - select:
+          version: v1
+          kind: StatefulSet
+          name: identityprovider-statefulset
+        fieldPaths:
+          - spec.template.spec.serviceAccountName
+        options:
+          create: true
+      - select:
+          version: v1
+          kind: Deployment
+          name: identityprovider-deployment
+        fieldPaths:
+          - spec.template.spec.serviceAccountName
+        options:
+          create: true

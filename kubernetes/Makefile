@@ -3,6 +3,7 @@ clean-certificates:
 	rm -rf athenz-zms-server/kustomize/{keys,certs}
 	rm -rf athenz-zts-server/kustomize/{keys,certs}
 	rm -rf athenz-ui/kustomize/{keys,certs}
+	rm -rf athenz-identityprovider/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -16,6 +17,7 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-ui/kustomize/
 	cp ../athenz/servers/zms/schema/zms_server.sql athenz-db/kustomize/zms_server.sql
 	cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
+	cp -r ../keys ../certs athenz-identityprovider/kustomize/
 
 load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
@@ -176,5 +178,8 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "**** Athenz APIs are functioning ****"
 	@echo "*************************************"
 	@echo ""
+
+setup-athenz-identityprovider: test-athenz-servers
+	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider setup-athenz-identityprovider test-athenz-identityprovider
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

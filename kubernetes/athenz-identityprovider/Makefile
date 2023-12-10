@@ -71,7 +71,7 @@ register-athenz-identityprovider:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-group-role \
-			envoy \
+			envoyclients \
 			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g')
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
@@ -80,8 +80,8 @@ register-athenz-identityprovider:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-policy \
-			envoy \
-			grant get to envoy on /server*
+			envoyclients \
+			grant get to envoyclients on /server*
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -185,7 +185,12 @@ while true; do \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \
 		-alF \
-		/var/run/athenz/{tls.key,tls.crt,ca.crt,athenz:role.envoy.cert.pem,athenz:role.envoy.roletoken,athenz:role.envoy.accesstoken} \
+		/var/run/athenz/tls.key \
+		/var/run/athenz/tls.crt \
+		/var/run/athenz/ca.crt \
+		/var/run/athenz/athenz:role.envoyclients.cert.pem \
+		/var/run/athenz/athenz:role.envoyclients.roletoken \
+		/var/run/athenz/athenz:role.envoyclients.accesstoken \
 		&& break \
 		|| echo "Waiting for Identity Provisioning..."; \
 	sleep $${SLEEP_SECONDS}; \

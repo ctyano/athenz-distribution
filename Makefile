@@ -324,7 +324,7 @@ clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
 
 load-kubernetes-images: version
-	@$(MAKE) -C kubernetes load-images
+	@$(MAKE) -C kubernetes kind-load-images
 
 deploy-kubernetes-athenz: generate-certificates
 	@$(MAKE) -C kubernetes deploy-athenz

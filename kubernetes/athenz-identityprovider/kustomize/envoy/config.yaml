@@ -10,10 +10,17 @@ node:
   cluster: envoy-cluster
 static_resources:
   listeners:
-    - name: localhost_listener_v4
+    #- name: localhost_listener_v4
+    #  address:
+    #    socket_address:
+    #      address: 127.0.0.1
+    #      port_value: 8080
+    - name: http_listener
       address:
         socket_address:
-          address: 127.0.0.1
+          protocol: TCP
+          address: ::FFFF:127.0.0.1
+          ipv4_compat: true
           port_value: 8080
       filter_chains: &localhost_filter_chains
         - filters:
@@ -144,6 +151,7 @@ static_resources:
                               - exact: authorization
                       with_request_body:
                         max_request_bytes: 1024
+                      transport_api_version: V3
                   # Authorization could also be done with type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                   # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto.html
                   # https://developer.mamezou-tech.com/blogs/2022/02/20/envoy-authz/
@@ -167,7 +175,7 @@ static_resources:
                             - key: x-athenz-domain
                               value: "athenz"
                             - key: x-athenz-role
-                              value: "envoy"
+                              value: "envoyclients"
                         authorization_response:
                           allowed_upstream_headers:
                             patterns:
@@ -175,16 +183,17 @@ static_resources:
                               - exact: authorization
                       with_request_body:
                         max_request_bytes: 1024
+                      transport_api_version: V3
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-    - name: localhost_listener_v6
-      address:
-        socket_address:
-          protocol: TCP
-          address: ::1
-          port_value: 8080
-      filter_chains: *localhost_filter_chains
+#    - name: localhost_listener_v6
+#      address:
+#        socket_address:
+#          protocol: TCP
+#          address: ::1
+#          port_value: 8080
+#      filter_chains: *localhost_filter_chains
     - name: https_listener
       address:
         socket_address:

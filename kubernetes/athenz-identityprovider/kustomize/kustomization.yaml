@@ -14,7 +14,7 @@ resources:
   - secret.yaml
   - service.yaml
   - serviceaccount.yaml
-  - statefulset.yaml
+  #- statefulset.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

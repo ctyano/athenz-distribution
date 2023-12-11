@@ -29,7 +29,8 @@ configMapGenerator:
   - name: envoy
     files:
       - config.yaml=envoy/config.yaml
-      - sds_tls_certificate.yaml=envoy/sds_tls_certificate.yaml
+      - sds_identity_certificate.yaml=envoy/sds_identity_certificate.yaml
+      - sds_role_certificate.yaml=envoy/sds_role_certificate.yaml
   - name: identityprovider-config
     files:
       - config.yaml=athenz-identityprovider/config.yaml

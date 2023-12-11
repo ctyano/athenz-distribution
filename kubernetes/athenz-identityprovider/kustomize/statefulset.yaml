@@ -19,6 +19,7 @@ spec:
       serviceAccountName: identityprovider
       imagePullSecrets:
         - name: ghcr
+      restartPolicy: Always
       volumes:
         - name: attestation-data
           projected:

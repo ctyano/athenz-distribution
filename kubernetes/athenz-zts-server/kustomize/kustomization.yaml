@@ -38,6 +38,6 @@ configMapGenerator:
       - athenz.properties=conf/athenz.properties
       - zts.properties=conf/zts.properties
       - logback.xml=conf/logback.xml
-  - name: athenz-cacert
-    files:
-      - ca.cert.pem=certs/ca.cert.pem
+#  - name: athenz-cacert
+#    files:
+#      - ca.cert.pem=certs/ca.cert.pem

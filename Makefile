@@ -313,16 +313,24 @@ generate-ui: generate-ca
 	openssl x509 -req -in certs/ui.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/ui.cert.pem -days 99999 -extfile openssl/ui.openssl.config -extensions ext_req
 	openssl verify -CAfile certs/ca.cert.pem certs/ui.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui
+generate-identityprovider: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/identityprovider.private.pem
+	openssl rsa -pubout -in keys/identityprovider.private.pem -out keys/identityprovider.public.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
 
 load-kubernetes-images: version
-	@$(MAKE) -C kubernetes load-images
+	@$(MAKE) -C kubernetes kind-load-images
 
 deploy-kubernetes-athenz: generate-certificates
 	@$(MAKE) -C kubernetes deploy-athenz
+
+deploy-kubernetes-athenz-identityprovider:
+	@$(MAKE) -C kubernetes setup-athenz-identityprovider
 
 check-kubernetes-athenz: install-parsers
 	@$(MAKE) -C kubernetes check-athenz

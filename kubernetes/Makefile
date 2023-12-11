@@ -3,6 +3,7 @@ clean-certificates:
 	rm -rf athenz-zms-server/kustomize/{keys,certs}
 	rm -rf athenz-zts-server/kustomize/{keys,certs}
 	rm -rf athenz-ui/kustomize/{keys,certs}
+	rm -rf athenz-identityprovider/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -16,10 +17,45 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-ui/kustomize/
 	cp ../athenz/servers/zms/schema/zms_server.sql athenz-db/kustomize/zms_server.sql
 	cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
+	cp -r ../keys ../certs athenz-identityprovider/kustomize/
 
-load-images:
+kind-setup:
+	kind create cluster
+
+kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
-	kind load docker-image ghcr.io/ctyano/athenz-zms-server:latest ghcr.io/ctyano/athenz-zts-server:latest ghcr.io/ctyano/athenz-cli:latest ghcr.io/ctyano/athenz-ui:latest
+	docker pull docker.io/linuxserver/mariadb:latest
+	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull ghcr.io/ctyano/athenz-auth-core:latest
+	docker pull ghcr.io/ctyano/athenz-zms-server:latest
+	docker pull ghcr.io/ctyano/athenz-zts-server:latest
+	docker pull ghcr.io/ctyano/athenz-cli:latest
+	docker pull ghcr.io/ctyano/athenz-ui:latest
+	docker pull docker.io/openpolicyagent/kube-mgmt:latest
+	docker pull docker.io/ealen/echo-server:latest
+	docker pull docker.io/envoyproxy/envoy:v1.26-latest
+	docker pull docker.io/portainer/kubectl-shell:latest
+	docker pull docker.io/openpolicyagent/opa:latest-static
+	docker pull ghcr.io/ctyano/k8s-athenz-sia:latest
+	kind load docker-image \
+		docker.io/linuxserver/mariadb:latest \
+		docker.io/ghostunnel/ghostunnel:latest \
+		ghcr.io/ctyano/athenz-auth-core:latest
+	kind load docker-image \
+		ghcr.io/ctyano/athenz-cli:latest \
+		ghcr.io/ctyano/athenz-ui:latest \
+		ghcr.io/ctyano/athenz-zms-server:latest \
+		ghcr.io/ctyano/athenz-zts-server:latest
+	kind load docker-image \
+		docker.io/ealen/echo-server:latest \
+		docker.io/envoyproxy/envoy:v1.26-latest \
+		docker.io/openpolicyagent/kube-mgmt:latest \
+		docker.io/openpolicyagent/opa:latest-static \
+		docker.io/portainer/kubectl-shell:latest \
+		ghcr.io/ctyano/k8s-athenz-sia:latest
+
+kind-shutdown:
+	kind delete cluster
 
 setup-athenz-db:
 	kubectl apply -k athenz-db/kustomize
@@ -176,5 +212,8 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "**** Athenz APIs are functioning ****"
 	@echo "*************************************"
 	@echo ""
+
+setup-athenz-identityprovider: test-athenz-servers
+	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider setup-athenz-identityprovider test-athenz-identityprovider
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

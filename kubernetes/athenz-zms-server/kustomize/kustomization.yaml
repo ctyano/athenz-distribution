@@ -32,6 +32,6 @@ configMapGenerator:
       - authorized_services.json=conf/authorized_services.json
       - logback.xml=conf/logback.xml
       - solution_templates.json=conf/solution_templates.json
-  - name: athenz-cacert
+  - name: athenz-cacert # this resource with be shared with other kustomizations too
     files:
       - ca.cert.pem=certs/ca.cert.pem

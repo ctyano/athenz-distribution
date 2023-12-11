@@ -29,6 +29,6 @@ configMapGenerator:
   - name: athenz-ui-config
     files:
       - extended-config.js=config/extended-config.js
-  - name: athenz-cacert
-    files:
-      - ca.cert.pem=certs/ca.cert.pem
+#  - name: athenz-cacert
+#    files:
+#      - ca.cert.pem=certs/ca.cert.pem

@@ -23,7 +23,7 @@ spec:
       volumes:
         - name: envoy
           configMap:
-            name: copperargos-envoy
+            name: envoy
             items:
               - key: config.yaml
                 path: config.yaml

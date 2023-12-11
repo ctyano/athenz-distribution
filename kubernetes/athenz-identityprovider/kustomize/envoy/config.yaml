@@ -112,8 +112,8 @@ static_resources:
                         - match:
                             path_separated_prefix: "/server"
                           route:
-                            cluster: envoy_localhost
-                            prefix_rewrite: "/helloworld"
+                            cluster: echoserver
+                            prefix_rewrite: "/echoserver"
                             auto_host_rewrite: true
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.token: *ext_authz_tokensidecar_disabled
@@ -147,8 +147,12 @@ static_resources:
                         authorization_response:
                           allowed_upstream_headers:
                             patterns:
-                              - exact: athenz-role-auth
-                              - exact: authorization
+                              - exact: x-athenz-principal
+                              - exact: x-athenz-domain
+                              - exact: x-athenz-roles
+                              - exact: x-athenz-issuetime
+                              - exact: x-athenz-expirytime
+                              - exact: x-athenz-authorizedroles
                       with_request_body:
                         max_request_bytes: 1024
                       transport_api_version: V3

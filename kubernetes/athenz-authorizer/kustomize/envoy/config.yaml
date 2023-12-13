@@ -1,4 +1,4 @@
-# athenz-identityprovider
+# athenz-authorizer
 ---
 admin:
   access_log:
@@ -61,7 +61,7 @@ static_resources:
                   - name: envoy.access_loggers.stdout
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
-                route_config:
+                route_config: &localhost_route_config
                   name: localhost_proxy_route
                   virtual_hosts:
                     - name: localhost_proxy_hosts
@@ -76,25 +76,27 @@ static_resources:
                               virtual_host: localhost_proxy_hosts
                       routes: &localhost_routes
                         - match:
-                            path_separated_prefix: "/helloworld"
+                            path_separated_prefix: "/status"
                           direct_response:
                             status: 200
                             body:
-                              inline_string: "Hello, World!"
+                              inline_string: "This is server ingress proxy."
                           response_headers_to_add:
                             - header:
-                                key: x-athenz-action
+                                key: x-athenz-method
                                 value: "%REQ(:METHOD)%"
                             - header:
-                                key: x-athenz-resource
+                                key: x-athenz-path
                                 value: "%REQ(:PATH)%"
                           typed_per_filter_config: &ext_authz_disabled
-                            envoy.filters.http.ext_authz.token: &ext_authz_tokensidecar_disabled
-                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
-                              disabled: true
                             envoy.filters.http.ext_authz.authorization: &ext_authz_authorizationsidecar_disabled
                               "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
                               disabled: true
+                        - match:
+                            prefix: "/health"
+                          route:
+                            cluster: opa
+                          typed_per_filter_config: *ext_authz_disabled
                         - match:
                             path_separated_prefix: "/zms/v1"
                           route:
@@ -106,63 +108,33 @@ static_resources:
                             cluster: zts
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
-                            prefix: "/v1/data"
-                          route:
-                            cluster: opa
-                          typed_per_filter_config: *ext_authz_disabled
-                        - match:
-                            path_separated_prefix: "/token"
-                          route:
-                            cluster: token-sidecar
-                            auto_host_rewrite: true
-                          typed_per_filter_config: *ext_authz_disabled
-                        - match:
                             path_separated_prefix: "/authz"
                           route:
                             cluster: authorization-sidecar
                             auto_host_rewrite: true
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
-                            path_separated_prefix: "/client2server"
-                          route:
-                            cluster: envoy_localhost
-                            prefix_rewrite: "/server"
-                            auto_host_rewrite: true
-                          typed_per_filter_config:
-                            envoy.filters.http.ext_authz.authorization: *ext_authz_authorizationsidecar_disabled
-                        - match:
-                            path_separated_prefix: "/client2servermtls"
-                          route:
-                            cluster: envoy_mtls
-                            prefix_rewrite: "/server"
-                          typed_per_filter_config: *ext_authz_disabled
-                        - match:
-                            path_separated_prefix: "/client2echoservermtls"
-                          route:
-                            cluster: envoy_mtls
-                            prefix_rewrite: "/echoserver"
-                          typed_per_filter_config: *ext_authz_disabled
-                        - match:
-                            path_separated_prefix: "/client"
-                          route:
-                            cluster: echoserver
-                            auto_host_rewrite: true
-                          typed_per_filter_config:
-                            envoy.filters.http.ext_authz.authorization: *ext_authz_authorizationsidecar_disabled
-                        - match:
                             path_separated_prefix: "/server"
                           route:
                             cluster: echoserver
                             prefix_rewrite: "/echoserver"
                             auto_host_rewrite: true
-                          typed_per_filter_config:
-                            envoy.filters.http.ext_authz.token: *ext_authz_tokensidecar_disabled
+                          request_headers_to_add: &certificate_subject_request_headers_to_add
+                            - header:
+                                key: x-athenz-certificate-subject
+                                value: "%DOWNSTREAM_PEER_SUBJECT%"
+                        - match:
+                            prefix: "/echoserver"
+                          route:
+                            cluster: echoserver
+                          request_headers_to_add: *certificate_subject_request_headers_to_add
+                          typed_per_filter_config: *ext_authz_disabled
                         - match:
                             prefix: "/"
                           route:
                             cluster: envoy_admin
                           typed_per_filter_config: *ext_authz_disabled
-                http_filters:
+                http_filters: &localhost_http_filters
                   - name: envoy.filters.http.ext_authz.authorization
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
@@ -194,36 +166,6 @@ static_resources:
                               - exact: x-athenz-expirytime
                               - exact: x-athenz-authorizedroles
                       transport_api_version: V3
-                  # Authorization could also be done with type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
-                  # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto.html
-                  # https://developer.mamezou-tech.com/blogs/2022/02/20/envoy-authz/
-                  - name: envoy.filters.http.ext_authz.token
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
-                      # https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/grpc_service.proto#envoy-v3-api-msg-config-core-v3-grpcservice
-                      #grpc_service:
-                      #  google_grpc: # or envoy_grpc
-                      #  target_uri: "127.0.0.1:9191"
-                      # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-httpservice
-                      http_service:
-                        server_uri:
-                          uri: token-sidecar
-                          cluster: token-sidecar
-                          timeout: 5s
-                        authorization_request:
-                          headers_to_add:
-                            - key: x-athenz-proxy
-                              value: "egress"
-                            - key: x-athenz-domain
-                              value: "athenz"
-                            - key: x-athenz-role
-                              value: "envoyclients"
-                        authorization_response:
-                          allowed_upstream_headers:
-                            patterns:
-                              - exact: athenz-role-auth
-                              - exact: authorization
-                      transport_api_version: V3
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -234,7 +176,7 @@ static_resources:
 #          address: ::1
 #          port_value: 8080
 #      filter_chains: *localhost_filter_chains
-    - name: https_listener
+    - name: mtls_listener
       address:
         socket_address:
           protocol: TCP
@@ -247,36 +189,21 @@ static_resources:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 codec_type: auto
-                stat_prefix: https_proxy_prefix
+                stat_prefix: mtls_proxy_prefix
                 access_log: *access_log
-                route_config:
-                  name: https_proxy_route
-                  virtual_hosts:
-                    - name: https_proxy_hosts
-                      domains:
-                        # Only a single wildcard domain is permitted in route https_proxy_route
-                        - "*"
-                      routes:
-                        - match:
-                            prefix: "/health"
-                          route:
-                            cluster: opa
-                        - match:
-                            prefix: "/v0/data/identityprovider"
-                          route:
-                            cluster: opa
-                http_filters:
-                  - name: envoy.filters.http.router
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config: *localhost_route_config
+                http_filters: *localhost_http_filters
           transport_socket:
             name: envoy.transport_sockets.tls
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
-              common_tls_context:
+              common_tls_context: &common_tls_context
                 tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_identity
-                  name: identity_sds
-    - name: mtls_listener # experimental
+                  - name: identity_sds
+                validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
+                  name: ca_sds
+              require_client_certificate: true
+    - name: https_listener
       address:
         socket_address:
           protocol: TCP
@@ -289,80 +216,16 @@ static_resources:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 codec_type: auto
-                stat_prefix: mtls_proxy_prefix
+                stat_prefix: https_proxy_prefix
                 access_log: *access_log
-                route_config:
-                  name: https_proxy_route
-                  virtual_hosts:
-                    - name: https_proxy_hosts
-                      domains:
-                        # Only a single wildcard domain is permitted in route https_proxy_route
-                        - "*"
-                      routes:
-                        - match:
-                            path_separated_prefix: "/server"
-                          route:
-                            cluster: echoserver
-                            prefix_rewrite: "/echoserver"
-                            auto_host_rewrite: true
-                        - match:
-                            path_separated_prefix: "/authz"
-                          route:
-                            cluster: authorization-sidecar
-                            auto_host_rewrite: true
-                          typed_per_filter_config: &mtls_ext_authz_disabled
-                            envoy.filters.http.mtls_ext_authz.authorization:
-                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
-                              disabled: true
-                        - match:
-                            prefix: "/echoserver"
-                          route:
-                            cluster: echoserver
-                          request_headers_to_add:
-                            - header:
-                                key: x-athenz-certificate-subject
-                                value: "%DOWNSTREAM_PEER_SUBJECT%"
-                          typed_per_filter_config: *mtls_ext_authz_disabled
-                http_filters:
-                  - name: envoy.filters.http.mtls_ext_authz.authorization
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
-                      http_service:
-                        server_uri:
-                          uri: authorization-sidecar
-                          cluster: authorization-sidecar
-                          timeout: 5s
-                        authorization_request:
-                          headers_to_add:
-                            - key: x-athenz-proxy
-                              value: "egress"
-                            - key: x-athenz-action
-                              value: "%REQ(:METHOD)%"
-                            - key: x-athenz-resource
-                              value: "%REQ(:PATH)%"
-                        authorization_response:
-                          allowed_upstream_headers:
-                            patterns:
-                              - exact: x-athenz-principal
-                              - exact: x-athenz-domain
-                              - exact: x-athenz-roles
-                              - exact: x-athenz-issuetime
-                              - exact: x-athenz-expirytime
-                              - exact: x-athenz-authorizedroles
-                      transport_api_version: V3
-                      include_peer_certificate: true
-                  - name: envoy.filters.http.router
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config: *localhost_route_config
+                http_filters: *localhost_http_filters
           transport_socket:
             name: envoy.transport_sockets.tls
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
               common_tls_context:
                 tls_certificate_sds_secret_configs: *tls_certificate_sds_secret_configs_identity
-                validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
-                  name: ca_sds
-              require_client_certificate: true
   clusters:
     - name: envoy_admin
       connect_timeout: 0.25s
@@ -390,27 +253,6 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 8080
-    - name: envoy_mtls
-      connect_timeout: 0.25s
-      type: STATIC # LOGICAL_DNS or STATIC
-      lb_policy: ROUND_ROBIN
-      load_assignment:
-        cluster_name: envoy_mtls
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: 127.0.0.1
-                      port_value: 4443
-      transport_socket: &transport_socket
-        name: envoy.transport_sockets.tls
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-          common_tls_context:
-            tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_role
-              name: role_sds
-            validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
     - name: zms
       connect_timeout: 0.25s
       type: LOGICAL_DNS
@@ -425,7 +267,11 @@ static_resources:
                     socket_address:
                       address: athenz-zms-server.athenz
                       port_value: 4443
-      transport_socket: *transport_socket
+      transport_socket: &transport_socket
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context: *common_tls_context
     - name: zts
       connect_timeout: 0.25s
       type: LOGICAL_DNS
@@ -441,19 +287,6 @@ static_resources:
                       address: athenz-zts-server.athenz
                       port_value: 4443
       transport_socket: *transport_socket
-    - name: token-sidecar
-      connect_timeout: 5s
-      type: STATIC
-      lb_policy: ROUND_ROBIN
-      load_assignment:
-        cluster_name: token-sidecar
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: 127.0.0.1
-                      port_value: 8180
     - name: authorization-sidecar
       connect_timeout: 5s
       type: STATIC

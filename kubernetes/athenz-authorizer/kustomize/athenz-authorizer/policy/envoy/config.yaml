@@ -1,0 +1,18 @@
+decision_logs:
+  console: true
+  mask_decision: system/log/mask
+
+status:
+  console: true
+
+default_authorization_decision: /system/authz/allow
+default_decision: /athenz
+
+caching:
+  inter_query_builtin_cache:
+    max_size_bytes: 10000000 # 10GB
+
+plugins:
+   envoy.ext_authz.grpc:
+     addr: :9191
+     query: data.envoy.authz.allow

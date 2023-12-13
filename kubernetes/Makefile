@@ -4,6 +4,8 @@ clean-certificates:
 	rm -rf athenz-zts-server/kustomize/{keys,certs}
 	rm -rf athenz-ui/kustomize/{keys,certs}
 	rm -rf athenz-identityprovider/kustomize/{keys,certs}
+	rm -rf athenz-authorizer/kustomize/{keys,certs}
+	rm -rf athenz-client/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -18,6 +20,8 @@ copy-to-kustomization:
 	cp ../athenz/servers/zms/schema/zms_server.sql athenz-db/kustomize/zms_server.sql
 	cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
 	cp -r ../keys ../certs athenz-identityprovider/kustomize/
+	cp -r ../keys ../certs athenz-client/kustomize/
+	cp -r ../keys ../certs athenz-authorizer/kustomize/
 
 kind-setup:
 	kind create cluster
@@ -94,9 +98,9 @@ while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; d
 done
 	kubectl -n athenz get all
 	@echo ""
-	@echo "*************************************"
-	@echo "***  Athenz Deployed Successfully ***"
-	@echo "*************************************"
+	@echo "**************************************"
+	@echo "****  Athenz Deployed Successfully ***"
+	@echo "**************************************"
 	@echo ""
 
 test-athenz-zms-server:
@@ -208,12 +212,27 @@ curl \
 
 test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo ""
-	@echo "*************************************"
-	@echo "**** Athenz APIs are functioning ****"
-	@echo "*************************************"
+	@echo "**************************************"
+	@echo "***** Athenz APIs are functioning ****"
+	@echo "**************************************"
 	@echo ""
 
-setup-athenz-identityprovider: test-athenz-servers
-	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider setup-athenz-identityprovider test-athenz-identityprovider
+setup-athenz-identityprovider: check-athenz test-athenz-servers
+	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider check-athenz-identityprovider setup-athenz-identityprovider
+
+test-athenz-identityprovider:
+	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider
+
+setup-athenz-authorizer: test-athenz-servers
+	@$(MAKE) -C athenz-authorizer register-athenz-authorizer check-athenz-authorizer setup-athenz-authorizer
+
+test-athenz-authorizer:
+	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
+
+setup-athenz-client: test-athenz-servers
+	@$(MAKE) -C athenz-client register-athenz-client check-athenz-client setup-athenz-client
+
+test-athenz-client:
+	@$(MAKE) -C athenz-client test-athenz-client
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

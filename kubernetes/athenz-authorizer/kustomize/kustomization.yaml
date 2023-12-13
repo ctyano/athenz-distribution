@@ -5,13 +5,10 @@ kind: Kustomization
 namespace: athenz
 
 resources:
-  - clusterrole.yaml
-  - clusterrolebinding.yaml
   - deployment.yaml
   - namespace.yaml
   - role.yaml
   - rolebinding.yaml
-  - secret.yaml
   - service.yaml
   - serviceaccount.yaml
   - statefulset.yaml
@@ -20,24 +17,22 @@ generatorOptions:
   disableNameSuffixHash: true
 
 configMapGenerator:
-  - name: identityprovider-sia
+  - name: authorizer-sia
     envs:
       - athenz-sia/athenz-sia.env
-  - name: identityprovider-envoy
+  - name: authorizer-envoy
     files:
       - config.yaml=envoy/config.yaml
-  - name: athenz-identityprovider
+  - name: athenz-authorizer
     envs:
-      - athenz-identityprovider/athenz-identityprovider.env
-  - name: identityprovider-config
+      - athenz-authorizer/athenz-authorizer.env
+  - name: authorizer-config
     files:
-      - config.yaml=athenz-identityprovider/config.yaml
-  - name: identityprovider-policy
+      - config.yaml=athenz-authorizer/config.yaml
+  - name: authorizer-policy
     files:
-      - system.authz.rego=athenz-identityprovider/policy/system.authz.rego
-      - identityprovider.rego=athenz-identityprovider/policy/identityprovider.rego
-      - system.log.rego=athenz-identityprovider/policy/system.log.rego
-      - config.yaml=athenz-identityprovider/policy/config.yaml
+      - system.authz.rego=athenz-authorizer/policy/system.authz.rego
+      - system.log.rego=athenz-authorizer/policy/system.log.rego
 #  - name: athenz-cacert
 #    files:
 #      - ca.cert.pem=certs/ca.cert.pem
@@ -46,13 +41,13 @@ replacements:
   - source:
       version: v1
       kind: ConfigMap
-      name: identityprovider-sia
+      name: authorizer-sia
       fieldpath: data.SERVICEACCOUNT
     targets:
       - select:
           version: v1
           kind: ServiceAccount
-          name: identityprovider-serviceaccount
+          name: authorizer-serviceaccount
         fieldPaths:
           - metadata.name
         options:
@@ -60,7 +55,7 @@ replacements:
       - select:
           version: v1
           kind: StatefulSet
-          name: identityprovider-statefulset
+          name: authorizer-statefulset
         fieldPaths:
           - spec.template.spec.serviceAccountName
         options:
@@ -68,7 +63,7 @@ replacements:
       - select:
           version: v1
           kind: Deployment
-          name: identityprovider-deployment
+          name: authorizer-deployment
         fieldPaths:
           - spec.template.spec.serviceAccountName
         options:

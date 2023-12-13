@@ -1,0 +1,16 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: authorizer-role
+rules:
+  - apiGroups:
+      - ""
+    resourceNames:
+      - authorizer-tls
+    resources:
+      - secrets
+    verbs:
+      - get
+      - patch
+      - create

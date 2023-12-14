@@ -313,17 +313,11 @@ static_resources:
                                 key: x-athenz-certificate-subject
                                 value: "%DOWNSTREAM_PEER_SUBJECT%"
                             - header:
-                                key: x-athenz-certificate-san-uri
-                                value: "%DOWNSTREAM_PEER_URI_SAN%"
-                            - header:
-                                key: x-athenz-certificate-san-dns
-                                value: "%DOWNSTREAM_PEER_DNS_SAN%"
-                            - header:
-                                key: x-athenz-certificate-san-ip
-                                value: "%DOWNSTREAM_PEER_IP_SAN%"
-                            - header:
                                 key: x-athenz-certificate-issuer
                                 value: "%DOWNSTREAM_PEER_ISSUER%"
+                            - header:
+                                key: x-athenz-certificate-san-uri
+                                value: "%DOWNSTREAM_PEER_URI_SAN%"
                         - match:
                             path_separated_prefix: "/authz"
                           route:

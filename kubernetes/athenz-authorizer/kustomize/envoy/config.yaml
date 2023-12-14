@@ -119,15 +119,24 @@ static_resources:
                             cluster: echoserver
                             prefix_rewrite: "/echoserver"
                             auto_host_rewrite: true
-                          request_headers_to_add: &certificate_subject_request_headers_to_add
+                          request_headers_to_add: &request_headers_to_add
+                            - header:
+                                key: x-athenz-sni
+                                value: "%REQUESTED_SERVER_NAME%"
                             - header:
                                 key: x-athenz-certificate-subject
                                 value: "%DOWNSTREAM_PEER_SUBJECT%"
+                            - header:
+                                key: x-athenz-certificate-issuer
+                                value: "%DOWNSTREAM_PEER_ISSUER%"
+                            - header:
+                                key: x-athenz-certificate-san-uri
+                                value: "%DOWNSTREAM_PEER_URI_SAN%"
                         - match:
                             prefix: "/echoserver"
                           route:
                             cluster: echoserver
-                          request_headers_to_add: *certificate_subject_request_headers_to_add
+                          request_headers_to_add: *request_headers_to_add
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
                             prefix: "/"

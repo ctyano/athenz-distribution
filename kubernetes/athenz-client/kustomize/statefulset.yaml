@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: identityprovider-statefulset
+  name: client-statefulset
   labels:
-    app: identityprovider-statefulset
+    app: client-statefulset
 spec:
   replicas: 1
-  serviceName: identityprovider-statefulset
+  serviceName: client-statefulset
   selector:
     matchLabels:
-      app: identityprovider-statefulset
+      app: client-statefulset
   template:
     metadata:
       labels:
-        app: identityprovider-statefulset
+        app: client-statefulset
     spec:
-      serviceAccountName: identityprovider
+      serviceAccountName: client
       imagePullSecrets:
         - name: ghcr
       restartPolicy: Always
@@ -52,7 +52,7 @@ spec:
             - --delete-instance-id
           envFrom: &sia-envFrom
             - configMapRef:
-                name: identityprovider-sia
+                name: client-sia
           env: &sia-env
             - name: NAMESPACE
               valueFrom:

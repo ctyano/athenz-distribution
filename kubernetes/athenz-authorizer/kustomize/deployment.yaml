@@ -2,18 +2,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: identityprovider-deployment
+  name: authorizer-deployment
   labels:
-    app: identityprovider-deployment
+    app: authorizer-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: identityprovider-deployment
+      app: authorizer-deployment
   template:
     metadata:
       labels:
-        app: identityprovider-deployment
+        app: authorizer-deployment
     spec:
       serviceAccountName: athenz-sia
       securityContext:
@@ -21,23 +21,39 @@ spec:
       imagePullSecrets:
         - name: ghcr
       volumes:
-        - name: envoy
-          configMap:
-            name: identityprovider-envoy
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
         - name: athenz-tls-certs
           emptyDir: {}
+        - name: envoy
+          configMap:
+            name: authorizer-envoy
         - name: policy
           configMap:
-            name: identityprovider-policy
+            name: authorizer-policy
         - name: config
           configMap:
-            name: identityprovider-config
+            name: authorizer-config
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt
+        - name: athenz-admin-keys
+          secret:
+            secretName: athenz-admin-keys
+            defaultMode: 0555
+            items:
+              - key: athenz_admin.cert.pem
+                path: athenz_admin.cert.pem
+              - key: athenz_admin.private.pem
+                path: athenz_admin.private.pem
       initContainers:
         - name: sia-init
           image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
@@ -47,7 +63,7 @@ spec:
             - --delay-jitter-seconds=5
           envFrom: &sia-envFrom
             - configMapRef:
-                name: identityprovider-sia
+                name: authorizer-sia
           env: &sia-env
             - name: NAMESPACE
               valueFrom:
@@ -69,15 +85,14 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
-            - name: PROVIDER_SERVICE
-              value: ""
-            - name: BACKUP
-              value: read
           resources: &sia-resources
             limits:
               cpu: 50m
               memory: 64Mi
           volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
             - name: athenz-tls-certs
               mountPath: /var/run/athenz
             - name: athenz-cacert
@@ -105,6 +120,31 @@ spec:
               protocol: TCP
           resources: *sia-resources
           volumeMounts: *sia-volumeMounts
+        - name: athenz-cli
+          image: ghcr.io/ctyano/athenz-cli:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: ZTS
+              value: https://athenz-zts-server.athenz:4443/zts/v1
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 256Mi
+              cpu: 250m
+          volumeMounts:
+            - name: athenz-admin-keys
+              mountPath: /var/run/athenz
+              readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
         - name: opa
           image: docker.io/openpolicyagent/opa:latest-static
           imagePullPolicy: IfNotPresent
@@ -118,8 +158,8 @@ spec:
           args:
             - run
             - --server
-            - --log-format=$(IDENTITYPROVIDER_OPA_LOG_FORMAT)
-            - --log-level=$(IDENTITYPROVIDER_OPA_LOG_LEVEL)
+            - --log-format=$(AUTHORIZER_OPA_LOG_FORMAT)
+            - --log-level=$(AUTHORIZER_OPA_LOG_LEVEL)
             - --config-file=/etc/opa/config/config.yaml
             - --authentication=token
             - --authorization=basic
@@ -131,7 +171,7 @@ spec:
             - /etc/opa/policy
           envFrom: &opa-envFrom
             - configMapRef:
-                name: athenz-identityprovider
+                name: athenz-authorizer
           ports:
             - name: opa
               containerPort: 8181
@@ -157,24 +197,6 @@ spec:
             - name: config
               mountPath: /etc/opa/config
               readOnly: true
-        - name: kube-mgmt
-          image: docker.io/openpolicyagent/kube-mgmt:latest
-          imagePullPolicy: IfNotPresent
-          resources: &kube-mgmt-resources
-            limits:
-              cpu: 500m
-              memory: 512Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-          args:
-            - --opa-url=http://127.0.0.1:8080/v1
-            - --opa-auth-token-file=/var/run/secrets/kubernetes.io/serviceaccount/token
-            - --enable-policies=false
-            - --enable-data=false
-            - --policies=''
-            - --replicate=v1/pods
-            - --replicate-path=kubernetes
         - name: kubectl
           image: docker.io/portainer/kubectl-shell:latest
           imagePullPolicy: IfNotPresent
@@ -207,6 +229,9 @@ spec:
           ports:
             - name: https
               containerPort: 443
+              protocol: TCP
+            - name: mtls
+              containerPort: 4443
               protocol: TCP
             - name: http
               containerPort: 8080

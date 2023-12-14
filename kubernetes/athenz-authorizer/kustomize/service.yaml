@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authorizer
+  labels:
+    app: authorizer-service
+spec:
+  type: ClusterIP
+  selector:
+    app: authorizer-deployment
+  ports:
+    - name: https
+      port: 443
+      targetPort: https
+    - name: mtls
+      port: 4443
+      targetPort: mtls

@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: identityprovider-statefulset
+  name: authorizer-statefulset
   labels:
-    app: identityprovider-statefulset
+    app: authorizer-statefulset
 spec:
   replicas: 1
-  serviceName: identityprovider-statefulset
+  serviceName: authorizer-statefulset
   selector:
     matchLabels:
-      app: identityprovider-statefulset
+      app: authorizer-statefulset
   template:
     metadata:
       labels:
-        app: identityprovider-statefulset
+        app: authorizer-statefulset
     spec:
-      serviceAccountName: identityprovider
+      serviceAccountName: authorizer
       imagePullSecrets:
         - name: ghcr
       restartPolicy: Always
@@ -52,7 +52,7 @@ spec:
             - --delete-instance-id
           envFrom: &sia-envFrom
             - configMapRef:
-                name: identityprovider-sia
+                name: authorizer-sia
           env: &sia-env
             - name: NAMESPACE
               valueFrom:

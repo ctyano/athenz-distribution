@@ -5,10 +5,10 @@
 # See: https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret.html?highlight=inotify#example-three-certificate-rotation-for-xds-grpc-connection
 resources:
   - "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
-    name: role_sds
+    name: identity_sds
     tls_certificate:
       certificate_chain:
-        filename: "/var/run/athenz/athenz:role.envoyclients.cert.pem"
+        filename: /var/run/athenz/tls.crt
       private_key:
         filename: /var/run/athenz/tls.key
       watched_directory:

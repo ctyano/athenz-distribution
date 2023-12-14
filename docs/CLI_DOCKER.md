@@ -18,7 +18,9 @@ docker exec -it athenz-cli \
         -cert /admin/athenz_admin.cert.pem \
         -z https://athenz-zms-server:4443/zms/v1 \
         list-domain
+```
 
+```
 docker exec -it athenz-cli \
     zms-cli \
         -z https://athenz-zms-server:4443/zms/v1 \
@@ -40,7 +42,9 @@ docker exec -it athenz-cli /bin/sh -c \
         -key-version 0 \
     | tr -d '\n' \
     | tee /admin/.ntoken
+```
 
+```
 docker exec -it athenz-cli /bin/sh -c \
     zts-svccert \
         -zts https://athenz-zts-server:4443/zts/v1 \
@@ -69,7 +73,9 @@ docker exec -it athenz-cli \
         -role admin \
     | rev | cut -d';' -f2- | rev \
     | tr ';' '\n'
+```
 
+```
 docker exec -it athenz-cli \
     zts-accesstoken \
         -zts https://athenz-zts-server:8443/zts/v1 \
@@ -81,7 +87,9 @@ docker exec -it athenz-cli \
     | jq -r .access_token \
     | jq -Rr 'split(".") | .[0,1] | @base64d' \
     | jq -r .
+```
 
+```
 docker exec -it athenz-cli \
     zts-accesstoken \
         -zts https://athenz-zts-server:8443/zts/v1 \
@@ -105,7 +113,9 @@ docker exec -it athenz-cli /bin/sh -c \
         -z https://athenz-zms-server:4443/zms/v1 \
         -t https://athenz-zts-server:8443/zts/v1 \
         -o /dev/stdout
+```
 
+```
 docker exec -it \
     -e ATHENZ_DOMAIN="home.athenz_admin" \
     athenz-cli \

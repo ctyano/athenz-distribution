@@ -15,7 +15,7 @@ Files below must be configured for each use cases accordingly
 kubectl -n athenz apply -k kustomize
 ```
 
-## Registering Identity Provider Service to Athenz
+## Registering Identity Provider Service to Athenz as Athenz Admin
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -42,7 +42,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         dnssuffix="$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^DNS_SUFFIX | sed -e 's/DNS_SUFFIX=\(.*\)/\1/g')"
 ```
 
-## Setup Instance Provider Domain
+## Setting up Instance Provider Service
 
 ```
 openssl genrsa -out - 4096 | openssl pkey -traditional -out private.key.pem
@@ -103,7 +103,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         service="$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\2/g')"
 ```
 
-## Creating TLS Server Certificate Secret
+## Preparing TLS Server Certificate Secret
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \

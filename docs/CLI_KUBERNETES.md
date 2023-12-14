@@ -17,7 +17,9 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -key /var/run/athenz/athenz_admin.private.pem \
         -cert /var/run/athenz/athenz_admin.cert.pem \
         list-domain
+```
 
+```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zms-cli \
         -z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -38,7 +40,9 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -key-version 0 \
     | tr -d '\n' \
     | tee /tmp/.ntoken
+```
 
+```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-svccert \
         -zts https://athenz-zts-server.athenz:4443/zts/v1 \
@@ -66,7 +70,9 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -role admin \
     | rev | cut -d';' -f2- | rev \
     | tr ';' '\n'
+```
 
+```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-accesstoken \
         -zts https://athenz-zts-server.athenz:4443/zts/v1 \
@@ -77,7 +83,9 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
     | jq -r .access_token \
     | jq -Rr 'split(".") | .[0,1] | @base64d' \
     | jq -r .
+```
 
+```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-accesstoken \
         -zts https://athenz-zts-server.athenz:4443/zts/v1 \
@@ -100,7 +108,9 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -svc-key-file /var/run/athenz/athenz_admin.private.pem \
         -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
         -o /dev/stdout
+```
 
+```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     curl \
         -s \

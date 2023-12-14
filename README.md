@@ -37,4 +37,6 @@ docker compose -f docker/docker-compose.yaml start ghostunnel
 - [How to generate keys and certificates](docs/CERTIFICATES.md)
 - [CLI instruction](docs/CLI.md)
 - [List of Athenz package distribution](docs/DISTRIBUTIONS.md)
+- [How to generate keys and retrieve certificates (**Identity Provisioning**)](docs/IDENTITYPROVISIONING.md)
+- [Envoy Ambassador Instruction for Kubernetes](docs/ENVOY.md)
 

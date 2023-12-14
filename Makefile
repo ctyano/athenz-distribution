@@ -352,7 +352,7 @@ test-kubernetes-athenz-authorizer:
 	@$(MAKE) -C kubernetes test-athenz-authorizer
 
 deploy-kubernetes-athenz-client:
-	@$(MAKE) -C kubernetes setup-athenz-client deploy-authorizer-client
+	@$(MAKE) -C kubernetes setup-athenz-client deploy-athenz-client
 
 test-kubernetes-athenz-client:
 	@$(MAKE) -C kubernetes test-athenz-client

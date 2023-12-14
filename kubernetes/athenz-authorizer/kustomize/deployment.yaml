@@ -21,11 +21,18 @@ spec:
       imagePullSecrets:
         - name: ghcr
       volumes:
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
+        - name: athenz-tls-certs
+          emptyDir: {}
         - name: envoy
           configMap:
             name: authorizer-envoy
-        - name: athenz-tls-certs
-          emptyDir: {}
         - name: policy
           configMap:
             name: authorizer-policy
@@ -78,15 +85,14 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
-            - name: PROVIDER_SERVICE
-              value: ""
-            - name: BACKUP
-              value: read
           resources: &sia-resources
             limits:
               cpu: 50m
               memory: 64Mi
           volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
             - name: athenz-tls-certs
               mountPath: /var/run/athenz
             - name: athenz-cacert
@@ -167,20 +173,20 @@ spec:
             - configMapRef:
                 name: athenz-authorizer
           ports:
-            - name: http
+            - name: opa
               containerPort: 8181
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /health
-              port: 4443
+              port: 443
               scheme: HTTPS
             initialDelaySeconds: 300
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /health
-              port: 4443
+              port: 443
               scheme: HTTPS
             initialDelaySeconds: 0
             periodSeconds: 10
@@ -221,11 +227,11 @@ spec:
           #image: docker.io/thegrandpkizzle/envoy:1.26.1
           imagePullPolicy: IfNotPresent
           ports:
-            - name: tls
-              containerPort: 4443
-              protocol: TCP
             - name: https
               containerPort: 443
+              protocol: TCP
+            - name: mtls
+              containerPort: 4443
               protocol: TCP
             - name: http
               containerPort: 8080
@@ -255,7 +261,7 @@ spec:
           image: docker.io/ealen/echo-server:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - name: http
+            - name: echoserver
               containerPort: 3000
               protocol: TCP
           env:

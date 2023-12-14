@@ -21,11 +21,18 @@ spec:
       imagePullSecrets:
         - name: ghcr
       volumes:
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
+        - name: athenz-tls-certs
+          emptyDir: {}
         - name: envoy
           configMap:
             name: client-envoy
-        - name: athenz-tls-certs
-          emptyDir: {}
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
@@ -72,15 +79,14 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
-            - name: PROVIDER_SERVICE
-              value: ""
-            - name: BACKUP
-              value: read
           resources: &sia-resources
             limits:
               cpu: 50m
               memory: 64Mi
           volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
             - name: athenz-tls-certs
               mountPath: /var/run/athenz
             - name: athenz-cacert
@@ -170,7 +176,7 @@ spec:
           image: docker.io/ealen/echo-server:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - name: http
+            - name: echoserver
               containerPort: 3000
               protocol: TCP
           env:

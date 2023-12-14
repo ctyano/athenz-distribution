@@ -111,7 +111,6 @@ WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-	( \
 	kubectl -n athenz exec deployment/client-deployment -it -c sia -- \
 		ls \
 		-alF \
@@ -121,14 +120,6 @@ while true; do \
 		/var/run/athenz/athenz:role.envoyclients.cert.pem \
 		/var/run/athenz/athenz:role.envoyclients.roletoken \
 		/var/run/athenz/athenz:role.envoyclients.accesstoken \
-	&& \
-	kubectl -n athenz exec statefulset/client-statefulset -it -c sia -- \
-		ls \
-		-alF \
-		/var/run/athenz/tls.key \
-		/var/run/athenz/tls.crt \
-		/var/run/athenz/ca.crt \
-	) \
 	&& break \
 	|| echo "Waiting for Identity Provisioning..."; \
 	sleep $${SLEEP_SECONDS}; \

@@ -182,7 +182,7 @@ static_resources:
           protocol: TCP
           address: ::FFFF:0.0.0.0
           ipv4_compat: true
-          port_value: 443
+          port_value: 4443
       filter_chains:
         - filters:
             - name: envoy.filters.network.http_connection_manager
@@ -209,7 +209,7 @@ static_resources:
           protocol: TCP
           address: ::FFFF:0.0.0.0
           ipv4_compat: true
-          port_value: 4443
+          port_value: 443
       filter_chains:
         - filters:
             - name: envoy.filters.network.http_connection_manager

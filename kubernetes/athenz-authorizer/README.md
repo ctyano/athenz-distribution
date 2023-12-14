@@ -35,5 +35,5 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 ## Debugging
 
 ```
-kubectl -n athenz exec -it deployment/authorizer-deployment -c kubectl -- /bin/sh -c "curl -s --cacert /var/run/athenz/ca.crt --resolve authorizer.athenz.zts.athenz.cloud:4443:127.0.0.1 https://authorizer.athenz.zts.athenz.cloud:4443/echoserver" | jq -r .
+kubectl -n athenz exec -it deployment/authorizer-deployment -c athenz-cli -- /bin/sh -c "curl -s --cacert /var/run/athenz/ca.crt --resolve authorizer.athenz.zts.athenz.cloud:4443:127.0.0.1 https://authorizer.athenz.zts.athenz.cloud:4443/echoserver" | jq -r .
 ```

@@ -133,7 +133,7 @@ spec:
             - configMapRef:
                 name: athenz-identityprovider
           ports:
-            - name: http
+            - name: opa
               containerPort: 8181
               protocol: TCP
           livenessProbe:
@@ -236,7 +236,7 @@ spec:
           image: docker.io/ealen/echo-server:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - name: http
+            - name: echoserver
               containerPort: 3000
               protocol: TCP
           env:

@@ -90,7 +90,7 @@ register-athenz-identityprovider:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
-check-athenz-identityprovider:
+check-register-athenz-identityprovider:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -121,7 +121,7 @@ done
 	@echo "**************************************"
 	@echo ""
 
-setup-athenz-identityprovider: check-athenz-identityprovider
+setup-athenz-identityprovider: check-register-athenz-identityprovider
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		sh \
 		-c \
@@ -174,6 +174,8 @@ setup-athenz-identityprovider: check-athenz-identityprovider
 		-o \
 		yaml \
 	| tee kustomize/secret.yaml
+
+deploy-athenz-identityprovider:
 	kubectl apply -k kustomize
 
 test-athenz-identityprovider:

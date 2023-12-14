@@ -71,7 +71,7 @@ register-athenz-authorizer:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
-check-athenz-authorizer:
+check-register-athenz-authorizer:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -102,7 +102,7 @@ done
 	@echo "**************************************"
 	@echo ""
 
-setup-athenz-authorizer: check-athenz-authorizer
+deploy-athenz-authorizer:
 	kubectl apply -k kustomize
 
 test-athenz-authorizer:

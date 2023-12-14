@@ -71,7 +71,7 @@ register-athenz-client:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
-check-athenz-client:
+check-register-athenz-client:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -102,7 +102,7 @@ done
 	@echo "**************************************"
 	@echo ""
 
-setup-athenz-client: check-athenz-client
+deploy-athenz-client:
 	kubectl apply -k kustomize
 
 test-athenz-client:

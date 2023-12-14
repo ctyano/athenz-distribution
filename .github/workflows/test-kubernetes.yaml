@@ -148,9 +148,25 @@ jobs:
 
       # A GitHub Action to check and test application
       -
-        name: Run Tests
+        name: Run Tests for athenz-identityprovider
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make deploy-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authorizer
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make deploy-kubernetes-athenz-authorizer test-kubernetes-athenz-authorizer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-client
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make deploy-kubernetes-athenz-client test-kubernetes-athenz-client
 

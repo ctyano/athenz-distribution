@@ -340,13 +340,22 @@ deploy-kubernetes-athenz: generate-certificates
 	@$(MAKE) -C kubernetes deploy-athenz
 
 deploy-kubernetes-athenz-identityprovider:
-	@$(MAKE) -C kubernetes setup-athenz-identityprovider
+	@$(MAKE) -C kubernetes setup-athenz-identityprovider deploy-athenz-identityprovider
+
+test-kubernetes-athenz-identityprovider:
+	@$(MAKE) -C kubernetes test-athenz-identityprovider
 
 deploy-kubernetes-athenz-authorizer:
-	@$(MAKE) -C kubernetes setup-athenz-authorizer
+	@$(MAKE) -C kubernetes setup-athenz-authorizer deploy-athenz-authorizer
+
+test-kubernetes-athenz-authorizer:
+	@$(MAKE) -C kubernetes test-athenz-authorizer
 
 deploy-kubernetes-athenz-client:
-	@$(MAKE) -C kubernetes setup-athenz-client
+	@$(MAKE) -C kubernetes setup-athenz-client deploy-authorizer-client
+
+test-kubernetes-athenz-client:
+	@$(MAKE) -C kubernetes test-athenz-client
 
 check-kubernetes-athenz: install-parsers
 	@$(MAKE) -C kubernetes check-athenz

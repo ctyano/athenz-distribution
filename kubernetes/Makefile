@@ -218,19 +218,28 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo ""
 
 setup-athenz-identityprovider: check-athenz test-athenz-servers
-	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider check-athenz-identityprovider setup-athenz-identityprovider
+	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider check-register-athenz-identityprovider setup-athenz-identityprovider
+
+deploy-athenz-identityprovider:
+	@$(MAKE) -C athenz-identityprovider deploy-athenz-identityprovider
 
 test-athenz-identityprovider:
 	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider
 
-setup-athenz-authorizer: test-athenz-servers
-	@$(MAKE) -C athenz-authorizer register-athenz-authorizer check-athenz-authorizer setup-athenz-authorizer
+setup-athenz-authorizer: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-authorizer register-athenz-authorizer check-register-athenz-authorizer
+
+deploy-athenz-authorizer: test-athenz-identityprovider
+	@$(MAKE) -C athenz-authorizer deploy-athenz-authorizer
 
 test-athenz-authorizer:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
 
-setup-athenz-client: test-athenz-servers
-	@$(MAKE) -C athenz-client register-athenz-client check-athenz-client setup-athenz-client
+setup-athenz-client: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-client register-athenz-client check-register-athenz-client
+
+deploy-athenz-client: test-athenz-identityprovider
+	@$(MAKE) -C athenz-client deploy-athenz-client
 
 test-athenz-client:
 	@$(MAKE) -C athenz-client test-athenz-client

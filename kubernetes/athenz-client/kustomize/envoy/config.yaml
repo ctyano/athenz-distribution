@@ -105,7 +105,7 @@ static_resources:
                             auto_host_rewrite: true
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
-                            path_separated_prefix: "/token"
+                            path_separated_prefix: "/tokensidecar"
                           route:
                             cluster: token-sidecar
                             auto_host_rewrite: true
@@ -129,7 +129,7 @@ static_resources:
                             prefix_rewrite: "/echoserver"
                           typed_per_filter_config:
                         - match:
-                            path_separated_prefix: "/client"
+                            path_separated_prefix: "/client2echoserver"
                           route:
                             cluster: echoserver
                             auto_host_rewrite: true

@@ -35,21 +35,21 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 ## Debugging
 
 ```
-kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -s http://localhost:8080/client | jq -r ."
+kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv http://localhost:8080/echoserver | jq -r .request"
 ```
 
 ```
-kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv http://localhost:8080/client2server"
+kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv http://localhost:8080/client2echoserver | jq -r .request"
 ```
 
 ```
-kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv http://localhost:8080/helloworld"
+kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv http://localhost:8080/client2server | jq -r .request"
 ```
 
 ```
-kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -s http://localhost:8080/client2echoservermtls" | jq -r .
+kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv http://localhost:8080/client2echoservermtls | jq -r .request"
 ```
 
 ```
-kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -s --cacert /var/run/athenz/ca.crt --resolve client.athenz.zts.athenz.cloud:4443:127.0.0.1 https://client.athenz.zts.athenz.cloud:4443/echoserver" | jq -r .
+kubectl -n athenz exec -it deployment/client-deployment -c athenz-cli -- /bin/sh -c "curl -sv --resolve client.athenz.svc.cluster.local:443:127.0.0.1 https://client.athenz.svc.cluster.local/echoserver | jq -r .request"
 ```

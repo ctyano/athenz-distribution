@@ -108,9 +108,10 @@ static_resources:
                             cluster: zts
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
-                            path_separated_prefix: "/authz"
+                            path_separated_prefix: "/authorizationsidecar"
                           route:
                             cluster: authorization-sidecar
+                            prefix_rewrite: "/echoserver"
                             auto_host_rewrite: true
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
@@ -132,6 +133,15 @@ static_resources:
                             - header:
                                 key: x-athenz-certificate-san-uri
                                 value: "%DOWNSTREAM_PEER_URI_SAN%"
+                            - header:
+                                key: x-athenz-certificate-s1
+                                value: "%DOWNSTREAM_PEER_FINGERPRINT_1%"
+                            - header:
+                                key: x-athenz-certificate-s256
+                                value: "%DOWNSTREAM_PEER_FINGERPRINT_256%"
+                            - header:
+                                key: x-athenz-certificate-serial
+                                value: "%DOWNSTREAM_PEER_SERIAL%"
                         - match:
                             prefix: "/echoserver"
                           route:

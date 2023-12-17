@@ -20,7 +20,7 @@ Envoy configuration: [config.yaml](../kubernetes/athenz-client/kustomize/envoy/c
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy) -->|http| C(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith token sidecar) -->|http| C(echoserver)
 ```
 
 ```

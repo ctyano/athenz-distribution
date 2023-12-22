@@ -1,34 +1,34 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: athenz
 
 resources:
-  - deployment.yaml
-  - namespace.yaml
-  - service.yaml
+- deployment.yaml
+- namespace.yaml
+- service.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
 
 secretGenerator:
-  - name: athenz-ui-keys
-    type: Opaque
-    files:
-      - ui.private.pem=keys/ui.private.pem
-      - ui.public.pem=keys/ui.public.pem
-      - ui.cert.pem=certs/ui.cert.pem
-  - name: athenz-admin-keys
-    type: Opaque
-    files:
-      - athenz_admin.private.pem=keys/athenz_admin.private.pem
-      - athenz_admin.cert.pem=certs/athenz_admin.cert.pem
+- files:
+  - ui.private.pem=keys/ui.private.pem
+  - ui.public.pem=keys/ui.public.pem
+  - ui.cert.pem=certs/ui.cert.pem
+  name: athenz-ui-keys
+  type: Opaque
+- files:
+  - athenz_admin.private.pem=keys/athenz_admin.private.pem
+  - athenz_admin.cert.pem=certs/athenz_admin.cert.pem
+  name: athenz-admin-keys
+  type: Opaque
 
 configMapGenerator:
-  - name: athenz-ui-config
-    files:
-      - extended-config.js=config/extended-config.js
-#  - name: athenz-cacert
-#    files:
-#      - ca.cert.pem=certs/ca.cert.pem
+- files:
+  - extended-config.js=config/extended-config.js
+  name: athenz-ui-config
+images:
+- name: ghcr.io/ctyano/athenz-ui:latest
+  newName: ghcr.io/ctyano/athenz-ui
+  newTag: latest

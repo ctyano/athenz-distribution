@@ -1,3 +1,7 @@
+ifeq ($(DOCKER_REGISTRY),)
+DOCKER_REGISTRY=ghcr.io/ctyano/
+endif
+
 clean-athenz-client:
 	kubectl delete -k kustomize
 
@@ -102,7 +106,15 @@ done
 	@echo "**************************************"
 	@echo ""
 
-deploy-athenz-client:
+kustomize-edit-athenz-client-image:
+	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+	)
+
+deploy-athenz-client: kustomize-edit-athenz-client-image
 	kubectl apply -k kustomize
 
 test-athenz-client:

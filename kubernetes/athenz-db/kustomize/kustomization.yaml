@@ -1,4 +1,3 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -8,14 +7,18 @@ generatorOptions:
   disableNameSuffixHash: true
 
 resources:
-  - namespace.yaml
-  - service.yaml
-  - statefulset.yaml
+- namespace.yaml
+- service.yaml
+- statefulset.yaml
 
 configMapGenerator:
-  - name: athenz-ddl
-    files:
-      - zms_server.sql=zms_server.sql
-      - zms_user.sql=zms_user.sql
-      - zts_server.sql=zts_server.sql
-      - zts_user.sql=zts_user.sql
+- files:
+  - zms_server.sql=zms_server.sql
+  - zms_user.sql=zms_user.sql
+  - zts_server.sql=zts_server.sql
+  - zts_user.sql=zts_user.sql
+  name: athenz-ddl
+images:
+- name: ghcr.io/ctyano/athenz-db:latest
+  newName: ghcr.io/ctyano/athenz-db
+  newTag: latest

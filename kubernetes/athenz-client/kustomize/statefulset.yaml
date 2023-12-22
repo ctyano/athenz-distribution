@@ -39,7 +39,7 @@ spec:
       initContainers:
         - name: sia-init
           image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
-          imagePullPolicy: &sia-imagePullPolicy Always
+          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:
               cpu: "50m"

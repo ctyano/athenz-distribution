@@ -259,6 +259,14 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "**************************************"
 	@echo ""
 
+test-athenz-envoy:
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request"
+	@echo ""
+	@echo "**************************************"
+	@echo "**** Envoy Showcase is functioning ***"
+	@echo "**************************************"
+	@echo ""
+
 setup-athenz-identityprovider: check-athenz test-athenz-servers
 	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider check-register-athenz-identityprovider setup-athenz-identityprovider
 

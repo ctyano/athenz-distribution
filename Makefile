@@ -366,6 +366,9 @@ deploy-kubernetes-athenz-client:
 test-kubernetes-athenz-client:
 	@$(MAKE) -C kubernetes test-athenz-client
 
+test-kubernetes-athenz-envoy:
+	@$(MAKE) -C kubernetes test-athenz-envoy
+
 check-kubernetes-athenz: install-parsers
 	@$(MAKE) -C kubernetes check-athenz
 

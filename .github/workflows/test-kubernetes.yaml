@@ -176,5 +176,5 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make test-athenz-envoy
+          make test-kubernetes-athenz-envoy
 

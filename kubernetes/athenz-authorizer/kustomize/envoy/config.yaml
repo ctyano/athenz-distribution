@@ -112,6 +112,12 @@ static_resources:
                                 key: x-athenz-certificate-s256
                                 value: "%DOWNSTREAM_PEER_FINGERPRINT_256%"
                             - header:
+                                key: x-athenz-certificate-v-start
+                                value: "%DOWNSTREAM_PEER_CERT_V_START%"
+                            - header:
+                                key: x-athenz-certificate-v-end
+                                value: "%DOWNSTREAM_PEER_CERT_V_END%"
+                            - header:
                                 key: x-athenz-certificate-serial
                                 value: "%DOWNSTREAM_PEER_SERIAL%"
                         - match:

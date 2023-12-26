@@ -23,6 +23,9 @@ configMapGenerator:
   - name: client-envoy
     files:
       - config.yaml=envoy/config.yaml
+      - identity_sds.yaml=envoy/identity_sds.yaml
+      - role_sds.yaml=envoy/role_sds.yaml
+      - ca_sds.yaml=envoy/ca_sds.yaml
 #  - name: athenz-cacert
 #    files:
 #      - ca.cert.pem=certs/ca.cert.pem

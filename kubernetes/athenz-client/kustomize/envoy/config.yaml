@@ -208,8 +208,14 @@ static_resources:
               common_tls_context: &common_tls_context
                 tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_identity
                   - name: identity_sds
+                    sds_config:
+                      path: /etc/envoy/identity_sds.yaml
+                      resource_api_version: V3
                 validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
                   name: ca_sds
+                  sds_config:
+                    path: /etc/envoy/ca_sds.yaml
+                    resource_api_version: V3
   clusters:
     - name: envoy_admin
       connect_timeout: 0.25s
@@ -278,6 +284,9 @@ static_resources:
           common_tls_context:
             tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_role
               - name: role_sds
+                sds_config:
+                  path: /etc/envoy/role_sds.yaml
+                  resource_api_version: V3
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
     - name: zms
       connect_timeout: 0.25s

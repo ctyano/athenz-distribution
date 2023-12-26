@@ -275,7 +275,10 @@ static_resources:
               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
               common_tls_context:
                 tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_identity
-                  name: identity_sds
+                  - name: identity_sds
+                    sds_config:
+                      path: /etc/envoy/identity_sds.yaml
+                      resource_api_version: V3
     - name: mtls_listener # experimental
       address:
         socket_address:
@@ -382,6 +385,9 @@ static_resources:
                 tls_certificate_sds_secret_configs: *tls_certificate_sds_secret_configs_identity
                 validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
                   name: ca_sds
+                  sds_config:
+                    path: /etc/envoy/ca_sds.yaml
+                    resource_api_version: V3
               require_client_certificate: true
   clusters:
     - name: envoy_admin
@@ -429,7 +435,10 @@ static_resources:
           "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
           common_tls_context:
             tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_role
-              name: role_sds
+              - name: role_sds
+                sds_config:
+                  path: /etc/envoy/role_sds.yaml
+                  resource_api_version: V3
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
     - name: zms
       connect_timeout: 0.25s

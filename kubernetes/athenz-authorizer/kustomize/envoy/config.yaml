@@ -219,8 +219,14 @@ static_resources:
               common_tls_context: &common_tls_context
                 tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_identity
                   - name: identity_sds
+                    sds_config:
+                      path: /etc/envoy/identity_sds.yaml
+                      resource_api_version: V3
                 validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
                   name: ca_sds
+                  sds_config:
+                    path: /etc/envoy/ca_sds.yaml
+                    resource_api_version: V3
               require_client_certificate: true
     - name: https_listener
       address:

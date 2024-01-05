@@ -95,6 +95,27 @@ jobs:
           # Log out from the Docker registry at the end of a job
           logout: true # optional, default is true
 
+      # This action sets up a go environment for use in actions by:
+      # - Optionally downloading and caching a version of Go by version and adding to PATH.
+      # - Registering problem matchers for error output.
+      # https://github.com/actions/setup-go
+      -
+        name: Setup Golang
+        id: setup-go
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/setup-go/tags
+        uses: actions/setup-go@v3
+        with:
+          go-version: stable
+          check-latest: true
+
+      # A GitHub Action to set environment variables for Go
+      -
+        name: Set Golang env
+        id: go-env
+        run: |
+          go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
+
       # A GitHub Action for Kubernetes IN Docker
       # https://github.com/helm/kind-action
       -

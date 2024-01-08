@@ -126,6 +126,19 @@ static_resources:
                             cluster: envoy_admin
                           typed_per_filter_config: *ext_authz_disabled
                 http_filters: &localhost_http_filters
+                  - name: envoy.filters.http.lua
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      inline_code: |
+                        function envoy_on_request(request_handle)
+                          request_handle:logInfo("Hello World.")
+                          if request_handle:connection():ssl() ~= nil then
+                            request_handle:logInfo("ssl was not nil.")
+                            request_handle:headers():add("x-athenz-certificate-hash", request_handle:connection():ssl():urlEncodedPemEncodedPeerCertificate())
+                          else
+                            request_handle:logInfo("ssl was nil.")
+                          end
+                        end
                   - name: envoy.filters.http.ext_authz.authorization
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz

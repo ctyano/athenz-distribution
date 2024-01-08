@@ -1,0 +1,16 @@
+athenz:
+  debug: true
+  zts:
+    base_url: https://athenz-zts-server.athenz:4443/zts/v1
+    jwks_path: /oauth2/keys
+    jwks_query: rfc=true
+    access_token_path: /oauth2/token
+    policy_path_prefix: /domain/
+    policy_path_suffix: /policy/signed
+    ca_cert_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    force_cache_duration_seconds: 3600
+  key_file: ./admin/athenz_admin.private.pem
+  cert_file: ./admin/athenz_admin.cert.pem
+  policy:
+    domains:
+      - identity.provider

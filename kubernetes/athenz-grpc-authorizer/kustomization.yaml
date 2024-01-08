@@ -1,0 +1,38 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: provider
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+secretGenerator:
+  - name: admin-tls
+    files:
+      - ca.crt=certs/ca.cert.pem
+      - tls.crt=certs/athenz_admin.cert.pem
+      - tls.key=certs/athenz_admin.private.pem
+    options:
+      disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: envoy
+    files:
+      - config.yaml=envoy/config.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authorizer-config
+    files:
+      - config.yaml=policy/envoy/config.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authorizer-policy
+    files:
+      - envoy.authz.rego=policy/envoy/envoy.authz.rego
+      - functions.rego=policy/envoy/functions.rego
+      - system_log.rego=policy/system.log.rego
+      - data.yaml=policy/envoy/data.yaml
+    options:
+      disableNameSuffixHash: true

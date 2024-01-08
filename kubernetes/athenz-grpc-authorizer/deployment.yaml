@@ -1,0 +1,149 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorizer-deployment
+  labels:
+    app: authorizer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authorizer-deployment
+  template:
+    metadata:
+      labels:
+        app: authorizer-deployment
+    spec:
+      imagePullSecrets:
+        - name: ghcr
+      containers:
+        - name: opa
+          #image: docker.io/openpolicyagent/opa:latest-envoy
+          image: ghcr.io/cty3000/opa:latest-envoy
+          imagePullPolicy: IfNotPresent
+          #imagePullPolicy: Always
+          command:
+            - /app/opa_envoy_linux_arm64
+            #- /bin/sh
+            #- -c
+          args:
+            #- |
+            #  apk add --update binutils libc6-compat musl-dev; \
+            #- |
+            #  readelf -l /app/opa_envoy_linux_arm64; \
+            #  /app/opa_envoy_linux_arm64 run --server --log-format=json --log-level=info --config-file=/etc/opa/config/config.yaml --addr=0.0.0.0:8181 --diagnostic-addr=0.0.0.0:8282 --ignore=.* --disable-telemetry /etc/opa/policy
+            - run
+            - --server
+            - --log-format=json
+            - --log-level=info
+            - --config-file=/etc/opa/config/config.yaml
+            - --addr=0.0.0.0:8181
+            - --diagnostic-addr=0.0.0.0:8282
+            - --ignore=.*
+            - --disable-telemetry
+            - /etc/opa/policy
+          env:
+            - name: OPA_CACERT_PATH
+              value: /var/run/athenz/ca.crt
+          ports:
+            - name: http
+              containerPort: 8181
+              protocol: TCP
+            - name: diagnostic
+              containerPort: 8282
+              protocol: TCP
+            - name: grpc
+              containerPort: 9191
+              protocol: TCP
+          volumeMounts:
+            - name: policy
+              mountPath: /etc/opa/policy
+              readOnly: true
+            - name: config
+              mountPath: /etc/opa/config
+              readOnly: true
+            - name: admin-tls
+              mountPath: /var/run/athenz
+              readOnly: true
+          resources: &opa-resources
+            requests:
+              cpu: 1m
+              memory: 64Mi
+            limits:
+              cpu: 2m
+              memory: 128Mi
+          #readinessProbe:
+          #  httpGet:
+          #    path: /health?plugins
+          #    port: 8181
+          #    scheme: HTTP
+          #  initialDelaySeconds: 0
+          #  periodSeconds: 10
+        - name: envoy
+          # Envoy crashes in Raspberry Pi 4
+          #image: docker.io/envoyproxy/envoy:v1.26-latest
+          #
+          # See:
+          # https://github.com/envoyproxy/envoy/issues/23339#issuecomment-1290509732
+          # https://github.com/envoyproxy/envoy/issues/15235
+          image: docker.io/thegrandpkizzle/envoy:1.26.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          command: 
+            - /usr/local/bin/envoy
+          args:
+            - -c
+            - /etc/envoy/config.yaml
+            - -l
+            - debug
+          resources: &envoy-resources
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: envoy
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: admin-tls
+              mountPath: /var/run/athenz
+              readOnly: true
+        - name: echoserver
+          image: docker.io/ealen/echo-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+          resources: *envoy-resources
+      volumes:
+        - name: admin-tls
+          secret:
+            secretName: admin-tls
+        - name: envoy
+          configMap:
+            name: envoy
+            items:
+              - key: config.yaml
+                path: config.yaml
+        - name: policy
+          configMap:
+            name: authorizer-policy
+        - name: config
+          configMap:
+            name: authorizer-config
+            items:
+              - key: config.yaml
+                path: config.yaml

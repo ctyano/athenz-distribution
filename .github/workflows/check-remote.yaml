@@ -20,6 +20,7 @@ on:
 env:
   DOCKER_REGISTRY_URL: ghcr.io
   TARGET_TAG: ""
+  GITHUB_REPOSITORY: AthenZ/athenz
   GIT_SUBMODULE_URL: https://github.com/AthenZ/athenz.git
   GIT_SUBMODULE_PATH: athenz
 
@@ -55,19 +56,19 @@ jobs:
           #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
           #     | head -n1
           if [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
-            ATHENZ_PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
-            ATHENZ_TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            ATHENZ_PACKAGE_VERSION="$( \
-              curl -s https://api.github.com/repos/AthenZ/athenz/releases \
+            PACKAGE_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
                 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
                 | sort -ru \
                 | head -n1
               )"
-            ATHENZ_TAG_VERSION="$( \
-              curl -s https://api.github.com/repos/AthenZ/athenz/releases \
+            TAG_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
                 | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
@@ -75,8 +76,8 @@ jobs:
                 | head -n1
               )"
           fi
-          printf "VERSION=${ATHENZ_PACKAGE_VERSION}\n" >> $GITHUB_ENV
-          printf "TAG_VERSION=${ATHENZ_TAG_VERSION}\n" >> $GITHUB_ENV
+          printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
+          printf "TAG_VERSION=${TAG_VERSION}\n" >> $GITHUB_ENV
 
       # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
       # https://github.com/actions/checkout

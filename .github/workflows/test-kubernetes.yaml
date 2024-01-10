@@ -24,6 +24,7 @@ env:
   # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
   # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   # DOCKER_BUILD_ARGS: |
+  GITHUB_REPOSITORY: AthenZ/athenz
 
 jobs:
   build:
@@ -138,19 +139,19 @@ jobs:
           #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
           #     | head -n1
           if [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
-            ATHENZ_PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            ATHENZ_PACKAGE_VERSION="$( \
-              curl -s https://api.github.com/repos/AthenZ/athenz/releases \
+            PACKAGE_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
                 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
                 | sort -ru \
-                | head -n1 \
-            )"
+                | head -n1
+              )"
           fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${ATHENZ_PACKAGE_VERSION} make build load-kubernetes-images
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

@@ -10,7 +10,7 @@ A(vegeta) -->|https/tls| B(egress client proxy envoy\nwith token sidecar) -->|ht
 ```
 
 ```
-kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2server' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false" > ./results.bin
+kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2server' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false" > /tmp/results.bin
 ```
 
 ### client2servermtls
@@ -21,15 +21,15 @@ A(vegeta) -->|https/tls| B(egress client proxy envoy\nwith token sidecar) -->|ht
 ```
 
 ```
-kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2servermtls' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false" > ./results.bin
+kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2servermtls' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false" > /tmp/results.bin
 ```
 
 ## How to see results
 
 ```
-cat ./results.bin | vegeta plot > vegeta.html && open vegeta.html 
+cat /tmp/results.bin | vegeta plot > /tmp/vegeta.html && open /tmp/vegeta.html 
 ```
 
 ```
-cat ./results.bin | vegeta report 
+cat /tmp/results.bin | vegeta report 
 ```

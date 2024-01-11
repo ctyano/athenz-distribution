@@ -174,7 +174,7 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make deploy-kubernetes-athenz-identityprovider
+          make deploy-kubernetes-athenz-identityprovider test-kubernetes-athenz-identityprovider
 
       # A GitHub Action to check and test application
       -

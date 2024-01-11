@@ -14,7 +14,6 @@ resources:
   - secret.yaml
   - service.yaml
   - serviceaccount.yaml
-  - statefulset.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -62,8 +61,8 @@ replacements:
           create: true
       - select:
           version: v1
-          kind: StatefulSet
-          name: identityprovider-statefulset
+          kind: Deployment
+          name: identityprovider-deployment
         fieldPaths:
           - spec.template.spec.serviceAccountName
         options:
@@ -71,7 +70,7 @@ replacements:
       - select:
           version: v1
           kind: Deployment
-          name: identityprovider-deployment
+          name: identityprovider-sia
         fieldPaths:
           - spec.template.spec.serviceAccountName
         options:

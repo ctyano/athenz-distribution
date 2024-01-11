@@ -11,7 +11,6 @@ resources:
   - rolebinding.yaml
   - service.yaml
   - serviceaccount.yaml
-  #- statefulset.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -53,14 +52,6 @@ replacements:
           name: authorizer-serviceaccount
         fieldPaths:
           - metadata.name
-        options:
-          create: true
-      - select:
-          version: v1
-          kind: StatefulSet
-          name: authorizer-statefulset
-        fieldPaths:
-          - spec.template.spec.serviceAccountName
         options:
           create: true
       - select:

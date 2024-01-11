@@ -23,6 +23,7 @@ env:
   NFPM_SOURCE_IMAGES: athenz-db,athenz-zms-server,athenz-zts-server,athenz-cli
   NFPM_TARGET_PACKAGER: apk,deb,rpm
   NFPM_TARGET_COMPONENTS: zms,zts,cli
+  GITHUB_REPOSITORY: AthenZ/athenz
 
 jobs:
   build:

@@ -207,7 +207,7 @@ while true; do \
 		/var/run/athenz/athenz:role.envoyclients.roletoken \
 		/var/run/athenz/athenz:role.envoyclients.accesstoken \
 	&& \
-	kubectl -n athenz exec statefulset/identityprovider-statefulset -it -c sia -- \
+	kubectl -n athenz exec deployment/identityprovider-sia -it -c sia -- \
 		ls \
 		-alF \
 		/var/run/athenz/tls.key \

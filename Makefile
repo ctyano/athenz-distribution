@@ -327,17 +327,22 @@ generate-identityprovider: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/identityprovider.private.pem
 	openssl rsa -pubout -in keys/identityprovider.private.pem -out keys/identityprovider.public.pem
 
-generate-client: generate-ca
-	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/client.private.pem
-	openssl rsa -pubout -in keys/client.private.pem -out keys/client.public.pem
-
 generate-authorizer: generate-ca
 	mkdir keys certs ||:
 	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/authorizer.private.pem
 	openssl rsa -pubout -in keys/authorizer.private.pem -out keys/authorizer.public.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer
+generate-client: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/client.private.pem
+	openssl rsa -pubout -in keys/client.private.pem -out keys/client.public.pem
+
+generate-authzproxy: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/authzproxy.private.pem
+	openssl rsa -pubout -in keys/authzproxy.private.pem -out keys/authzproxy.public.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzproxy
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
@@ -360,14 +365,23 @@ deploy-kubernetes-athenz-authorizer:
 test-kubernetes-athenz-authorizer:
 	@$(MAKE) -C kubernetes test-athenz-authorizer
 
+deploy-kubernetes-athenz-authzproxy:
+	@$(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy
+
+test-kubernetes-athenz-authzproxy:
+	@$(MAKE) -C kubernetes test-athenz-authzproxy
+
 deploy-kubernetes-athenz-client:
 	@$(MAKE) -C kubernetes setup-athenz-client deploy-athenz-client
 
 test-kubernetes-athenz-client:
 	@$(MAKE) -C kubernetes test-athenz-client
 
-test-kubernetes-athenz-envoy:
-	@$(MAKE) -C kubernetes test-athenz-envoy
+test-kubernetes-athenz-envoy2envoy:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoy
+
+test-kubernetes-athenz-envoy2authzproxy:
+	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy
 
 check-kubernetes-athenz: install-parsers
 	@$(MAKE) -C kubernetes check-athenz

@@ -61,7 +61,10 @@ static_resources:
                                 key: x-athenz-path
                                 value: "%REQ(:PATH)%"
                           typed_per_filter_config: &ext_authz_disabled
-                            envoy.filters.http.ext_authz.token: &ext_authz_tokensidecar_disabled
+                            envoy.filters.http.ext_authz.envoyclients.token: &ext_authz_envoyclients_tokensidecar_disabled
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                              disabled: true
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: &ext_authz_authorization-proxy-clients_tokensidecar_disabled
                               "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
                               disabled: true
                         - match:
@@ -88,23 +91,37 @@ static_resources:
                             cluster: envoy_tls
                             prefix_rewrite: "/server"
                             auto_host_rewrite: true
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2servermtls"
                           route:
                             cluster: envoy_mtls
                             prefix_rewrite: "/server"
                           typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2echoservermtls"
                           route:
                             cluster: envoy_mtls
                             prefix_rewrite: "/echoserver"
                           typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
+                        - match:
+                            path_separated_prefix: "/client2authzproxy"
+                          route:
+                            cluster: authzproxy
+                            prefix_rewrite: "/echoserver"
+                            auto_host_rewrite: true
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.envoyclients.token: *ext_authz_envoyclients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2echoserver"
                           route:
                             cluster: echoserver
                             auto_host_rewrite: true
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             prefix: "/echoserver"
                           route:
@@ -119,7 +136,7 @@ static_resources:
                   # Authorization could also be done with type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                   # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto.html
                   # https://developer.mamezou-tech.com/blogs/2022/02/20/envoy-authz/
-                  - name: envoy.filters.http.ext_authz.token
+                  - name: envoy.filters.http.ext_authz.envoyclients.token
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
                       # https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/grpc_service.proto#envoy-v3-api-msg-config-core-v3-grpcservice
@@ -128,7 +145,7 @@ static_resources:
                       #  target_uri: "127.0.0.1:9191"
                       # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-httpservice
                       http_service:
-                        server_uri:
+                        server_uri: &server_uri
                           uri: token-sidecar
                           cluster: token-sidecar
                           timeout: 5s
@@ -140,11 +157,26 @@ static_resources:
                               value: "athenz"
                             - key: x-athenz-role
                               value: "envoyclients"
-                        authorization_response:
+                        authorization_response: &authorization_response
                           allowed_upstream_headers:
                             patterns:
                               - exact: athenz-role-auth
                               - exact: authorization
+                      transport_api_version: V3
+                  - name: envoy.filters.http.ext_authz.authorization-proxy-clients.token
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                      http_service:
+                        server_uri: *server_uri
+                        authorization_request:
+                          headers_to_add:
+                            - key: x-athenz-proxy
+                              value: "egress"
+                            - key: x-athenz-domain
+                              value: "athenz"
+                            - key: x-athenz-role
+                              value: "authorization-proxy-clients"
+                        authorization_response: *authorization_response
                       transport_api_version: V3
                   - name: envoy.filters.http.router
                     typed_config:
@@ -269,6 +301,26 @@ static_resources:
                   path_config_source:
                     path: /etc/envoy/role_sds.yaml
                   resource_api_version: V3
+            validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
+    - name: authzproxy
+      connect_timeout: 0.25s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: authzproxy
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authzproxy.athenz.svc.cluster.local
+                      port_value: 443
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
     - name: zms
       connect_timeout: 0.25s

@@ -2,10 +2,10 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
 
-clean-athenz-authorizer:
+clean-athenz-authzproxy:
 	kubectl delete -k kustomize
 
-register-athenz-authorizer:
+register-athenz-authzproxy:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		curl \
 		-sv \
@@ -35,7 +35,7 @@ register-athenz-authorizer:
 			add-service \
 			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
 			0 \
-			$$(cat kustomize/keys/authorizer.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
+			$$(cat kustomize/keys/authzproxy.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -65,7 +65,7 @@ register-athenz-authorizer:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-group-role \
-			envoyclients
+			authorization-proxy-clients
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -73,8 +73,8 @@ register-athenz-authorizer:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-policy \
-			envoyclients \
-			grant get to envoyclients on /server* ||:
+			authorization-proxy-clients \
+			grant get to authorization-proxy-clients on /echoserver*
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -83,7 +83,7 @@ register-athenz-authorizer:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
-check-register-athenz-authorizer:
+check-register-athenz-authzproxy:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -110,11 +110,11 @@ done
 	kubectl -n athenz get all
 	@echo ""
 	@echo "**************************************"
-	@echo "**  Athenz Authorizer is functioning *"
+	@echo "**  Athenz Authzproxy is functioning *"
 	@echo "**************************************"
 	@echo ""
 
-kustomize-edit-athenz-authorizer-image:
+kustomize-edit-athenz-authzproxy-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd kustomize \
@@ -122,10 +122,10 @@ kustomize-edit-athenz-authorizer-image:
 	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 	)
 
-deploy-athenz-authorizer: kustomize-edit-athenz-authorizer-image
+deploy-athenz-authzproxy: kustomize-edit-athenz-authzproxy-image
 	kubectl apply -k kustomize
 
-test-athenz-authorizer:
+test-athenz-authzproxy:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -134,7 +134,7 @@ while true; do \
 	( \
 	test $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -eq 0 \
 	&& \
-	kubectl -n athenz exec deployment/authorizer-deployment -it -c sia -- \
+	kubectl -n athenz exec deployment/authzproxy-deployment -it -c sia -- \
 		ls \
 		-alF \
 		/var/run/athenz/tls.key \
@@ -147,8 +147,8 @@ while true; do \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
 		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n athenz get all | grep -E "pod/authorizer-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
-		kubectl -n athenz get all | grep -E "pod/authorizer-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
+		kubectl -n athenz get all | grep -E "pod/authzproxy-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
+		kubectl -n athenz get all | grep -E "pod/authzproxy-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
 		kubectl -n athenz get all; \
 		exit 1; \
 	fi; \
@@ -156,6 +156,6 @@ done
 	kubectl -n athenz get all
 	@echo ""
 	@echo "**************************************"
-	@echo "* Authorizer provisioning successful *"
+	@echo "* Authzproxy provisioning successful *"
 	@echo "**************************************"
 	@echo ""

@@ -10,6 +10,7 @@ clean-certificates:
 	rm -rf athenz-identityprovider/kustomize/{keys,certs}
 	rm -rf athenz-authorizer/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
+	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -24,8 +25,9 @@ copy-to-kustomization:
 	cp ../athenz/servers/zms/schema/zms_server.sql athenz-db/kustomize/zms_server.sql
 	cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
 	cp -r ../keys ../certs athenz-identityprovider/kustomize/
-	cp -r ../keys ../certs athenz-client/kustomize/
 	cp -r ../keys ../certs athenz-authorizer/kustomize/
+	cp -r ../keys ../certs athenz-client/kustomize/
+	cp -r ../keys ../certs athenz-authzproxy/kustomize/
 
 kind-setup:
 	kind create cluster
@@ -45,6 +47,7 @@ kind-load-images:
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
 	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull docker.io/athenz/authorization-proxy:latest
 	kind load docker-image \
 		docker.io/linuxserver/mariadb:latest \
 		docker.io/ghostunnel/ghostunnel:latest \
@@ -60,7 +63,8 @@ kind-load-images:
 		docker.io/openpolicyagent/kube-mgmt:latest \
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/portainer/kubectl-shell:latest \
-		$(DOCKER_REGISTRY)k8s-athenz-sia:latest
+		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+		docker.io/athenz/authorization-proxy:latest
 
 kind-shutdown:
 	kind delete cluster
@@ -259,8 +263,16 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "**************************************"
 	@echo ""
 
-test-athenz-envoy:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request"
+test-athenz-envoy2envoy:
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	@echo ""
+	@echo "**************************************"
+	@echo "**** Envoy Showcase is functioning ***"
+	@echo "**************************************"
+	@echo ""
+
+test-athenz-envoy2authzproxy:
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2authzproxy" | jq -r .request || (kubectl -n athenz logs deployment/authzproxy-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -284,6 +296,15 @@ deploy-athenz-authorizer: test-athenz-identityprovider
 
 test-athenz-authorizer:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
+
+setup-athenz-authzproxy: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy check-register-athenz-authzproxy
+
+deploy-athenz-authzproxy: test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzproxy deploy-athenz-authzproxy
+
+test-athenz-authzproxy:
+	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
 
 setup-athenz-client: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-client register-athenz-client check-register-athenz-client

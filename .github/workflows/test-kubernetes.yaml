@@ -168,13 +168,25 @@ jobs:
           # Replace this with your test command
           make check-kubernetes-athenz test-kubernetes-athenz
 
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-identityprovider
+        run: |
+          make deploy-kubernetes-athenz-identityprovider
+
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-identityprovider
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make deploy-kubernetes-athenz-identityprovider test-kubernetes-athenz-identityprovider
+          make test-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-authorizer
+        run: |
+          make deploy-kubernetes-athenz-authorizer
 
       # A GitHub Action to check and test application
       -
@@ -182,7 +194,27 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make deploy-kubernetes-athenz-authorizer test-kubernetes-athenz-authorizer
+          make test-kubernetes-athenz-authorizer
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-authzproxy
+        run: |
+          make deploy-kubernetes-athenz-authzproxy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzproxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzproxy
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-client
+        run: |
+          make deploy-kubernetes-athenz-client
 
       # A GitHub Action to check and test application
       -
@@ -190,13 +222,20 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make deploy-kubernetes-athenz-client test-kubernetes-athenz-client
+          make test-kubernetes-athenz-client
 
       # A GitHub Action to check and test application
       -
-        name: Run Tests for Athenz Envoy Showcase
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make test-kubernetes-athenz-envoy
+          make test-kubernetes-athenz-envoy2envoy
 
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2authzproxy

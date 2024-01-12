@@ -1,4 +1,4 @@
-# athenz-identityprovider
+# athenz-authzproxy
 ---
 admin:
   access_log:
@@ -40,43 +40,33 @@ static_resources:
                       domains:
                         # Only a single wildcard domain is permitted in route https_proxy_route
                         - "*"
-                      typed_per_filter_config:
-                        envoy.filters.http.ext_authz:
-                          "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
-                          check_settings:
-                            context_extensions:
-                              virtual_host: localhost_proxy_hosts
                       routes: &localhost_routes
                         - match:
                             path_separated_prefix: "/status"
                           direct_response:
                             status: 200
                             body:
-                              inline_string: "This is identity provider proxy."
+                              inline_string: "This is athenz proxy for authorization-proxy."
                           response_headers_to_add:
                             - header:
-                                key: x-athenz-action
+                                key: x-athenz-method
                                 value: "%REQ(:METHOD)%"
                             - header:
-                                key: x-athenz-resource
+                                key: x-athenz-path
                                 value: "%REQ(:PATH)%"
                         - match:
-                            prefix: "/health"
+                            path_separated_prefix: "/zms/v1"
                           route:
-                            cluster: opa
+                            cluster: zms
                         - match:
-                            prefix: "/v1/data"
+                            path_separated_prefix: "/zts/v1"
                           route:
-                            cluster: opa
-                        - match:
-                            prefix: "/v0/data/identityprovider"
-                          route:
-                            cluster: opa
+                            cluster: zts
                         - match:
                             prefix: "/"
                           route:
                             cluster: envoy_admin
-                http_filters:
+                http_filters: &localhost_http_filters
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -100,7 +90,7 @@ static_resources:
           protocol: TCP
           address: ::FFFF:0.0.0.0
           ipv4_compat: true
-          port_value: 443
+          port_value: 4443
       filter_chains:
         - filters:
             - name: envoy.filters.network.http_connection_manager
@@ -109,30 +99,8 @@ static_resources:
                 codec_type: auto
                 stat_prefix: https_proxy_prefix
                 access_log: *access_log
-                route_config:
-                  name: https_proxy_route
-                  virtual_hosts:
-                    - name: https_proxy_hosts
-                      domains:
-                        # Only a single wildcard domain is permitted in route https_proxy_route
-                        - "*"
-                      routes:
-                        - match:
-                            prefix: "/health"
-                          route:
-                            cluster: opa
-                        - match:
-                            prefix: "/v1/data"
-                          route:
-                            cluster: opa
-                        - match:
-                            prefix: "/v0/data/identityprovider"
-                          route:
-                            cluster: opa
-                http_filters:
-                  - name: envoy.filters.http.router
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                route_config: *localhost_route_config
+                http_filters: *localhost_http_filters
           transport_socket:
             name: envoy.transport_sockets.tls
             typed_config:
@@ -158,29 +126,50 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 9901
-    - name: envoy_localhost
+    - name: zms
       connect_timeout: 0.25s
-      type: STATIC # LOGICAL_DNS or STATIC
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: envoy_localhost
+        cluster_name: zms
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: 127.0.0.1
-                      port_value: 8080
-    - name: opa
+                      address: athenz-zms-server.athenz
+                      port_value: 4443
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context: &common_tls_context
+            tls_certificate_sds_secret_configs: *tls_certificate_sds_secret_configs_identity
+            validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
+              name: ca_sds
+              sds_config:
+                path_config_source:
+                  path: /etc/envoy/ca_sds.yaml
+                resource_api_version: V3
+          sni: athenz-zms-server.athenz
+    - name: zts
       connect_timeout: 0.25s
-      type: STATIC # LOGICAL_DNS or STATIC
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: opa
+        cluster_name: zts
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: 127.0.0.1
-                      port_value: 8181
+                      address: athenz-zts-server.athenz
+                      port_value: 4443
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context: *common_tls_context
+          sni: athenz-zts-server.athenz

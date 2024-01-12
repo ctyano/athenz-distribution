@@ -55,9 +55,23 @@ spec:
               - key: athenz_admin.private.pem
                 path: athenz_admin.private.pem
       initContainers:
-        - name: sia-init
+        - name: sia-wait
           image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
+          resources: &sia-resources
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              while true; do nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
+        - name: sia-init
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
+          resources: *sia-resources
           args: &sia-args
             - --mode=init
             - --delay-jitter-seconds=5
@@ -85,10 +99,6 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
-          resources: &sia-resources
-            limits:
-              cpu: 50m
-              memory: 64Mi
           volumeMounts: &sia-volumeMounts
             - name: attestation-data
               mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount

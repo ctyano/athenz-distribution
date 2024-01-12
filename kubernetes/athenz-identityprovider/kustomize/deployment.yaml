@@ -88,9 +88,6 @@ spec:
           imagePullPolicy: *sia-imagePullPolicy
           args:
             - --mode=refresh
-            - --token-server-addr=:8180
-            - --authorization-server-addr=:8280
-            - --metrics-server-addr=:9999
           envFrom: *sia-envFrom
           env: *sia-env
           ports:
@@ -306,9 +303,6 @@ spec:
           args: &sia-init-args
             - --mode=init
             - --delay-jitter-seconds=5
-            - --token-server-addr=""
-            - --metrics-server-addr=""
-            - --delete-instance-id
           envFrom: &sia-envFrom
             - configMapRef:
                 name: identityprovider-sia

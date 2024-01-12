@@ -62,7 +62,8 @@ kind-load-images:
 		docker.io/openpolicyagent/kube-mgmt:latest \
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/portainer/kubectl-shell:latest \
-		$(DOCKER_REGISTRY)k8s-athenz-sia:latest
+		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+		docker.io/athenz/authorization-proxy:latest
 
 kind-shutdown:
 	kind delete cluster
@@ -269,6 +270,14 @@ test-athenz-envoy:
 	@echo "**************************************"
 	@echo ""
 
+test-athenz-envoy2authzproxy:
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2authzproxy | jq -r .request"
+	@echo ""
+	@echo "**************************************"
+	@echo "** athenz-authzproxy is functioning **"
+	@echo "**************************************"
+	@echo ""
+
 setup-athenz-identityprovider: check-athenz test-athenz-servers
 	@$(MAKE) -C athenz-identityprovider register-athenz-identityprovider check-register-athenz-identityprovider setup-athenz-identityprovider
 
@@ -295,5 +304,14 @@ deploy-athenz-client: test-athenz-identityprovider
 
 test-athenz-client:
 	@$(MAKE) -C athenz-client test-athenz-client
+
+setup-athenz-authzproxy: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy check-register-athenz-authzproxy
+
+deploy-athenz-authzproxy: test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzproxy deploy-athenz-authzproxy
+
+test-athenz-authzproxy:
+	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

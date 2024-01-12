@@ -1,0 +1,49 @@
+---
+version: v2.0.0 # No defaults
+server:
+  port: 443 # No defaults
+  timeout: 10s # No defaults
+  shutdownTimeout: 10s # No defaults
+  shutdownDelay: 9s # No defaults
+  tls:
+    enable: true # default false
+    certPath: /var/run/athenz/tls.crt # No defaults
+    keyPath: /var/run/athenz/tls.key # No defaults
+    caPath: /var/run/athenz/ca.crt # No defaults
+    certRefreshPeriod: 30s # default 24h
+  healthCheck:
+    port: 6082 # No defaults
+    endpoint: /healthz # No defaults
+athenz:
+  #url: authzproxy.athenz.svc.cluster.local:4443/zts/v1 # No defaults
+  url: athenz-zts-server.athenz:4443/zts/v1 # No defaults
+  timeout: 30s # No defaults
+  caPath: /var/run/athenz/ca.crt # No defaults
+proxy:
+  scheme: http # No defaults
+  host: localhost # No defaults
+  port: 3000 # No defaults
+  bufferSize: 4096 # No defaults
+  originHealthCheckPaths: [/status] # No defaults
+  noAuthPaths: [] # No defaults
+# Configurations for authorization section relies on:
+# AthenZ/athenz-authorizer
+# https://github.com/AthenZ/athenz-authorizer/tree/master#configuration
+authorization:
+  athenzDomains:
+    - athenz # No defaults
+  policy:
+    expiryMargin: 48h # default 3h
+    refreshPeriod: 1h # default 30m
+    purgePeriod: 24h # default 1h
+  jwk:
+    refreshPeriod: 30s # No defaults
+  accessToken:
+    enable: true # default false
+    verifyCertThumbprint: false # default true
+    verifyClientID: false # default true
+  roleToken:
+    enable: true # default false
+    roleAuthHeader: Athenz-Role-Auth # default Athenz-Role-Auth
+log:
+  level: debug # No defaults

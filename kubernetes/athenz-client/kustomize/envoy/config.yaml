@@ -101,6 +101,12 @@ static_resources:
                             prefix_rewrite: "/echoserver"
                           typed_per_filter_config:
                         - match:
+                            path_separated_prefix: "/client2authzproxy"
+                          route:
+                            cluster: authzproxy
+                            prefix_rewrite: "/echoserver"
+                            auto_host_rewrite: true
+                        - match:
                             path_separated_prefix: "/client2echoserver"
                           route:
                             cluster: echoserver
@@ -269,6 +275,26 @@ static_resources:
                   path_config_source:
                     path: /etc/envoy/role_sds.yaml
                   resource_api_version: V3
+            validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
+    - name: authzproxy
+      connect_timeout: 0.25s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: authzproxy
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authzproxy.athenz.svc.cluster.local
+                      port_value: 443
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
     - name: zms
       connect_timeout: 0.25s

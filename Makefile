@@ -327,15 +327,20 @@ generate-identityprovider: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/identityprovider.private.pem
 	openssl rsa -pubout -in keys/identityprovider.private.pem -out keys/identityprovider.public.pem
 
+generate-authorizer: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/authorizer.private.pem
+	openssl rsa -pubout -in keys/authorizer.private.pem -out keys/authorizer.public.pem
+
 generate-client: generate-ca
 	mkdir keys certs ||:
 	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/client.private.pem
 	openssl rsa -pubout -in keys/client.private.pem -out keys/client.public.pem
 
-generate-authorizer: generate-ca
+generate-authzproxy: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/authorizer.private.pem
-	openssl rsa -pubout -in keys/authorizer.private.pem -out keys/authorizer.public.pem
+	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/authzproxy.private.pem
+	openssl rsa -pubout -in keys/authzproxy.private.pem -out keys/authzproxy.public.pem
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer
 

@@ -342,7 +342,7 @@ generate-authzproxy: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/authzproxy.private.pem
 	openssl rsa -pubout -in keys/authzproxy.private.pem -out keys/authzproxy.public.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzproxy
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz

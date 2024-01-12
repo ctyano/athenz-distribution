@@ -371,8 +371,17 @@ deploy-kubernetes-athenz-client:
 test-kubernetes-athenz-client:
 	@$(MAKE) -C kubernetes test-athenz-client
 
+deploy-kubernetes-athenz-authzproxy:
+	@$(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy
+
+test-kubernetes-athenz-authzproxy:
+	@$(MAKE) -C kubernetes test-athenz-authzproxy
+
 test-kubernetes-athenz-envoy:
 	@$(MAKE) -C kubernetes test-athenz-envoy
+
+test-kubernetes-athenz-envoy2authzproxy:
+	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy
 
 check-kubernetes-athenz: install-parsers
 	@$(MAKE) -C kubernetes check-athenz

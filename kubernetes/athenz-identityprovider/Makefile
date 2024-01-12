@@ -194,9 +194,6 @@ while true; do \
 		/var/run/athenz/tls.key \
 		/var/run/athenz/tls.crt \
 		/var/run/athenz/ca.crt \
-		/var/run/athenz/athenz:role.envoyclients.cert.pem \
-		/var/run/athenz/athenz:role.envoyclients.roletoken \
-		/var/run/athenz/athenz:role.envoyclients.accesstoken \
 	&& \
 	kubectl -n athenz exec deployment/identityprovider-sia -it -c sia -- \
 		ls \

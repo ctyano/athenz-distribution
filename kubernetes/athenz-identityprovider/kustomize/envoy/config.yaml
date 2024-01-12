@@ -61,14 +61,6 @@ static_resources:
                                 key: x-athenz-resource
                                 value: "%REQ(:PATH)%"
                         - match:
-                            path_separated_prefix: "/zms/v1"
-                          route:
-                            cluster: zms
-                        - match:
-                            path_separated_prefix: "/zts/v1"
-                          route:
-                            cluster: zts
-                        - match:
                             prefix: "/health"
                           route:
                             cluster: opa
@@ -179,52 +171,6 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 8080
-    - name: zms
-      connect_timeout: 0.25s
-      type: LOGICAL_DNS
-      dns_lookup_family: V4_ONLY
-      lb_policy: ROUND_ROBIN
-      load_assignment:
-        cluster_name: zms
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: athenz-zms-server.athenz
-                      port_value: 4443
-      transport_socket: &transport_socket
-        name: envoy.transport_sockets.tls
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-          common_tls_context:
-            tls_certificate_sds_secret_configs: &tls_certificate_sds_secret_configs_role
-              - name: role_sds
-                sds_config:
-                  path_config_source:
-                    path: /etc/envoy/role_sds.yaml
-                  resource_api_version: V3
-            validation_context_sds_secret_config: &validation_context_sds_secret_config_ca
-              name: ca_sds
-              sds_config:
-                path_config_source:
-                  path: /etc/envoy/ca_sds.yaml
-                resource_api_version: V3
-    - name: zts
-      connect_timeout: 0.25s
-      type: LOGICAL_DNS
-      dns_lookup_family: V4_ONLY
-      lb_policy: ROUND_ROBIN
-      load_assignment:
-        cluster_name: zts
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: athenz-zts-server.athenz
-                      port_value: 4443
-      transport_socket: *transport_socket
     - name: opa
       connect_timeout: 0.25s
       type: STATIC # LOGICAL_DNS or STATIC

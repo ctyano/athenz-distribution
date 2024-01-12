@@ -210,7 +210,7 @@ jobs:
 
       # A GitHub Action to check and test application
       -
-        name: Run Tests for Athenz Envoy to authorization-proxy Showcase
+        name: Run Tests for Athenz Envoy Showcase with authorization-proxy Showcase
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command

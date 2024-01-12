@@ -207,13 +207,7 @@ spec:
             periodSeconds: 3
             successThreshold: 1
             timeoutSeconds: 2
-          resources:
-            limits:
-              cpu: 50m
-              memory: 64Mi
-            requests:
-              cpu: 25m
-              memory: 32Mi
+          resources: *envoy-resources
           volumeMounts:
             - name: config
               mountPath: /etc/athenz/provider

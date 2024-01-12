@@ -365,20 +365,20 @@ deploy-kubernetes-athenz-authorizer:
 test-kubernetes-athenz-authorizer:
 	@$(MAKE) -C kubernetes test-athenz-authorizer
 
-deploy-kubernetes-athenz-client:
-	@$(MAKE) -C kubernetes setup-athenz-client deploy-athenz-client
-
-test-kubernetes-athenz-client:
-	@$(MAKE) -C kubernetes test-athenz-client
-
 deploy-kubernetes-athenz-authzproxy:
 	@$(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy
 
 test-kubernetes-athenz-authzproxy:
 	@$(MAKE) -C kubernetes test-athenz-authzproxy
 
-test-kubernetes-athenz-envoy:
-	@$(MAKE) -C kubernetes test-athenz-envoy
+deploy-kubernetes-athenz-client:
+	@$(MAKE) -C kubernetes setup-athenz-client deploy-athenz-client
+
+test-kubernetes-athenz-client:
+	@$(MAKE) -C kubernetes test-athenz-client
+
+test-kubernetes-athenz-envoy2envoy:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoy
 
 test-kubernetes-athenz-envoy2authzproxy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy

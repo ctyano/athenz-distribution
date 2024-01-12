@@ -263,8 +263,8 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "**************************************"
 	@echo ""
 
-test-athenz-envoy:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request" || kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true
+test-athenz-envoy2envoy:
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request" || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -272,10 +272,10 @@ test-athenz-envoy:
 	@echo ""
 
 test-athenz-envoy2authzproxy:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2authzproxy | jq -r .request" || kubectl -n athenz logs deployment/authzproxy-deployment --all-containers=true
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2authzproxy | jq -r .request" || (kubectl -n athenz logs deployment/authzproxy-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
-	@echo "** athenz-authzproxy is functioning **"
+	@echo "**** Envoy Showcase is functioning ***"
 	@echo "**************************************"
 	@echo ""
 
@@ -297,15 +297,6 @@ deploy-athenz-authorizer: test-athenz-identityprovider
 test-athenz-authorizer:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
 
-setup-athenz-client: test-athenz-servers test-athenz-identityprovider
-	@$(MAKE) -C athenz-client register-athenz-client check-register-athenz-client
-
-deploy-athenz-client: test-athenz-identityprovider
-	@$(MAKE) -C athenz-client deploy-athenz-client
-
-test-athenz-client:
-	@$(MAKE) -C athenz-client test-athenz-client
-
 setup-athenz-authzproxy: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy check-register-athenz-authzproxy
 
@@ -314,5 +305,14 @@ deploy-athenz-authzproxy: test-athenz-identityprovider
 
 test-athenz-authzproxy:
 	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
+
+setup-athenz-client: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-client register-athenz-client check-register-athenz-client
+
+deploy-athenz-client: test-athenz-identityprovider
+	@$(MAKE) -C athenz-client deploy-athenz-client
+
+test-athenz-client:
+	@$(MAKE) -C athenz-client test-athenz-client
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

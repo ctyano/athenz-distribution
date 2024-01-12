@@ -9,7 +9,7 @@ server:
     enable: true # default false
     certPath: /var/run/athenz/tls.crt # No defaults
     keyPath: /var/run/athenz/tls.key # No defaults
-    caPath: /var/run/athenz/ca.crt # No defaults
+    #caPath: /var/run/athenz/ca.crt # No defaults
     certRefreshPeriod: 30s # default 24h
   healthCheck:
     port: 6082 # No defaults

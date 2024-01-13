@@ -377,6 +377,12 @@ deploy-kubernetes-athenz-client:
 test-kubernetes-athenz-client:
 	@$(MAKE) -C kubernetes test-athenz-client
 
+deploy-kubernetes-athenz-loadtest:
+	@$(MAKE) -C kubernetes deploy-athenz-loadtest
+
+test-kubernetes-athenz-loadtest:
+	@$(MAKE) -C kubernetes test-athenz-loadtest
+
 test-kubernetes-athenz-envoy2envoy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2envoy
 

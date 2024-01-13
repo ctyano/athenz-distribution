@@ -5,7 +5,7 @@
 ```
 DOCKER_REGISTRY=ghcr.io/ctyano
 kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=${DOCKER_REGISTRY:-ghcr.io/ctyano/}docker-vegeta:latest
-kubectl apply -k .
+kubectl apply -k kustomize
 ```
 
 ## How to try them out

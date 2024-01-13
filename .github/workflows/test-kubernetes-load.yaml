@@ -1,4 +1,4 @@
-name: Test running on Docker Compose
+name: Test running on Kubernetes Cluster
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -12,9 +12,6 @@ on:
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -96,37 +93,20 @@ jobs:
           # Log out from the Docker registry at the end of a job
           logout: true # optional, default is true
 
-      # This action sets up a go environment for use in actions by:
-      # - Optionally downloading and caching a version of Go by version and adding to PATH.
-      # - Registering problem matchers for error output.
-      # https://github.com/actions/setup-go
+      # A GitHub Action for Kubernetes IN Docker
+      # https://github.com/helm/kind-action
       -
-        name: Setup Golang
-        id: setup-go
+        name: Create KinD Cluster
+        id: kind
         # You may pin to the exact commit or the version.
-        # uses: https://github.com/actions/setup-go/tags
-        uses: actions/setup-go@v3
+        # uses: https://github.com/helm/kind-action/tags
+        uses: helm/kind-action@v1.8.0
         with:
-          go-version: stable
-          check-latest: true
+          cluster_name: kind
 
-      # A GitHub Action to set environment variables for Go
+      # A GitHub Action to build Docker container images
       -
-        name: Set Golang env
-        id: go-env
-        run: |
-          go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
-
-      # A GitHub Action to setup Docker Compose
-      -
-        name: Set up Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install docker-compose
-
-      # A GitHub Action to deploy application with Docker Compose
-      -
-        name: Deploy Application
+        name: Load Docker container images
         run: |
           # Get latest release tag with:
           #   curl -s https://api.github.com/repos/AthenZ/athenz/releases \
@@ -147,7 +127,14 @@ jobs:
               )"
           fi
           set -ex
-          VERSION=${PACKAGE_VERSION} make deploy-docker-athenz
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make load-kubernetes-images
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application
+        run: |
+          set -ex
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make deploy-kubernetes-athenz
 
       # A GitHub Action to check and test application
       -
@@ -155,5 +142,90 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make check-docker-athenz test-docker-athenz
+          make check-kubernetes-athenz test-kubernetes-athenz
 
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-identityprovider
+        run: |
+          make deploy-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-identityprovider
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-authorizer
+        run: |
+          make deploy-kubernetes-athenz-authorizer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authorizer
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authorizer
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-authzproxy
+        run: |
+          make deploy-kubernetes-athenz-authzproxy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzproxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzproxy
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-client
+        run: |
+          make deploy-kubernetes-athenz-client
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-client
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-client
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2authzproxy
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-loadtest
+        run: |
+          make deploy-kubernetes-athenz-loadtest
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-loadtest
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-loadtest

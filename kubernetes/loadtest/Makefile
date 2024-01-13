@@ -44,11 +44,11 @@ done
 
 run-athenz-loadtest:
 	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2server' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-| tee ../../docs/client2server.html
+> ../../docs/client2server.html
 	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2servermtls' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-| tee ../../docs/client2servermtls.html
+> ../../docs/client2servermtls.html
 	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2authzproxy' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-| tee ../../docs/client2authzproxy.html
+> ../../docs/client2authzproxy.html
 	@echo ""
 	@echo "**************************************"
 	@echo "**  Loadtest completed successfully **"

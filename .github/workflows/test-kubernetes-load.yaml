@@ -250,7 +250,7 @@ jobs:
 
       # A GitHub Action to push ghpages branch
       -
-        name: Update ghpages branch and commit
+        name: Push ghpages branch
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -315,4 +315,10 @@ deploy-athenz-client: test-athenz-identityprovider
 test-athenz-client:
 	@$(MAKE) -C athenz-client test-athenz-client
 
+deploy-athenz-loadtest:
+	@$(MAKE) -C athenz-loadtest deploy-athenz-loadtest
+
+test-athenz-loadtest:
+	@$(MAKE) -C athenz-loadtest test-athenz-loadtest
+
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

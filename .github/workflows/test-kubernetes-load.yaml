@@ -218,3 +218,17 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-loadtest
+        run: |
+          make deploy-kubernetes-athenz-loadtest
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-loadtest
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-loadtest

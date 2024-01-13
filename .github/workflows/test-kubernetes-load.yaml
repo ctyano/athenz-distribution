@@ -252,7 +252,10 @@ jobs:
       -
         name: Update ghpages branch and commit
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
           cd ${GITHUB_WORKSPACE}
-          git push origin ghpages
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          git push -f origin ghpages

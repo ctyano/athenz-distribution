@@ -57,4 +57,9 @@ run-athenz-loadtest:
 	| tee \
 	>(vegeta plot > docs/client2authzproxy.html) \
 	>(vegeta report > docs/client2authzproxy.txt) \
-	>/dev/null
+	>/dev/null	
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""

@@ -238,10 +238,11 @@ jobs:
         name: Update ghpages branch and commit
         run: |
           set -x
+          git checkout kubernetes/
           cd ${GITHUB_WORKSPACE}
           git config advice.addIgnoredFile false
           git fetch origin
-          git checkout -f ghpages
+          git checkout ghpages
           git config --global user.name "github-actions"
           git config --global user.email "notifications@github.com"
           git add -f docs/*.html

@@ -1,4 +1,4 @@
-name: Test running on Kubernetes Cluster
+name: Test running loadtest on Kubernetes Cluster
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -12,6 +12,9 @@ on:
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -229,3 +232,26 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-loadtest
+
+      # A GitHub Action to update and commit ghpages branch
+      -
+        name: Update ghpages branch and commit
+        run: |
+          set -x
+          cd ${GITHUB_WORKSPACE}
+          git config advice.addIgnoredFile false
+          git fetch origin
+          git checkout ghpages
+          git config --global user.name "github-actions"
+          git config --global user.email "notifications@github.com"
+          git add -f docs/*.html
+          git commit -m "Updated html files" || true
+
+      # A GitHub Action to push ghpages branch
+      -
+        name: Update ghpages branch and commit
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        run: |
+          set -x
+          cd ${GITHUB_WORKSPACE}
+          git push origin ghpages

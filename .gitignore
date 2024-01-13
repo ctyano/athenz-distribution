@@ -2,6 +2,7 @@
 *.srl
 *.jks
 *.pkcs12
+*.html
 zts_store
 athenz.conf
 jwks.json

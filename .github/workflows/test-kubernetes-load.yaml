@@ -241,7 +241,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           git config advice.addIgnoredFile false
           git fetch origin
-          git checkout ghpages
+          git checkout -f ghpages
           git config --global user.name "github-actions"
           git config --global user.email "notifications@github.com"
           git add -f docs/*.html

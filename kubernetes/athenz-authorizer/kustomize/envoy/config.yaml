@@ -164,6 +164,7 @@ static_resources:
                         end
                   - name: envoy.filters.http.jwt_authn
                     typed_config:
+                      # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/jwt_authn_filter
                       "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
                       providers:
                         athenz_zts_accesstoken:

@@ -115,6 +115,18 @@ static_resources:
                                 key: x-athenz-certificate
                                 value: "%DOWNSTREAM_PEER_CERT%"
                         - match:
+                            prefix: "/serverjwt"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization: *ext_authz_authorizationsidecar_disabled
+                            envoy.filters.http.jwt_authn:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.PerRouteConfig
+                              requirement_name: accesstoken
+                          route:
+                            cluster: echoserver
+                            prefix_rewrite: "/echoserver"
+                            auto_host_rewrite: true
+                          request_headers_to_add: *request_headers_to_add
+                        - match:
                             prefix: "/echoserver"
                           route:
                             cluster: echoserver
@@ -150,6 +162,40 @@ static_resources:
                             request_handle:logInfo("ssl was nil in envoy lua.")
                           end
                         end
+                  - name: envoy.filters.http.jwt_authn
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        athenz_zts_accesstoken:
+                          remote_jwks:
+                            http_uri:
+                              cluster: zts
+                              timeout: 5s
+                              uri: "https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true"
+                          #issuer: athenz-zts-server.athenz
+                          # athenz domain
+                          audiences:
+                            - athenz
+                          from_headers:
+                            - name: "authorization"
+                              value_prefix: "bearer "
+                          forward: true
+                          claim_to_headers:
+                            - claim_name: sub
+                              header_name: x-athenz-principal
+                            - claim_name: aud
+                              header_name: x-athenz-domain
+                            - claim_name: scope
+                              header_name: x-athenz-roles
+                            - claim_name: iat
+                              header_name: x-athenz-issuetime
+                            - claim_name: exp
+                              header_name: x-athenz-expirytime
+                            - claim_name: scope
+                              header_name: x-athenz-authorizedroles
+                      requirement_map:
+                        accesstoken:
+                          provider_name: athenz_zts_accesstoken
                   - name: envoy.filters.http.ext_authz.authorization
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz

@@ -55,6 +55,19 @@ A(curl) -->|https/tls| B(egress client proxy envoy\nwith token sidecar) -->|http
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request"
 ```
 
+### client2echoserverjwt
+
+[Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoserverjwt.html)
+
+```mermaid
+flowchart LR
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith token sidecar) -->|https/tls| C(ingress server proxy envoy) -->|http| D(echoserver)
+```
+
+```
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoserverjwt | jq -r .request"
+```
+
 ### client2echoservermtls
 
 [Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoservermtls.html)

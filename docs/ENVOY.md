@@ -83,6 +83,8 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli — /bin/sh -c "c
 
 ### tokensidecar
 
+[Load Test Result](https://ctyano.github.io/athenz-distribution/tokensidecar.html)
+
 ```mermaid
 flowchart LR
 A(curl) -->|https/tls| B(egress client proxy envoy) -->|http| C(token sidecar)

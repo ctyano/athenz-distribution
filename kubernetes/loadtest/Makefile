@@ -53,11 +53,13 @@ run-athenz-loadtest:
 > ../../client2servermtls.html
 	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2authzproxy' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
 > ../../client2authzproxy.html
+	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/authorizationsidecar' | vegeta attack -header \"X-Athenz-Domain: athenz\" -header \"X-Athenz-Role: envoyclients\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
+> ../../tokensidecar.html
 	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: envoyclients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
-kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo \"GET https://authorizer.athenz.svc.cluster.local/authorizationsidecar\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /server\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
+kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authorizer.athenz.svc.cluster.local/authorizationsidecar' | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /server\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
 > ../../authorizationsidecar.html
 	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: authorization-proxy-clients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
-kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo \"GET https://authzproxy.athenz.svc.cluster.local/echoserver\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /echoserver\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
+kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authzproxy.athenz.svc.cluster.local/echoserver' | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /echoserver\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
 > ../../authzproxy.html
 	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/echoserver' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
 > ../../echoserver.client.html

@@ -126,17 +126,28 @@ static_resources:
                             cluster: envoy_admin
                           typed_per_filter_config: *ext_authz_disabled
                 http_filters: &localhost_http_filters
+                  # Extract principal name and set to x-athenz-principal from peer certificate
                   - name: envoy.filters.http.lua
                     typed_config:
+                      # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                       inline_code: |
                         function envoy_on_request(request_handle)
-                          request_handle:logInfo("Hello World.")
                           if request_handle:connection():ssl() ~= nil then
                             request_handle:logInfo("ssl was not nil.")
-                            request_handle:headers():add("x-athenz-certificate-hash", request_handle:connection():ssl():urlEncodedPemEncodedPeerCertificate())
+                            -- extract x-athenz-principal from sans uri
+                            for _, uri in pairs(request_handle:connection():ssl():uriSanPeerCertificate()) do
+                              if string.sub(uri, 1, string.len("athenz://principal/")) == "athenz://principal/" then
+                                request_handle:headers():add("x-athenz-principal", string.gsub(uri, "athenz://principal/(%w+)", "%1"))
+                              end
+                            end
+                            -- extract x-athenz-roles from subject cn
+                            local subject = request_handle:connection():ssl():subjectPeerCertificate()
+                            if string.sub(subject, 1, string.len("CN=")) == "CN=" then
+                              request_handle:headers():add("x-athenz-roles", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2"))
+                            end
                           else
-                            request_handle:logInfo("ssl was nil.")
+                            request_handle:logInfo("ssl was nil in envoy lua.")
                           end
                         end
                   - name: envoy.filters.http.ext_authz.authorization

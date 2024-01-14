@@ -246,7 +246,7 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "notifications@github.com"
           mv -f *.html docs/
-          rm -rf athenz
+          rm -rf athenz && git rm -rf athenz
           git add -f docs/*.html
           git commit -m "Updated html files" ||:
 

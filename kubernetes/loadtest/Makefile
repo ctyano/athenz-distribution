@@ -67,6 +67,10 @@ kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authzproxy.at
 > ../../echoserver.client.html
 	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authorizer.athenz.svc.cluster.local/echoserver' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
 > ../../echoserver.authorizer.html
+	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
+> ../../zms.html
+	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/zts/v1/domain/sys.auth/service' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
+> ../../zts.html
 	@echo ""
 	@echo "**************************************"
 	@echo "**  Loadtest completed successfully **"

@@ -199,7 +199,7 @@ A(curl) -->|https/tls| B(egress client proxy envoy) -->|https/mutual tls| C(athe
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service/zts | jq -r ."
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service | jq -r ."
 ```
 
 ### zts
@@ -210,7 +210,7 @@ A(curl) -->|https/tls| B(egress client proxy envoy) -->|https/mutual tls| C(athe
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zts/v1/domain/sys.auth/service/zts | jq -r ."
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zts/v1/domain/sys.auth/service | jq -r ."
 ```
 
 ### client(metrics)

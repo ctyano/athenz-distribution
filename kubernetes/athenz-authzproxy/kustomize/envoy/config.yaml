@@ -58,10 +58,12 @@ static_resources:
                             path_separated_prefix: "/zms/v1"
                           route:
                             cluster: zms
+                            auto_host_rewrite: true
                         - match:
                             path_separated_prefix: "/zts/v1"
                           route:
                             cluster: zts
+                            auto_host_rewrite: true
                         - match:
                             prefix: "/"
                           route:
@@ -152,7 +154,6 @@ static_resources:
                 path_config_source:
                   path: /etc/envoy/ca_sds.yaml
                 resource_api_version: V3
-          sni: athenz-zms-server.athenz
     - name: zts
       connect_timeout: 0.25s
       type: LOGICAL_DNS
@@ -172,4 +173,3 @@ static_resources:
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
           common_tls_context: *common_tls_context
-          sni: athenz-zts-server.athenz

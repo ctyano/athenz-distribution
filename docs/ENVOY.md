@@ -193,6 +193,8 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### zms
 
+[Load Test Result](https://ctyano.github.io/athenz-distribution/zms.html)
+
 ```mermaid
 flowchart LR
 A(curl) -->|https/tls| B(egress client proxy envoy) -->|https/mutual tls| C(athenz zms server)
@@ -203,6 +205,8 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 ```
 
 ### zts
+
+[Load Test Result](https://ctyano.github.io/athenz-distribution/zts.html)
 
 ```mermaid
 flowchart LR

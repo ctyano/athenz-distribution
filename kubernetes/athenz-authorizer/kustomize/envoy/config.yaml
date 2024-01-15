@@ -73,11 +73,13 @@ static_resources:
                             path_separated_prefix: "/zms/v1"
                           route:
                             cluster: zms
+                            auto_host_rewrite: true
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
                             path_separated_prefix: "/zts/v1"
                           route:
                             cluster: zts
+                            auto_host_rewrite: true
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
                             path_separated_prefix: "/authorizationsidecar"

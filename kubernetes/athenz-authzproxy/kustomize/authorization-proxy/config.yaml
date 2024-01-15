@@ -15,8 +15,8 @@ server:
     port: 6082 # No defaults
     endpoint: /healthz # No defaults
 athenz:
-  #url: authzproxy.athenz.svc.cluster.local:4443/zts/v1 # No defaults
-  url: athenz-zts-server.athenz:4443/zts/v1 # No defaults
+  url: authzproxy.athenz.svc.cluster.local:4443/zts/v1 # No defaults
+  #url: athenz-zts-server.athenz:4443/zts/v1 # No defaults
   timeout: 30s # No defaults
   caPath: /var/run/athenz/ca.crt # No defaults
 proxy:

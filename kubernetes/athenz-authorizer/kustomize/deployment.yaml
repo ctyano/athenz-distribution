@@ -55,6 +55,7 @@ spec:
               - key: athenz_admin.private.pem
                 path: athenz_admin.private.pem
       initContainers:
+        # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
           image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
@@ -67,7 +68,7 @@ spec:
             - -c
           args:
             - |
-              while true; do nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
+              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
         - name: sia-init
           image: *sia-image
           imagePullPolicy: *sia-imagePullPolicy

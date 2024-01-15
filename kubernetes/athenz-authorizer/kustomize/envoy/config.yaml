@@ -153,11 +153,16 @@ static_resources:
                                 request_handle:headers():add("x-athenz-principal", string.gsub(uri, "athenz://principal/(%w+)", "%1"))
                               end
                             end
-                            -- extract x-athenz-roles from subject cn
+                            -- extract x-athenz-domain and x-athenz-roles from subject cn
                             local subject = request_handle:connection():ssl():subjectPeerCertificate()
-                            if string.sub(subject, 1, string.len("CN=")) == "CN=" then
+                            if string.match(subject, ".*CN=(%w+):role.(%w+),.*") ~= nil then
+                              request_handle:headers():add("x-athenz-domain", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%1"))
                               request_handle:headers():add("x-athenz-roles", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2"))
                             end
+                            -- extract x-athenz-issuetime from valid from
+                            request_handle:headers():add("x-athenz-issuetime", string.format('%d', request_handle:connection():ssl():validFromPeerCertificate()))
+                            -- extract x-athenz-expirytime from valid after
+                            request_handle:headers():add("x-athenz-expirytime", string.format('%d', request_handle:connection():ssl():expirationPeerCertificate()))
                           else
                             request_handle:logInfo("ssl was nil in envoy lua.")
                           end
@@ -182,18 +187,28 @@ static_resources:
                               value_prefix: "bearer "
                           forward: true
                           claim_to_headers:
-                            - claim_name: sub
-                              header_name: x-athenz-principal
-                            - claim_name: aud
-                              header_name: x-athenz-domain
-                            - claim_name: scope
-                              header_name: x-athenz-roles
-                            - claim_name: iat
-                              header_name: x-athenz-issuetime
-                            - claim_name: exp
-                              header_name: x-athenz-expirytime
-                            - claim_name: scope
-                              header_name: x-athenz-authorizedroles
+                            - header_name: x-athenz-principal
+                              claim_name: sub
+                            - header_name: x-athenz-domain
+                              claim_name: aud
+                            - header_name: x-athenz-roles
+                              claim_name: scope
+                            - header_name: x-athenz-issuetime
+                              claim_name: iat
+                            - header_name: x-athenz-expirytime
+                              claim_name: exp
+                            - header_name: x-athenz-jwt-sub
+                              claim_name: sub
+                            - header_name: x-athenz-jwt-aud
+                              claim_name: aud
+                            - header_name: x-athenz-jwt-scope
+                              claim_name: scope
+                            - header_name: x-athenz-jwt-iss
+                              claim_name: iss
+                            - header_name: x-athenz-jwt-iat
+                              claim_name: iat
+                            - header_name: x-athenz-jwt-exp
+                              claim_name: exp
                       requirement_map:
                         accesstoken:
                           provider_name: athenz_zts_accesstoken
@@ -213,7 +228,7 @@ static_resources:
                         authorization_request:
                           headers_to_add:
                             - key: x-athenz-proxy
-                              value: "egress"
+                              value: "ingress"
                             - key: x-athenz-action
                               value: "%REQ(:METHOD)%"
                             - key: x-athenz-resource

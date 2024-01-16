@@ -47,6 +47,7 @@ kind-load-images:
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
 	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
 	docker pull docker.io/athenz/authorization-proxy:latest
 	kind load docker-image \
 		docker.io/linuxserver/mariadb:latest \
@@ -64,6 +65,7 @@ kind-load-images:
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/portainer/kubectl-shell:latest \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+		$(DOCKER_REGISTRY)docker-vegeta:latest \
 		docker.io/athenz/authorization-proxy:latest
 
 kind-shutdown:

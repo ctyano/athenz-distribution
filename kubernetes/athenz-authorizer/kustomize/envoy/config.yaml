@@ -155,16 +155,16 @@ static_resources:
                                 request_handle:headers():add("x-athenz-principal", string.gsub(uri, "athenz://principal/(%w+)", "%1"))
                               end
                             end
-                            -- extract x-athenz-domain and x-athenz-roles from subject cn
+                            -- extract x-athenz-domain and x-athenz-role from subject cn
                             local subject = request_handle:connection():ssl():subjectPeerCertificate()
                             if string.match(subject, ".*CN=(%w+):role.(%w+),.*") ~= nil then
                               request_handle:headers():add("x-athenz-domain", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%1"))
-                              request_handle:headers():add("x-athenz-roles", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2"))
+                              request_handle:headers():add("x-athenz-role", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2"))
                             end
-                            -- extract x-athenz-issuetime from valid from
-                            request_handle:headers():add("x-athenz-issuetime", string.format('%d', request_handle:connection():ssl():validFromPeerCertificate()))
-                            -- extract x-athenz-expirytime from valid after
-                            request_handle:headers():add("x-athenz-expirytime", string.format('%d', request_handle:connection():ssl():expirationPeerCertificate()))
+                            -- extract x-athenz-issued-at from valid from
+                            request_handle:headers():add("x-athenz-issued-at", string.format('%d', request_handle:connection():ssl():validFromPeerCertificate()))
+                            -- extract x-athenz-expires-at from valid after
+                            request_handle:headers():add("x-athenz-expires-at", string.format('%d', request_handle:connection():ssl():expirationPeerCertificate()))
                           else
                             request_handle:logInfo("ssl was nil in envoy lua.")
                           end
@@ -193,11 +193,11 @@ static_resources:
                               claim_name: sub
                             - header_name: x-athenz-domain
                               claim_name: aud
-                            - header_name: x-athenz-roles
+                            - header_name: x-athenz-role
                               claim_name: scope
-                            - header_name: x-athenz-issuetime
+                            - header_name: x-athenz-issued-at
                               claim_name: iat
-                            - header_name: x-athenz-expirytime
+                            - header_name: x-athenz-expires-at
                               claim_name: exp
                             - header_name: x-athenz-jwt-sub
                               claim_name: sub
@@ -242,28 +242,15 @@ static_resources:
                             patterns:
                               - exact: x-athenz-principal
                               - exact: x-athenz-domain
-                              - exact: x-athenz-roles
-                              - exact: x-athenz-issuetime
-                              - exact: x-athenz-expirytime
+                              - exact: x-athenz-role
+                              - exact: x-athenz-client-id
+                              - exact: x-athenz-issued-at
+                              - exact: x-athenz-expires-at
                               - exact: x-athenz-authorizedroles
                       transport_api_version: V3
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-    #- name: localhost_listener_v4
-    #  address:
-    #    socket_address:
-    #      protocol: TCP
-    #      address: 127.0.0.1
-    #      port_value: 8080
-    #  filter_chains: *localhost_filter_chains
-    #- name: localhost_listener_v6
-    #  address:
-    #    socket_address:
-    #      protocol: TCP
-    #      address: ::1
-    #      port_value: 8080
-    #  filter_chains: *localhost_filter_chains
     - name: mtls_listener
       address:
         socket_address:

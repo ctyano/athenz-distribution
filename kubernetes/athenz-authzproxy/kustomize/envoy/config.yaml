@@ -72,20 +72,6 @@ static_resources:
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-    #- name: localhost_listener_v4
-    #  address:
-    #    socket_address:
-    #      protocol: TCP
-    #      address: 127.0.0.1
-    #      port_value: 8080
-    #  filter_chains: *localhost_filter_chains
-    #- name: localhost_listener_v6
-    #  address:
-    #    socket_address:
-    #      protocol: TCP
-    #      address: ::1
-    #      port_value: 8080
-    #  filter_chains: *localhost_filter_chains
     - name: https_listener
       address:
         socket_address:

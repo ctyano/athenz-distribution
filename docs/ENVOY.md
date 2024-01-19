@@ -26,7 +26,7 @@ A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith t
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2server | jq -r .request"
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/client2server | jq -r .request"
 ```
 
 ### client2servermtls
@@ -39,7 +39,7 @@ A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith t
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request"
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/client2servermtls | jq -r .request"
 ```
 
 ### client2authzproxy
@@ -52,7 +52,7 @@ A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith t
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli — /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2authzproxy | jq -r .request"
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli — /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/client2authzproxy | jq -r .request"
 ```
 
 ### tokensidecar
@@ -84,7 +84,7 @@ roletoken=$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /b
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Athenz-Role-Auth: $roletoken\" -H \"X-Athenz-Action: get\" -H \"X-Athenz-Resource: /server\" https://authorizer.athenz.svc.cluster.local/authorizationsidecar | jq -r .request"
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Athenz-Role-Auth: $roletoken\" -H \"X-Athenz-Action: get\" -H \"X-Athenz-Resource: /server\" https://authorizer.athenz.svc.cluster.local/authorizationsidecar | jq -r ."
 ```
 
 with Access Token:
@@ -94,7 +94,7 @@ accesstoken=$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- 
 ```
 
 ```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Authorization: Bearer $accesstoken\" -H \"X-Athenz-Action: get\" -H \"X-Athenz-Resource: /server\" https://authorizer.athenz.svc.cluster.local/authorizationsidecar"
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Authorization: Bearer $accesstoken\" -H \"X-Athenz-Action: get\" -H \"X-Athenz-Resource: /server\" https://authorizer.athenz.svc.cluster.local/authorizationsidecar | jq -r ."
 ```
 
 ### authzproxy(authorization-proxy)
@@ -126,19 +126,6 @@ accesstoken=$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- 
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Authorization: Bearer $accesstoken\" https://authzproxy.athenz.svc.cluster.local/echoserver | jq -r .request"
 ```
 
-### client2echoserverjwt
-
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoserverjwt.html)
-
-```mermaid
-flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt| C(ingress server proxy envoy\nwith jwt filter) -->|http| D(echoserver)
-```
-
-```
-kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoserverjwt | jq -r .request"
-```
-
 ### client2echoservermtls
 
 [Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoservermtls.html)
@@ -150,6 +137,32 @@ A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith t
 
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoservermtls | jq -r .request"
+```
+
+### client2echoserverjwt
+
+[Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoserverjwt.html)
+
+```mermaid
+flowchart LR
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt| C(ingress server proxy envoy\nwith jwt filter) -->|http| D(echoserver)
+```
+
+```
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/client2echoserverjwt | jq -r .request"
+```
+
+### client2echoservermtlsjwt
+
+[Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoservermtlsjwt.html)
+
+```mermaid
+flowchart LR
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls| C(ingress server proxy envoy\nwith lua filter\nwith jwt filter) -->|http| D(echoserver)
+```
+
+```
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoservermtlsjwt | jq -r .request"
 ```
 
 ### client2echoserver

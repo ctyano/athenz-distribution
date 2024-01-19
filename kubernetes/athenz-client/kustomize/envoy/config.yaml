@@ -101,6 +101,13 @@ static_resources:
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
+                            path_separated_prefix: "/client2echoservermtls"
+                          route:
+                            cluster: envoy_mtls
+                            prefix_rewrite: "/echoserver"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
+                        - match:
                             path_separated_prefix: "/client2echoserverjwt"
                           route:
                             cluster: envoy_tls
@@ -108,10 +115,10 @@ static_resources:
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
-                            path_separated_prefix: "/client2echoservermtls"
+                            path_separated_prefix: "/client2echoservermtlsjwt"
                           route:
                             cluster: envoy_mtls
-                            prefix_rewrite: "/echoserver"
+                            prefix_rewrite: "/serverjwt"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:

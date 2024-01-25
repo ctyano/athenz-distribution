@@ -6,11 +6,12 @@ clean-athenz-loadtest:
 	kubectl delete -k kustomize
 
 kustomize-edit-athenz-loadtest-image:
-	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
 	&& kubectl kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY)docker-vegeta:latest \
-	)
+	) \
+	fi
 
 deploy-athenz-loadtest: kustomize-edit-athenz-loadtest-image
 	kubectl apply -k kustomize

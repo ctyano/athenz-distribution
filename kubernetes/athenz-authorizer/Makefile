@@ -115,12 +115,13 @@ done
 	@echo ""
 
 kustomize-edit-athenz-authorizer-image:
-	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
 	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	&& kubectl kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
-	)
+	) \
+	fi
 
 deploy-athenz-authorizer: kustomize-edit-athenz-authorizer-image
 	kubectl apply -k kustomize

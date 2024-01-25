@@ -75,7 +75,7 @@ kustomize-edit-athenz-db-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd athenz-db/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-db:latest=$(DOCKER_REGISTRY)athenz-db:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-db:latest=$(DOCKER_REGISTRY)athenz-db:latest \
 	)
 
 setup-athenz-db: kustomize-edit-athenz-db-image
@@ -85,7 +85,7 @@ kustomize-edit-athenz-cli-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd athenz-cli/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	)
 
 setup-athenz-cli: kustomize-edit-athenz-cli-image
@@ -95,8 +95,8 @@ kustomize-edit-athenz-zms-server-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd athenz-zms-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
 	)
 
 setup-athenz-zms-server: setup-athenz-db kustomize-edit-athenz-zms-server-image
@@ -106,9 +106,9 @@ kustomize-edit-athenz-zts-server-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd athenz-zts-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
 	)
 
 setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server kustomize-edit-athenz-zts-server-image
@@ -118,7 +118,7 @@ kustomize-edit-athenz-ui-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd athenz-ui/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:latest \
 	)
 
 setup-athenz-ui: setup-athenz-zms-server kustomize-edit-athenz-ui-image

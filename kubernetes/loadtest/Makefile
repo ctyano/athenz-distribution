@@ -9,7 +9,7 @@ kustomize-edit-athenz-loadtest-image:
 	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY)docker-vegeta:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY)docker-vegeta:latest \
 	)
 
 deploy-athenz-loadtest: kustomize-edit-athenz-loadtest-image

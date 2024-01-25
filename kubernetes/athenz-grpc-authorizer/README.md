@@ -120,5 +120,5 @@ OPA_CACERT_PATH="./admin/ca.cert.pem" \
 ## Deployment
 
 ```
-kustomize build . | tee $(basename $(pwd)).yaml | kubectl -n provider apply -f -
+kubectl -n athenz apply -k kustomize
 ```

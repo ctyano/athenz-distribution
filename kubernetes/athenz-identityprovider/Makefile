@@ -169,12 +169,13 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 	| tee kustomize/secret.yaml
 
 kustomize-edit-athenz-identityprovider-image:
-	[[ "$(DOCKER_REGISTRY)" = "ghcr.io/ctyano/" ]] || \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
-	)
+	&& kubectl kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kubectl kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+	) \
+	fi
 
 deploy-athenz-identityprovider: kustomize-edit-athenz-identityprovider-image
 	kubectl apply -k kustomize

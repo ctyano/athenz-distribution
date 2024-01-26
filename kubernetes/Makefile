@@ -337,6 +337,9 @@ test-athenz-client:
 deploy-athenz-loadtest:
 	@$(MAKE) -C loadtest deploy-athenz-loadtest test-athenz-loadtest
 
+test-athenz-envoy-loadtest:
+	@$(MAKE) -C loadtest run-athenz-envoy-loadtest
+
 test-athenz-loadtest:
 	@$(MAKE) -C loadtest run-athenz-envoy-loadtest run-athenz-sidecar-loadtest run-athenz-proxy-loadtest run-athenz-echoserver-loadtest run-athenz-loadtest
 

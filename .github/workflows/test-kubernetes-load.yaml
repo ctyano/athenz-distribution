@@ -15,6 +15,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -227,15 +230,35 @@ jobs:
 
       # A GitHub Action to check and test application
       -
+        name: Run Tests for athenz-envoy-loadtest
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy-loadtest
+
+      # A GitHub Action to check and test application
+      -
         name: Run Tests for athenz-loadtest
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-loadtest
 
+      # A GitHub Action to check and test application
+      -
+        name: Report Tests for athenz-loadtest
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make report-kubernetes-athenz-loadtest
+
       # A GitHub Action to update and commit ghpages branch
       -
         name: Update ghpages branch and commit
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
         run: |
           set -x
           git checkout kubernetes/

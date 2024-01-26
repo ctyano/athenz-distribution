@@ -1,6 +1,17 @@
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY := ghcr.io/ctyano/
 endif
+ifeq ($(PUSH),)
+PUSH := false
+endif
+ifeq ($(PUSH),true)
+REPORT_OPTION := -reporter=plot
+else
+REPORT_OPTION :=
+endif
+
+debug:
+	@echo $(PUSH)
 
 clean-athenz-loadtest:
 	kubectl delete -k kustomize
@@ -42,39 +53,102 @@ done
 	@echo "**************************************"
 	@echo ""
 
-run-athenz-loadtest:
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2server' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2server.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2servermtls' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2servermtls.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2authzproxy' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2authzproxy.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2echoserver' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2echoserver.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2echoservermtls' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2echoservermtls.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2echoserverjwt' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2echoserverjwt.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/client2echoservermtlsjwt' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../client2echoservermtlsjwt.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/tokensidecar' | vegeta attack -header \"X-Athenz-Domain: athenz\" -header \"X-Athenz-Role: envoyclients\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../tokensidecar.html
-	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: envoyclients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
-kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authorizer.athenz.svc.cluster.local/authorizationsidecar' | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /server\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../authorizationsidecar.html
-	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: authorization-proxy-clients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
-kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authzproxy.athenz.svc.cluster.local/echoserver' | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /echoserver\" -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../authzproxy.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/echoserver' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../echoserver.client.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://authorizer.athenz.svc.cluster.local/echoserver' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../echoserver.authorizer.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../zms.html
-	kubectl -n athenz exec pod/vegeta -- /bin/sh -c "echo 'GET https://client.athenz.svc.cluster.local/zts/v1/domain/sys.auth/service' | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | vegeta report -reporter=plot" \
-> ../../zts.html
+run-athenz-envoy-loadtest:
+	CASE=client2server; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2servermtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2echoserver; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2echoservermtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2echoserverjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2echoservermtlsjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
 	@echo ""
 	@echo "**************************************"
 	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""
+
+report-athenz-envoy-loadtest:
+	CASE=client2server; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2servermtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2echoserver; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2echoservermtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2echoserverjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2echoservermtlsjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	@echo ""
+	@echo "**************************************"
+	@echo "* Loadtest result is printed to html *"
+	@echo "**************************************"
+	@echo ""
+
+run-athenz-sidecar-loadtest:
+	CASE=tokensidecar; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -header \"X-Athenz-Domain: athenz\" -header \"X-Athenz-Role: envoyclients\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: envoyclients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
+	CASE=authorizationsidecar; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://authorizer.athenz.svc.cluster.local/$$CASE\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /server\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""
+
+report-athenz-sidecar-loadtest:
+	CASE=tokensidecar; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=authorizationsidecar; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	@echo ""
+	@echo "**************************************"
+	@echo "* Loadtest result is printed to html *"
+	@echo "**************************************"
+	@echo ""
+
+run-athenz-proxy-loadtest:
+	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: authorization-proxy-clients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
+	CASE=authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://$$CASE.athenz.svc.cluster.local/echoserver\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /server\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""
+
+report-athenz-proxy-loadtest:
+	CASE=authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	@echo ""
+	@echo "**************************************"
+	@echo "* Loadtest result is printed to html *"
+	@echo "**************************************"
+	@echo ""
+
+run-athenz-echoserver-loadtest:
+	CASE=echoserver.client; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/echoserver\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=echoserver.authorizer; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://authorizer.athenz.svc.cluster.local/echoserver\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""
+
+report-athenz-echoserver-loadtest:
+	CASE=echoserver.client; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=echoserver.authorizer; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	@echo ""
+	@echo "**************************************"
+	@echo "* Loadtest result is printed to html *"
+	@echo "**************************************"
+	@echo ""
+
+run-athenz-loadtest:
+	CASE=zms; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=zts; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/zts/v1/domain/sys.auth/service\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""
+
+report-athenz-loadtest:
+	CASE=zms; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=zts; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	@echo ""
+	@echo "**************************************"
+	@echo "* Loadtest result is printed to html *"
 	@echo "**************************************"
 	@echo ""

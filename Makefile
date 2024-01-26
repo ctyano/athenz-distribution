@@ -383,6 +383,9 @@ deploy-kubernetes-athenz-loadtest:
 test-kubernetes-athenz-loadtest:
 	@$(MAKE) -C kubernetes test-athenz-loadtest
 
+report-kubernetes-athenz-loadtest:
+	@$(MAKE) -C kubernetes report-athenz-loadtest
+
 test-kubernetes-athenz-envoy2envoy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2envoy
 

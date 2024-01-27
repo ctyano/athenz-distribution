@@ -184,9 +184,9 @@ jobs:
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
-        name: Deploy Applicationfor athenz-authorizer
+        name: Deploy Applicationfor athenz-workloads
         run: |
-          make deploy-kubernetes-athenz-authorizer
+          make deploy-kubernetes-athenz-workloads
 
       # A GitHub Action to check and test application
       -
@@ -196,12 +196,6 @@ jobs:
           # Replace this with your test command
           make test-kubernetes-athenz-authorizer
 
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Applicationfor athenz-authzproxy
-        run: |
-          make deploy-kubernetes-athenz-authzproxy
-
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-authzproxy
@@ -209,12 +203,6 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-authzproxy
-
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Applicationfor athenz-client
-        run: |
-          make deploy-kubernetes-athenz-client
 
       # A GitHub Action to check and test application
       -

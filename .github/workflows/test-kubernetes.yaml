@@ -184,21 +184,9 @@ jobs:
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
-        name: Deploy Applicationfor athenz-authorizer
+        name: Deploy Applicationfor athenz-workloads
         run: |
-          make deploy-kubernetes-athenz-authorizer
-
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Applicationfor athenz-authzproxy
-        run: |
-          make deploy-kubernetes-athenz-authzproxy
-
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Applicationfor athenz-client
-        run: |
-          make deploy-kubernetes-athenz-client
+          make deploy-kubernetes-athenz-workloads
 
       # A GitHub Action to check and test application
       -

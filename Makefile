@@ -410,7 +410,10 @@ test-kubernetes-athenz: install-parsers
 clean-docker-athenz: clean-certificates
 	@VERSION=$(VERSION) $(MAKE) -C docker clean-athenz
 
-deploy-docker-athenz: build-java generate-certificates
+build-deploy-docker-athenz: build-java generate-certificates
+	@VERSION=$(VERSION) $(MAKE) -C docker build-deploy-athenz
+
+deploy-docker-athenz: generate-certificates
 	@VERSION=$(VERSION) $(MAKE) -C docker deploy-athenz
 
 check-docker-athenz: install-parsers

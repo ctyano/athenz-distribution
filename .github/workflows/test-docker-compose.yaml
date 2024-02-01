@@ -147,7 +147,7 @@ jobs:
               )"
           fi
           set -ex
-          VERSION=${PACKAGE_VERSION} make deploy-docker-athenz
+          VERSION=${PACKAGE_VERSION} make build-deploy-docker-athenz
 
       # A GitHub Action to check and test application
       -

@@ -122,17 +122,14 @@ docker exec -it athenz-cli /bin/sh -c \
 docker exec -it \
     -e ATHENZ_DOMAIN="home.athenz_admin" \
     athenz-cli \
-    /bin/sh -c \
-        " \
-        curl \
-            -s \
-            -H"Content-type: application/json" \
-            --cacert admin/ca.cert.pem \
-            --key admin/athenz_admin.private.pem \
-            --cert admin/athenz_admin.cert.pem \
-            "https://athenz-zts-server:8443/zts/v1/oauth2/keys?rfc=true" \
-        | tee /var/run/athenz/jwks.json \
-        "
+    curl \
+        -s \
+        -H"Content-type: application/json" \
+        --cacert /var/run/athenz/certs/ca.cert.pem \
+        --key /var/run/athenz/keys/athenz_admin.private.pem \
+        --cert /var/run/athenz/certs/athenz_admin.cert.pem \
+        https://athenz-zts-server:8443/zts/v1/oauth2/keys?rfc=true \
+    | tee keys/jwks.json
 ```
 
 ### Retriving Policies
@@ -144,15 +141,15 @@ docker exec -it \
     -e ATHENZ_DOMAIN="sys.auth" \
     athenz-cli \
     curl \
-        -H "Content-type: application/json" \
+        -H"Content-type: application/json" \
         -sXPOST \
         -d"{\"policyVersions\":{\"\":\"\"}}" \
-        --cacert admin/ca.cert.pem \
-        --key admin/athenz_admin.private.pem \
-        --cert admin/athenz_admin.cert.pem \
-        https://athenz-zts-server:4443/zts/v1/domain/${ATHENZ_DOMAIN:-sys.auth}/policy/signed \
+        --cacert /var/run/athenz/certs/ca.cert.pem \
+        --key /var/run/athenz/keys/athenz_admin.private.pem \
+        --cert /var/run/athenz/certs/athenz_admin.cert.pem \
+        https://athenz-zts-server:8443/zts/v1/domain/${ATHENZ_DOMAIN:-sys.auth}/policy/signed \
     | jq -r '[.protected,.payload,.signature] | join(".")' \
-    | step crypto jws verify --jwks=/var/run/athenz/jwks.json \
+    | step crypto jws verify --jwks=keys/jwks.json \
     && printf "\nValid Policy\n" || printf "\nInvalid Policy\n"
 ```
 

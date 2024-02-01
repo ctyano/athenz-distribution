@@ -4,7 +4,11 @@ services:
 
   athenz-cli:
     container_name: athenz-cli
-    image: ghcr.io/ctyano/athenz-cli:v${VERSION}
+    build:
+      context: ..
+      dockerfile: ./docker/cli/Dockerfile
+      args:
+        VERSION: ${VERSION}
     depends_on:
       - athenz-zms-server
       - athenz-zts-server
@@ -57,7 +61,11 @@ services:
     container_name: athenz-ui
     depends_on:
       - athenz-zms-server
-    image: ghcr.io/ctyano/athenz-ui:v${VERSION}
+    build:
+      context: ..
+      dockerfile: ./docker/ui/Dockerfile
+      args:
+        VERSION: ${VERSION}
     hostname: localhost
     expose:
       - 443
@@ -89,7 +97,11 @@ services:
 
   athenz-zms-server:
     container_name: athenz-zms-server
-    image: ghcr.io/ctyano/athenz-zms-server:v${VERSION}
+    build:
+      context: ..
+      dockerfile: ./docker/zms/Dockerfile
+      args:
+        VERSION: ${VERSION}
     depends_on:
       - athenz-db
     hostname: localhost
@@ -126,7 +138,11 @@ services:
 
   athenz-zts-server:
     container_name: athenz-zts-server
-    image: ghcr.io/ctyano/athenz-zts-server:v${VERSION}
+    build:
+      context: ..
+      dockerfile: ./docker/zts/Dockerfile
+      args:
+        VERSION: ${VERSION}
     depends_on:
       - athenz-db
     hostname: localhost
@@ -162,7 +178,11 @@ services:
 
   athenz-db:
     container_name: athenz-db
-    image: ghcr.io/ctyano/athenz-db:v${VERSION}
+    build:
+      context: ..
+      dockerfile: ./docker/db/Dockerfile
+      args:
+        VERSION: ${VERSION}
     ports:
       - target: 3306
         published: 3306
@@ -180,7 +200,7 @@ services:
 
   athenz-auth-core:
     container_name: athenz-auth-core
-    image: ghcr.io/ctyano/athenz-auth-core:v${VERSION}
+    image: ghcr.io/ctyano/athenz-auth-core:latest
     environment:
       JAR_DESTINATION: /athenz/plugins/
     volumes:

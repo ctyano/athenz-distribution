@@ -54,6 +54,40 @@
                 }
             ]
         },
+        "identity_provisioning": {
+            "metadata":
+            {
+                "latestVersion": 1,
+                "timestamp": "2020-06-16T00:00:00.000Z",
+                "description": "identity provisioning template for instance providers",
+                "keywordsToReplace": "_instanceprovider_,_service_",
+                "autoUpdate": false
+            },
+            "roles": [
+                {
+                    "name": "_domain_:role.identityproviders",
+                    "modified": "1970-01-01T00:00:00.000Z",
+                    "roleMembers": [
+                        {
+                            "memberName": "_instanceprovider_"
+                        }
+                    ]
+                }
+            ],
+            "policies": [
+                {
+                    "name": "_domain_:policy.identityproviders",
+                    "modified": "1970-01-01T00:00:00.000Z",
+                    "assertions": [
+                        {
+                            "resource": "_domain_:service._service_",
+                            "role": "_domain_:role.identityproviders",
+                            "action": "launch"
+                        }
+                    ]
+                }
+            ]
+        },
         "zts_instance_launch_provider": {
             "metadata":
             {

@@ -63,7 +63,7 @@ docker exec -it athenz-cli /bin/sh -c \
         -signer-cert-file /var/run/athenz/certs/ca.cert.pem
 ```
 
-### Retriving tokens
+### Retriving role token
 
 ```
 docker exec -it athenz-cli \
@@ -78,38 +78,11 @@ docker exec -it athenz-cli \
     | tr ';' '\n'
 ```
 
-```
-docker exec -it athenz-cli \
-    zts-accesstoken \
-        -zts https://athenz-zts-server:8443/zts/v1 \
-        -svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
-        -svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
-        -svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
-        -domain sys.auth \
-        -roles admin \
-    | jq -r .access_token \
-    | jq -Rr 'split(".") | .[0,1] | @base64d' \
-    | jq -r .
-```
-
-```
-docker exec -it athenz-cli \
-    zts-accesstoken \
-        -zts https://athenz-zts-server:8443/zts/v1 \
-        -svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
-        -svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
-        -domain sys.auth \
-        -roles admin \
-    | jq -r .access_token \
-    | step crypto jws verify --jwks=/var/run/athenz/jwks.json \
-    && printf "\nValid Access Token\n" || printf "\nInvalid Access Token\n"
-```
-
 ### Retriving public keys
 
 ```
-docker exec -it athenz-cli /bin/sh -c \
-    "athenz-conf \
+docker exec -it athenz-cli \
+    athenz-conf \
         -c /var/run/athenz/certs/ca.cert.pem \
         -svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
         -svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
@@ -130,6 +103,36 @@ docker exec -it \
         --cert /var/run/athenz/certs/athenz_admin.cert.pem \
         https://athenz-zts-server:8443/zts/v1/oauth2/keys?rfc=true \
     | tee keys/jwks.json
+```
+
+### Retriving access token
+
+```
+docker exec -it athenz-cli \
+    zts-accesstoken \
+        -zts https://athenz-zts-server:8443/zts/v1 \
+        -svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
+        -svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
+        -domain sys.auth \
+        -roles admin \
+    | jq -r .access_token \
+    | jq -Rr 'split(".") | .[0,1] | @base64d' \
+    | jq -r .
+```
+
+```
+docker exec -it athenz-cli \
+    zts-accesstoken \
+        -zts https://athenz-zts-server:8443/zts/v1 \
+        -svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
+        -svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
+        -domain sys.auth \
+        -roles admin \
+    | jq -r .access_token \
+    | step crypto jws verify --jwks=keys/jwks.json \
+    && printf "\nValid Access Token\n" || printf "\nInvalid Access Token\n"
 ```
 
 ### Retriving Policies

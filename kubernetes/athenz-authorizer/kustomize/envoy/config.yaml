@@ -140,8 +140,17 @@ static_resources:
                             cluster: envoy_admin
                           typed_per_filter_config: *ext_authz_disabled
                 http_filters: &localhost_http_filters
-                  # Extract principal name and set to x-athenz-principal from peer certificate
-                  - name: envoy.filters.http.lua
+                  # Authorization init
+                  - name: envoy.filters.http.lua.authorization.init
+                    typed_config:
+                      # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      inline_code: |
+                        function envoy_on_request(request_handle)
+                          request_handle:headers():remove("x-athenz-role")
+                        end
+                  # Authentication with Role Certificate
+                  - name: envoy.filters.http.lua.rolecert.authentication
                     typed_config:
                       # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
@@ -169,7 +178,8 @@ static_resources:
                             request_handle:logInfo("ssl was nil in envoy lua.")
                           end
                         end
-                  - name: envoy.filters.http.jwt_authn
+                  # Authentication with Access Token
+                  - name: envoy.filters.http.jwt_authentication.accesstoken.authentication
                     typed_config:
                       # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/jwt_authn_filter
                       "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
@@ -214,6 +224,28 @@ static_resources:
                       requirement_map:
                         accesstoken:
                           provider_name: athenz_zts_accesstoken
+                  # Authorization with Role
+                  - name: envoy.filters.http.lua.authorization
+                    typed_config:
+                      # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                      inline_code: |
+                        function envoy_on_request(request_handle)
+                          local authorized_roles = {'envoyclients', 'authorization-proxy-clients'}
+                          local role = request_handle:headers():get("x-athenz-role")
+                          if role ~= nil then
+                            request_handle:logInfo(string.format('x-athenz-role %s', role))
+                            for index, value in ipairs(authorized_roles) do
+                              if value == role then
+                                goto authorized
+                              end
+                            end
+                          end
+                          request_handle:respond(
+                            {[":status"] = "401", ["x-ahenz-role"] = role},
+                          "")
+                          ::authorized::
+                        end
                   - name: envoy.filters.http.ext_authz.authorization
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz

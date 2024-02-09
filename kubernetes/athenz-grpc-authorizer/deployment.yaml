@@ -82,7 +82,7 @@ spec:
           #  periodSeconds: 10
         - name: envoy
           # Envoy crashes in Raspberry Pi 4
-          #image: docker.io/envoyproxy/envoy:v1.26-latest
+          #image: docker.io/envoyproxy/envoy:v1.29-latest
           #
           # See:
           # https://github.com/envoyproxy/envoy/issues/23339#issuecomment-1290509732

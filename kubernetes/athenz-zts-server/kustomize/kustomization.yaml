@@ -11,8 +11,6 @@ resources:
 generatorOptions:
   disableNameSuffixHash: true
 
-      #- zts_truststore.jks=certs/zts_truststore.jks
-      #- zms_client_truststore.jks=certs/zms_client_truststore.jks
 secretGenerator:
 - files:
   - zts_keystore.pkcs12=certs/zts_keystore.pkcs12

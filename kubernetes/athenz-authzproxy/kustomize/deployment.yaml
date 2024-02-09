@@ -147,7 +147,7 @@ spec:
               readOnly: true
         - name: envoy
           # Envoy crashes in Raspberry Pi 4
-          image: docker.io/envoyproxy/envoy:v1.26-latest
+          image: docker.io/envoyproxy/envoy:v1.29-latest
           #image: docker.io/thegrandpkizzle/envoy:1.26.1
           imagePullPolicy: IfNotPresent
           ports:

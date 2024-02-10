@@ -128,6 +128,20 @@ jobs:
         with:
           cluster_name: kind
 
+      # This action sets up a go environment for use in actions by:
+      # - Optionally downloading and caching a version of Go by version and adding to PATH.
+      # - Registering problem matchers for error output.
+      # https://github.com/actions/setup-go
+      -
+        name: Setup Golang
+        id: setup-go
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/setup-go/tags
+        uses: actions/setup-go@v3
+        with:
+          go-version: stable
+          check-latest: true
+
       # A GitHub Action to build Docker container images
       -
         name: Build Docker container images

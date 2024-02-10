@@ -72,7 +72,7 @@ endif
 
 build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui
 
-build-athenz-db: checkout-version
+build-athenz-db: copy-ddl
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
@@ -104,7 +104,7 @@ build-athenz-cli:
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 
-buildx-athenz-db: checkout-version
+buildx-athenz-db: copy-ddl
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
@@ -224,6 +224,10 @@ build-go: checkout-version install-rdl-tools
 		-pl utils/zts-rolecert \
 		-pl utils/zts-svccert \
 		-pl assembly/utils
+
+copy-ddl: checkout-version
+	cp athenz/servers/zms/schema/zms_server.sql ./docker/db/schema/zms_server.sql
+	cp athenz/servers/zts/schema/zts_server.sql ./docker/db/schema/zts_server.sql
 
 clean: checkout
 	mvn -B clean \

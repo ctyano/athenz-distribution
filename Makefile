@@ -351,6 +351,28 @@ generate-certificates: generate-ca generate-zms generate-zts generate-admin gene
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
 
+load-docker-images: load-docker-images-internal load-docker-images-external
+
+load-docker-images-internal:
+	docker pull $(DOCKER_REGISTRY)athenz-db:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zms-server:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
+	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
+	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+
+load-docker-images-external:
+	docker pull docker.io/linuxserver/mariadb:latest
+	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull $(DOCKER_REGISTRY)athenz-auth-core:latest
+	docker pull docker.io/openpolicyagent/kube-mgmt:latest
+	docker pull docker.io/ealen/echo-server:latest
+	docker pull docker.io/envoyproxy/envoy:v1.29-latest
+	docker pull docker.io/portainer/kubectl-shell:latest
+	docker pull docker.io/openpolicyagent/opa:latest-static
+	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
+	docker pull docker.io/athenz/authorization-proxy:latest
+
 load-kubernetes-images: version
 	@$(MAKE) -C kubernetes kind-load-images
 

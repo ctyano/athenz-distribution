@@ -40,30 +40,16 @@ kind-setup:
 
 kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind" || false
-	docker pull docker.io/linuxserver/mariadb:latest
-	docker pull docker.io/ghostunnel/ghostunnel:latest
-	docker pull $(DOCKER_REGISTRY)athenz-auth-core:latest
-	docker pull $(DOCKER_REGISTRY)athenz-zms-server:latest
-	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
-	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
-	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
-	docker pull docker.io/openpolicyagent/kube-mgmt:latest
-	docker pull docker.io/ealen/echo-server:latest
-	docker pull docker.io/envoyproxy/envoy:v1.29-latest
-	docker pull docker.io/portainer/kubectl-shell:latest
-	docker pull docker.io/openpolicyagent/opa:latest-static
-	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
-	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
-	docker pull docker.io/athenz/authorization-proxy:latest
 	kind load docker-image \
 		docker.io/linuxserver/mariadb:latest \
 		docker.io/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY)athenz-auth-core:latest
 	kind load docker-image \
-		$(DOCKER_REGISTRY)athenz-cli:latest \
-		$(DOCKER_REGISTRY)athenz-ui:latest \
+		$(DOCKER_REGISTRY)athenz-db:latest \
 		$(DOCKER_REGISTRY)athenz-zms-server:latest \
-		$(DOCKER_REGISTRY)athenz-zts-server:latest
+		$(DOCKER_REGISTRY)athenz-zts-server:latest \
+		$(DOCKER_REGISTRY)athenz-cli:latest \
+		$(DOCKER_REGISTRY)athenz-ui:latest
 	kind load docker-image \
 		docker.io/ealen/echo-server:latest \
 		docker.io/envoyproxy/envoy:v1.29-latest \

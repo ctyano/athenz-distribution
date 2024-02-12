@@ -60,18 +60,25 @@ static_resources:
                             - header:
                                 key: x-athenz-path
                                 value: "%REQ(:PATH)%"
+                          typed_per_filter_config: &filters_disabled
+                            envoy.filters.http.lua.authorization.init: &lua_authz_init_disabled
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                              disabled: true
+                            envoy.filters.http.lua.authorization: &lua_authz_authorization_disabled
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.LuaPerRoute
+                              disabled: true
                         - match:
                             path_separated_prefix: "/zms/v1"
                           route:
                             cluster: zms
                             auto_host_rewrite: true
-                          typed_per_filter_config: *ext_authz_disabled
+                          typed_per_filter_config: *filters_disabled
                         - match:
                             path_separated_prefix: "/zts/v1"
                           route:
                             cluster: zts
                             auto_host_rewrite: true
-                          typed_per_filter_config: *ext_authz_disabled
+                          typed_per_filter_config: *filters_disabled
                         - match:
                             path_separated_prefix: "/server"
                           route:
@@ -116,12 +123,12 @@ static_resources:
                           route:
                             cluster: echoserver
                           request_headers_to_add: *request_headers_to_add
-                          typed_per_filter_config: *ext_authz_disabled
+                          typed_per_filter_config: *filters_disabled
                         - match:
                             prefix: "/"
                           route:
                             cluster: envoy_admin
-                          typed_per_filter_config: *ext_authz_disabled
+                          typed_per_filter_config: *filters_disabled
                 http_filters: &localhost_http_filters
                   # Authorization init
                   - name: envoy.filters.http.lua.authorization.init
@@ -130,6 +137,7 @@ static_resources:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                       inline_code: |
                         function envoy_on_request(request_handle)
+                          request_handle:headers():remove("x-athenz-domain")
                           request_handle:headers():remove("x-athenz-role")
                         end
                   # Authentication with Role Certificate
@@ -140,7 +148,6 @@ static_resources:
                       inline_code: |
                         function envoy_on_request(request_handle)
                           if request_handle:connection():ssl() ~= nil then
-                            request_handle:logInfo("ssl was not nil.")
                             -- extract x-athenz-principal from sans uri
                             for _, uri in pairs(request_handle:connection():ssl():uriSanPeerCertificate()) do
                               if string.sub(uri, 1, string.len("athenz://principal/")) == "athenz://principal/" then
@@ -150,8 +157,12 @@ static_resources:
                             -- extract x-athenz-domain and x-athenz-role from subject cn
                             local subject = request_handle:connection():ssl():subjectPeerCertificate()
                             if string.match(subject, ".*CN=(%w+):role.(%w+),.*") ~= nil then
-                              request_handle:headers():add("x-athenz-domain", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%1"))
-                              request_handle:headers():add("x-athenz-role", string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2"))
+                              local domain = string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%1")
+                              request_handle:headers():add("x-athenz-domain", domain)
+                              request_handle:logInfo(string.format('%s was set to x-athenz-domain from role cert', domain))
+                              local role = string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2")
+                              request_handle:headers():add("x-athenz-role", role)
+                              request_handle:logInfo(string.format('%s was set to x-athenz-role from role cert', role))
                             end
                             -- extract x-athenz-issued-at from valid from
                             request_handle:headers():add("x-athenz-issued-at", string.format('%d', request_handle:connection():ssl():validFromPeerCertificate()))
@@ -207,26 +218,40 @@ static_resources:
                       requirement_map:
                         accesstoken:
                           provider_name: athenz_zts_accesstoken
-                  # Authorization with Role
+                  # Authorization with Domain and Role
                   - name: envoy.filters.http.lua.authorization
                     typed_config:
                       # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/lua_filter
                       "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                       inline_code: |
                         function envoy_on_request(request_handle)
+                          local authorized_domains = {'athenz'}
                           local authorized_roles = {'envoyclients', 'authorization-proxy-clients'}
-                          local role = request_handle:headers():get("x-athenz-role")
-                          if role ~= nil then
-                            request_handle:logInfo(string.format('x-athenz-role %s', role))
-                            for index, value in ipairs(authorized_roles) do
-                              if value == role then
-                                goto authorized
+                          local domain = request_handle:headers():get("x-athenz-domain")
+                          if domain ~= nil then
+                            request_handle:logInfo(string.format('x-athenz-domain %s', domain))
+                            for index, value in ipairs(authorized_domains) do
+                              if value == domain then
+                                goto domainmatch
                               end
                             end
                             request_handle:respond(
-                              {[":status"] = "401", ["x-ahenz-role"] = role},
+                              {[":status"] = "401", ["x-ahenz-domain"] = domain},
                             "")
-                            ::authorized::
+                            :: domainmatch::
+                            local role = request_handle:headers():get("x-athenz-role")
+                            if role ~= nil then
+                              request_handle:logInfo(string.format('x-athenz-role %s', role))
+                              for index, value in ipairs(authorized_roles) do
+                                if value == role then
+                                  goto authorized
+                                end
+                              end
+                              request_handle:respond(
+                                {[":status"] = "401", ["x-ahenz-domain"] = domain, ["x-ahenz-role"] = role},
+                              "")
+                              ::authorized::
+                            end
                           end
                         end
                   - name: envoy.filters.http.router

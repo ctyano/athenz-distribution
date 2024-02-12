@@ -88,7 +88,7 @@ static_resources:
                         - match:
                             path_separated_prefix: "/client2server"
                           route:
-                            cluster: envoy_tls
+                            cluster: envoy_extauthz_tls
                             prefix_rewrite: "/server"
                             auto_host_rewrite: true
                           typed_per_filter_config:
@@ -96,28 +96,28 @@ static_resources:
                         - match:
                             path_separated_prefix: "/client2servermtls"
                           route:
-                            cluster: envoy_mtls
+                            cluster: envoy_extauthz_mtls
                             prefix_rewrite: "/server"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2echoservermtls"
                           route:
-                            cluster: envoy_mtls
+                            cluster: envoy_filter_mtls
                             prefix_rewrite: "/echoserver"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2echoserverjwt"
                           route:
-                            cluster: envoy_tls
+                            cluster: envoy_filter_tls
                             prefix_rewrite: "/serverjwt"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2echoservermtlsjwt"
                           route:
-                            cluster: envoy_mtls
+                            cluster: envoy_filter_mtls
                             prefix_rewrite: "/serverjwt"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
@@ -256,13 +256,13 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 8080
-    - name: envoy_tls
+    - name: envoy_extauthz_tls
       connect_timeout: 0.25s
       type: LOGICAL_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: envoy_tls
+        cluster_name: envoy_extauthz_tls
         endpoints:
           - lb_endpoints:
               - endpoint:
@@ -276,13 +276,33 @@ static_resources:
           "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
           common_tls_context:
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
-    - name: envoy_mtls
+    - name: envoy_filter_tls
       connect_timeout: 0.25s
       type: LOGICAL_DNS
       dns_lookup_family: V4_ONLY
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: envoy_mtls
+        cluster_name: envoy_filter_tls
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authzenvoy.athenz.svc.cluster.local
+                      port_value: 443
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
+    - name: envoy_extauthz_mtls
+      connect_timeout: 0.25s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: envoy_extauthz_mtls
         endpoints:
           - lb_endpoints:
               - endpoint:
@@ -302,6 +322,21 @@ static_resources:
                     path: /etc/envoy/role_sds.yaml
                   resource_api_version: V3
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
+    - name: envoy_filter_mtls
+      connect_timeout: 0.25s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: envoy_filter_mtls
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authzenvoy.athenz.svc.cluster.local
+                      port_value: 4443
+      transport_socket: *transport_socket
     - name: authzproxy
       connect_timeout: 0.25s
       type: LOGICAL_DNS

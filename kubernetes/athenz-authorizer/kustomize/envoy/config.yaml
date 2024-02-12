@@ -128,6 +128,7 @@ static_resources:
                             cluster: envoy_admin
                           typed_per_filter_config: *filters_disabled
                 http_filters: &localhost_http_filters
+                  # External Authorization
                   - name: envoy.filters.http.ext_authz.authorization
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz

@@ -315,6 +315,15 @@ deploy-athenz-authorizer: test-athenz-identityprovider
 test-athenz-authorizer:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
 
+setup-athenz-authzenvoy: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzenvoy register-athenz-authzenvoy check-register-athenz-authzenvoy
+
+deploy-athenz-authzenvoy: test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzenvoy deploy-athenz-authzenvoy
+
+test-athenz-authzenvoy:
+	@$(MAKE) -C athenz-authzenvoy test-athenz-authzenvoy
+
 setup-athenz-authzproxy: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy check-register-athenz-authzproxy
 
@@ -335,19 +344,23 @@ test-athenz-client:
 
 setup-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer
+	@$(MAKE) -C athenz-authorizer register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy
 	@$(MAKE) -C athenz-client register-athenz-client
 	@$(MAKE) -C athenz-authorizer check-register-athenz-authorizer
+	@$(MAKE) -C athenz-authorizer check-register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy check-register-athenz-authzproxy
 	@$(MAKE) -C athenz-client check-register-athenz-client
 
 deploy-athenz-workloads: test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer deploy-athenz-authorizer
+	@$(MAKE) -C athenz-authorizer deploy-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy deploy-athenz-authzproxy
 	@$(MAKE) -C athenz-client deploy-athenz-client
 
 test-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
+	@$(MAKE) -C athenz-authorizer test-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
 	@$(MAKE) -C athenz-client test-athenz-client
 

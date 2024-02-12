@@ -391,6 +391,12 @@ deploy-kubernetes-athenz-authorizer:
 test-kubernetes-athenz-authorizer:
 	@$(MAKE) -C kubernetes test-athenz-authorizer
 
+deploy-kubernetes-athenz-authzenvoy:
+	@$(MAKE) -C kubernetes setup-athenz-authzenvoy deploy-athenz-authzenvoy
+
+test-kubernetes-athenz-authzenvoy:
+	@$(MAKE) -C kubernetes test-athenz-authzenvoy
+
 deploy-kubernetes-athenz-authzproxy:
 	@$(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy
 

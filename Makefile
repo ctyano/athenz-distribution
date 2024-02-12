@@ -351,7 +351,7 @@ generate-client: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -traditional -out keys/client.private.pem
 	openssl rsa -pubout -in keys/client.private.pem -out keys/client.public.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzproxy
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzenvoy generate-authzproxy
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz

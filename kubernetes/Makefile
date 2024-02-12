@@ -15,8 +15,9 @@ clean-certificates:
 	rm -rf athenz-ui/kustomize/{keys,certs}
 	rm -rf athenz-identityprovider/kustomize/{keys,certs}
 	rm -rf athenz-authorizer/kustomize/{keys,certs}
-	rm -rf athenz-client/kustomize/{keys,certs}
+	rm -rf athenz-authzenvoy/kustomize/{keys,certs}
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
+	rm -rf athenz-client/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -32,8 +33,9 @@ copy-to-kustomization:
 	#cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
 	cp -r ../keys ../certs athenz-identityprovider/kustomize/
 	cp -r ../keys ../certs athenz-authorizer/kustomize/
-	cp -r ../keys ../certs athenz-client/kustomize/
+	cp -r ../keys ../certs athenz-authzenvoy/kustomize/
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/
+	cp -r ../keys ../certs athenz-client/kustomize/
 
 kind-setup:
 	kind create cluster

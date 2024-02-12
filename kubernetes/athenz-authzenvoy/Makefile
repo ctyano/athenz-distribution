@@ -65,7 +65,7 @@ register-athenz-authzenvoy:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-group-role \
-			envoyclients
+			envoyclients ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \

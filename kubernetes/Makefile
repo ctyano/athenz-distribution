@@ -348,7 +348,7 @@ setup-athenz-workloads:
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy
 	@$(MAKE) -C athenz-client register-athenz-client
 	@$(MAKE) -C athenz-authorizer check-register-athenz-authorizer
-	@$(MAKE) -C athenz-authorizer check-register-athenz-authzenvoy
+	@$(MAKE) -C athenz-authzenvoy check-register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy check-register-athenz-authzproxy
 	@$(MAKE) -C athenz-client check-register-athenz-client
 

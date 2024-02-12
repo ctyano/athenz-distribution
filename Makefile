@@ -421,8 +421,11 @@ test-kubernetes-athenz-loadtest:
 report-kubernetes-athenz-loadtest:
 	@$(MAKE) -C kubernetes report-athenz-loadtest
 
-test-kubernetes-athenz-envoy2envoy:
-	@$(MAKE) -C kubernetes test-athenz-envoy2envoy
+test-kubernetes-athenz-envoy2envoyextauthz:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoyextauthz
+
+test-kubernetes-athenz-envoy2envoyfilter:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoyfilter
 
 test-kubernetes-athenz-envoy2authzproxy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy

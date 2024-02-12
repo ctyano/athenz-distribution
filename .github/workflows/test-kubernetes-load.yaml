@@ -221,7 +221,7 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make test-kubernetes-athenz-envoy2envoy
+          make test-kubernetes-athenz-envoy2envoyextauthz
 
       # A GitHub Action to check and test application
       -

@@ -86,39 +86,47 @@ static_resources:
                             auto_host_rewrite: true
                           typed_per_filter_config: *ext_authz_disabled
                         - match:
-                            path_separated_prefix: "/client2server"
+                            path_separated_prefix: "/client2echoserver"
                           route:
-                            cluster: envoy_extauthz_tls
-                            prefix_rewrite: "/server"
+                            cluster: echoserver
                             auto_host_rewrite: true
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
-                            path_separated_prefix: "/client2servermtls"
+                            path_separated_prefix: "/client2extauthz"
+                          route:
+                            cluster: envoy_extauthz_tls
+                            prefix_rewrite: "/extauthz"
+                            auto_host_rewrite: true
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
+                        - match:
+                            path_separated_prefix: "/client2extauthzmtls"
                           route:
                             cluster: envoy_extauthz_mtls
-                            prefix_rewrite: "/server"
+                            prefix_rewrite: "/extauthz"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
-                            path_separated_prefix: "/client2echoservermtls"
+                            path_separated_prefix: "/client2filterauthzmtls"
                           route:
                             cluster: envoy_filter_mtls
-                            prefix_rewrite: "/echoserver"
+                            prefix_rewrite: "/mtlsauthn"
                           typed_per_filter_config:
+                            envoy.filters.http.ext_authz.envoyclients.token: *ext_authz_envoyclients_tokensidecar_disabled
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
-                            path_separated_prefix: "/client2echoserverjwt"
+                            path_separated_prefix: "/client2filterauthzjwt"
                           route:
                             cluster: envoy_filter_tls
-                            prefix_rewrite: "/serverjwt"
+                            prefix_rewrite: "/jwtauthn"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
-                            path_separated_prefix: "/client2echoservermtlsjwt"
+                            path_separated_prefix: "/client2filterauthzmtlsjwt"
                           route:
                             cluster: envoy_filter_mtls
-                            prefix_rewrite: "/serverjwt"
+                            prefix_rewrite: "/jwtauthn"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
@@ -129,13 +137,6 @@ static_resources:
                             auto_host_rewrite: true
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.envoyclients.token: *ext_authz_envoyclients_tokensidecar_disabled
-                        - match:
-                            path_separated_prefix: "/client2echoserver"
-                          route:
-                            cluster: echoserver
-                            auto_host_rewrite: true
-                          typed_per_filter_config:
-                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             prefix: "/echoserver"
                           route:

@@ -18,8 +18,6 @@ spec:
       serviceAccountName: athenz-sia
       securityContext:
         fsGroup: 1000
-      imagePullSecrets:
-        - name: ghcr
       volumes:
         - name: attestation-data
           projected:

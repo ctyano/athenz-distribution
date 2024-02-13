@@ -74,7 +74,7 @@ register-athenz-authorizer:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-policy \
 			envoyclients \
-			grant get to envoyclients on /server* ||:
+			grant get to envoyclients on /extauthz* ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \

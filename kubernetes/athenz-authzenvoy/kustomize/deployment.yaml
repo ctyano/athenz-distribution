@@ -18,8 +18,6 @@ spec:
       serviceAccountName: athenz-sia
       securityContext:
         fsGroup: 1000
-      imagePullSecrets:
-        - name: ghcr
       volumes:
         - name: attestation-data
           projected:
@@ -33,12 +31,6 @@ spec:
         - name: envoy
           configMap:
             name: authzenvoy-envoy
-        - name: policy
-          configMap:
-            name: authzenvoy-policy
-        - name: config
-          configMap:
-            name: authzenvoy-config
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
@@ -155,82 +147,6 @@ spec:
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
-              readOnly: true
-        - name: opa
-          image: docker.io/openpolicyagent/opa:latest-static
-          imagePullPolicy: IfNotPresent
-          resources: &opa-resources
-            limits:
-              cpu: 1
-              memory: 1Gi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-          args:
-            - run
-            - --server
-            - --log-format=$(AUTHORIZER_OPA_LOG_FORMAT)
-            - --log-level=$(AUTHORIZER_OPA_LOG_LEVEL)
-            - --config-file=/etc/opa/config/config.yaml
-            - --authentication=token
-            - --authorization=basic
-            - --addr
-            - http://127.0.0.1:8181
-            - --ignore
-            - .*
-            - --skip-version-check
-            - /etc/opa/policy
-          envFrom: &opa-envFrom
-            - configMapRef:
-                name: athenz-authzenvoy
-          ports:
-            - name: opa
-              containerPort: 8181
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 443
-              scheme: HTTPS
-            initialDelaySeconds: 300
-            periodSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 443
-              scheme: HTTPS
-            initialDelaySeconds: 0
-            periodSeconds: 10
-          volumeMounts:
-            - name: policy
-              mountPath: /etc/opa/policy
-              readOnly: true
-            - name: config
-              mountPath: /etc/opa/config
-              readOnly: true
-        - name: kubectl
-          image: docker.io/portainer/kubectl-shell:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: TZ
-              value: Asia/Tokyo
-          ports:
-            - name: kubectl-proxy
-              containerPort: 8001
-              protocol: TCP
-          args:
-            - kubectl
-            - proxy
-          resources:
-            limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-          volumeMounts:
-            - name: athenz-tls-certs
-              mountPath: /var/run/athenz
               readOnly: true
         - name: envoy
           # Envoy crashes in Raspberry Pi 4

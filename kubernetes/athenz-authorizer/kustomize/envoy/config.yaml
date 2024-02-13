@@ -89,7 +89,7 @@ static_resources:
                             auto_host_rewrite: true
                           typed_per_filter_config: *filters_disabled
                         - match:
-                            path_separated_prefix: "/server"
+                            path_separated_prefix: "/extauthz"
                           route:
                             cluster: echoserver
                             prefix_rewrite: "/echoserver"
@@ -116,6 +116,9 @@ static_resources:
                             - header:
                                 key: x-athenz-certificate
                                 value: "%DOWNSTREAM_PEER_CERT%"
+                            - header:
+                                key: x-athenz-proxy
+                                value: "ingress envoy with extauthz filter"
                         - match:
                             prefix: "/echoserver"
                           route:
@@ -145,7 +148,7 @@ static_resources:
                         authorization_request:
                           headers_to_add:
                             - key: x-athenz-proxy
-                              value: "ingress"
+                              value: "ext authz complete"
                             - key: x-athenz-action
                               value: "%REQ(:METHOD)%"
                             - key: x-athenz-resource

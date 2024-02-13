@@ -72,15 +72,6 @@ register-athenz-authzenvoy:
 			-key /var/run/athenz/athenz_admin.private.pem \
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
-			add-policy \
-			envoyclients \
-			grant get to envoyclients on /server* ||:
-	kubectl -n athenz exec deployment/athenz-cli -it -- \
-		zms-cli \
-			-z https://athenz-zms-server.athenz:4443/zms/v1 \
-			-key /var/run/athenz/athenz_admin.private.pem \
-			-cert /var/run/athenz/athenz_admin.cert.pem \
-			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
 check-register-athenz-authzenvoy:

@@ -21,23 +21,11 @@ spec:
     spec:
       restartPolicy: Always
       volumes:
-        - name: athenz-ddl
-          configMap:
-            name: athenz-ddl
-            items:
-              - key: zms_server.sql
-                path: zms_server.sql
-              - key: zms_user.sql
-                path: zms_user.sql
-              - key: zts_server.sql
-                path: zts_server.sql
-              - key: zts_user.sql
-                path: zts_user.sql
         - name: databases
           emptyDir: {}
       containers:
         - name: mariadb
-          image: docker.io/linuxserver/mariadb:latest
+          image: ghcr.io/ctyano/athenz-db:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
@@ -63,7 +51,5 @@ spec:
               memory: 256Mi
               cpu: 250m
           volumeMounts:
-            - name: athenz-ddl
-              mountPath: /config/initdb.d/
             - name: databases
               mountPath: /config/databases/

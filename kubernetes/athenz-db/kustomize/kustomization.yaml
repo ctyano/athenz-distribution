@@ -12,12 +12,6 @@ resources:
 - statefulset.yaml
 
 configMapGenerator:
-- files:
-  - zms_server.sql=zms_server.sql
-  - zms_user.sql=zms_user.sql
-  - zts_server.sql=zts_server.sql
-  - zts_user.sql=zts_user.sql
-  name: athenz-ddl
 images:
 - name: ghcr.io/ctyano/athenz-db:latest
   newName: ghcr.io/ctyano/athenz-db

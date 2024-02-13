@@ -72,7 +72,7 @@ endif
 
 build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui
 
-build-athenz-db:
+build-athenz-db: copy-ddl
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
@@ -104,7 +104,7 @@ build-athenz-cli:
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 
-buildx-athenz-db:
+buildx-athenz-db: copy-ddl
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
@@ -224,6 +224,10 @@ build-go: checkout-version install-rdl-tools
 		-pl utils/zts-rolecert \
 		-pl utils/zts-svccert \
 		-pl assembly/utils
+
+copy-ddl: checkout-version
+	cp athenz/servers/zms/schema/zms_server.sql ./docker/db/schema/zms_server.sql
+	cp athenz/servers/zts/schema/zts_server.sql ./docker/db/schema/zts_server.sql
 
 clean: checkout
 	mvn -B clean \
@@ -347,6 +351,28 @@ generate-certificates: generate-ca generate-zms generate-zts generate-admin gene
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
 
+load-docker-images: load-docker-images-internal load-docker-images-external
+
+load-docker-images-internal:
+	docker pull $(DOCKER_REGISTRY)athenz-db:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zms-server:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
+	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
+	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+
+load-docker-images-external:
+	docker pull docker.io/linuxserver/mariadb:latest
+	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull $(DOCKER_REGISTRY)athenz-auth-core:latest
+	docker pull docker.io/openpolicyagent/kube-mgmt:latest
+	docker pull docker.io/ealen/echo-server:latest
+	docker pull docker.io/envoyproxy/envoy:v1.29-latest
+	docker pull docker.io/portainer/kubectl-shell:latest
+	docker pull docker.io/openpolicyagent/opa:latest-static
+	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
+	docker pull docker.io/athenz/authorization-proxy:latest
+
 load-kubernetes-images: version
 	@$(MAKE) -C kubernetes kind-load-images
 
@@ -395,8 +421,11 @@ test-kubernetes-athenz-loadtest:
 report-kubernetes-athenz-loadtest:
 	@$(MAKE) -C kubernetes report-athenz-loadtest
 
-test-kubernetes-athenz-envoy2envoy:
-	@$(MAKE) -C kubernetes test-athenz-envoy2envoy
+test-kubernetes-athenz-envoy2envoyextauthz:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoyextauthz
+
+test-kubernetes-athenz-envoy2envoyfilter:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoyfilter
 
 test-kubernetes-athenz-envoy2authzproxy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy

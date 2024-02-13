@@ -35,7 +35,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt/ztoken| C(ingress server proxy envoy\nwith extauthz filter\nwith authorization sidecar) -->|http| D(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt/ztoken| C(ingress server proxy envoy\nwith extauthz filter\nwith authorization sidecar) -->|http + headers| D(echoserver)
 ```
 
 ```
@@ -48,7 +48,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls + jwt/ztoken| C(ingress server proxy envoy\nwith extauthz filter\nwith authorization sidecar) -->|http| D(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls + jwt/ztoken| C(ingress server proxy envoy\nwith extauthz filter\nwith authorization sidecar) -->|http + headers| D(echoserver)
 ```
 
 ```
@@ -61,7 +61,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt/ztoken| C(authorization-proxy) -->|http| D(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt/ztoken| C(authorization-proxy) -->|http + headers| D(echoserver)
 ```
 
 ```
@@ -87,7 +87,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls + jwt/ztoken| B(ingress server proxy envoy) -->|http| C(authorization sidecar)
+A(curl) -->|https/tls + jwt/ztoken| B(ingress server proxy envoy) -->|http + headers| C(authorization sidecar)
 ```
 
 with Role Token:
@@ -116,7 +116,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls + jwt/ztoken| B(authorization-proxy) -->|http| C(echoserver)
+A(curl) -->|https/tls + jwt/ztoken| B(authorization-proxy) -->|http + headers| C(echoserver)
 ```
 
 with Role Token:
@@ -145,7 +145,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls| C(ingress server proxy envoy\nwith lua filter) -->|http| D(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls| C(ingress server proxy envoy\nwith lua filter) -->|http + headers| D(echoserver)
 ```
 
 ```
@@ -158,7 +158,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt| C(ingress server proxy envoy\nwith jwt filter) -->|http| D(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/tls + jwt| C(ingress server proxy envoy\nwith jwt filter) -->|http + headers| D(echoserver)
 ```
 
 ```
@@ -171,7 +171,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls| C(ingress server proxy envoy\nwith lua filter\nwith jwt filter) -->|http| D(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy\nwith extauthz filter\nwith token sidecar) -->|https/mutual tls + jwt| C(ingress server proxy envoy\nwith lua filter\nwith jwt filter) -->|http + headers| D(echoserver)
 ```
 
 ```
@@ -184,7 +184,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(ingress server proxy envoy\nwith lua filter\nwith jwt filter) -->|http| C(echoserver)
+A(curl) -->|https/tls + jwt| B(ingress server proxy envoy\nwith lua filter\nwith jwt filter) -->|http + headers| C(echoserver)
 ```
 
 with Access Token:
@@ -203,7 +203,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy) -->|http| C(echoserver)
+A(curl) -->|https/tls| B(egress client proxy envoy) -->|http + headers| C(echoserver)
 ```
 
 ```
@@ -216,7 +216,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ```mermaid
 flowchart LR
-A(curl) -->|https/tls| B(egress server proxy envoy) -->|http| C(echoserver)
+A(curl) -->|https/tls| B(egress server proxy envoy) -->|http + headers| C(echoserver)
 ```
 
 ```

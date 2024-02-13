@@ -186,7 +186,7 @@ static_resources:
                               cluster: zts
                               timeout: 5s
                               uri: "https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true"
-                          #issuer: athenz-zts-server.athenz
+                          issuer: athenz-zts-server.athenz
                           # athenz domain
                           audiences:
                             - athenz

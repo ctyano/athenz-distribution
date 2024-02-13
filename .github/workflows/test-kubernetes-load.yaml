@@ -1,4 +1,4 @@
-name: Test running loadtest on Kubernetes Cluster
+name: Test load on Kubernetes Cluster
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -154,7 +154,7 @@ jobs:
               )"
           fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build load-docker-images-external load-kubernetes-images
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make load-docker-images load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

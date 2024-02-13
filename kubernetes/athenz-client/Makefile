@@ -134,7 +134,7 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep client | grep -E "0/1" | wc -l) )) -eq 0 \
 	&& \
 	kubectl -n athenz exec deployment/client-deployment -it -c sia -- \
 		ls \

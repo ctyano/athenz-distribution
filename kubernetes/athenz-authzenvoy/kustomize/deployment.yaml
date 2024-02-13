@@ -2,18 +2,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: authorizer-deployment
+  name: authzenvoy-deployment
   labels:
-    app: authorizer-deployment
+    app: authzenvoy-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: authorizer-deployment
+      app: authzenvoy-deployment
   template:
     metadata:
       labels:
-        app: authorizer-deployment
+        app: authzenvoy-deployment
     spec:
       serviceAccountName: athenz-sia
       securityContext:
@@ -30,13 +30,7 @@ spec:
           emptyDir: {}
         - name: envoy
           configMap:
-            name: authorizer-envoy
-        - name: policy
-          configMap:
-            name: authorizer-policy
-        - name: config
-          configMap:
-            name: authorizer-config
+            name: authzenvoy-envoy
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
@@ -76,7 +70,7 @@ spec:
             - --delay-jitter-seconds=5
           envFrom: &sia-envFrom
             - configMapRef:
-                name: authorizer-sia
+                name: authzenvoy-sia
           env: &sia-env
             - name: NAMESPACE
               valueFrom:
@@ -153,82 +147,6 @@ spec:
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
-              readOnly: true
-        - name: opa
-          image: docker.io/openpolicyagent/opa:latest-static
-          imagePullPolicy: IfNotPresent
-          resources: &opa-resources
-            limits:
-              cpu: 1
-              memory: 1Gi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-          args:
-            - run
-            - --server
-            - --log-format=$(AUTHORIZER_OPA_LOG_FORMAT)
-            - --log-level=$(AUTHORIZER_OPA_LOG_LEVEL)
-            - --config-file=/etc/opa/config/config.yaml
-            - --authentication=token
-            - --authorization=basic
-            - --addr
-            - http://127.0.0.1:8181
-            - --ignore
-            - .*
-            - --skip-version-check
-            - /etc/opa/policy
-          envFrom: &opa-envFrom
-            - configMapRef:
-                name: athenz-authorizer
-          ports:
-            - name: opa
-              containerPort: 8181
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 443
-              scheme: HTTPS
-            initialDelaySeconds: 300
-            periodSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 443
-              scheme: HTTPS
-            initialDelaySeconds: 0
-            periodSeconds: 10
-          volumeMounts:
-            - name: policy
-              mountPath: /etc/opa/policy
-              readOnly: true
-            - name: config
-              mountPath: /etc/opa/config
-              readOnly: true
-        - name: kubectl
-          image: docker.io/portainer/kubectl-shell:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: TZ
-              value: Asia/Tokyo
-          ports:
-            - name: kubectl-proxy
-              containerPort: 8001
-              protocol: TCP
-          args:
-            - kubectl
-            - proxy
-          resources:
-            limits:
-              cpu: 200m
-              memory: 256Mi
-            requests:
-              cpu: 50m
-              memory: 64Mi
-          volumeMounts:
-            - name: athenz-tls-certs
-              mountPath: /var/run/athenz
               readOnly: true
         - name: envoy
           # Envoy crashes in Raspberry Pi 4

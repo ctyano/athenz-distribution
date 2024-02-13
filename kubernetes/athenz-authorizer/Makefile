@@ -65,7 +65,7 @@ register-athenz-authorizer:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-group-role \
-			envoyclients
+			envoyclients ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -74,7 +74,7 @@ register-athenz-authorizer:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			add-policy \
 			envoyclients \
-			grant get to envoyclients on /server* ||:
+			grant get to envoyclients on /extauthz* ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -133,7 +133,7 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep authorizer | grep -E "0/1" | wc -l) )) -eq 0 \
 	&& \
 	kubectl -n athenz exec deployment/authorizer-deployment -it -c sia -- \
 		ls \

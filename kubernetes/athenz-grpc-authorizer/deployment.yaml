@@ -15,8 +15,6 @@ spec:
       labels:
         app: authorizer-deployment
     spec:
-      imagePullSecrets:
-        - name: ghcr
       containers:
         - name: opa
           #image: docker.io/openpolicyagent/opa:latest-envoy

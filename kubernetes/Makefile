@@ -15,8 +15,9 @@ clean-certificates:
 	rm -rf athenz-ui/kustomize/{keys,certs}
 	rm -rf athenz-identityprovider/kustomize/{keys,certs}
 	rm -rf athenz-authorizer/kustomize/{keys,certs}
-	rm -rf athenz-client/kustomize/{keys,certs}
+	rm -rf athenz-authzenvoy/kustomize/{keys,certs}
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
+	rm -rf athenz-client/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -32,8 +33,9 @@ copy-to-kustomization:
 	#cp ../athenz/servers/zts/schema/zts_server.sql athenz-db/kustomize/zts_server.sql
 	cp -r ../keys ../certs athenz-identityprovider/kustomize/
 	cp -r ../keys ../certs athenz-authorizer/kustomize/
-	cp -r ../keys ../certs athenz-client/kustomize/
+	cp -r ../keys ../certs athenz-authzenvoy/kustomize/
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/
+	cp -r ../keys ../certs athenz-client/kustomize/
 
 kind-setup:
 	kind create cluster
@@ -271,8 +273,8 @@ test-athenz-envoy2echoserver:
 	@echo ""
 
 test-athenz-envoy2envoyextauthz:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2server" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2servermtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2extauthz" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2extauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -280,9 +282,9 @@ test-athenz-envoy2envoyextauthz:
 	@echo ""
 
 test-athenz-envoy2envoyfilter:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoservermtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoserverjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoservermtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -315,6 +317,15 @@ deploy-athenz-authorizer: test-athenz-identityprovider
 test-athenz-authorizer:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
 
+setup-athenz-authzenvoy: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzenvoy register-athenz-authzenvoy check-register-athenz-authzenvoy
+
+deploy-athenz-authzenvoy: test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzenvoy deploy-athenz-authzenvoy
+
+test-athenz-authzenvoy:
+	@$(MAKE) -C athenz-authzenvoy test-athenz-authzenvoy
+
 setup-athenz-authzproxy: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy check-register-athenz-authzproxy
 
@@ -335,19 +346,23 @@ test-athenz-client:
 
 setup-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer
+	@$(MAKE) -C athenz-authzenvoy register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy
 	@$(MAKE) -C athenz-client register-athenz-client
 	@$(MAKE) -C athenz-authorizer check-register-athenz-authorizer
+	@$(MAKE) -C athenz-authzenvoy check-register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy check-register-athenz-authzproxy
 	@$(MAKE) -C athenz-client check-register-athenz-client
 
 deploy-athenz-workloads: test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer deploy-athenz-authorizer
+	@$(MAKE) -C athenz-authzenvoy deploy-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy deploy-athenz-authzproxy
 	@$(MAKE) -C athenz-client deploy-athenz-client
 
 test-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
+	@$(MAKE) -C athenz-authzenvoy test-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
 	@$(MAKE) -C athenz-client test-athenz-client
 
@@ -358,9 +373,9 @@ test-athenz-envoy-loadtest:
 	@$(MAKE) -C loadtest run-athenz-envoy-loadtest
 
 test-athenz-loadtest:
-	@$(MAKE) -C loadtest run-athenz-envoy-loadtest run-athenz-sidecar-loadtest run-athenz-proxy-loadtest run-athenz-echoserver-loadtest run-athenz-loadtest
+	@$(MAKE) -C loadtest run-athenz-envoy-loadtest run-athenz-sidecar-loadtest run-athenz-envoyfilter-loadtest run-athenz-proxy-loadtest run-athenz-echoserver-loadtest run-athenz-loadtest
 
 report-athenz-loadtest:
-	@$(MAKE) -C loadtest report-athenz-envoy-loadtest report-athenz-sidecar-loadtest report-athenz-proxy-loadtest report-athenz-echoserver-loadtest report-athenz-loadtest
+	@$(MAKE) -C loadtest report-athenz-envoy-loadtest report-athenz-sidecar-loadtest report-athenz-envoyfilter-loadtest report-athenz-proxy-loadtest report-athenz-echoserver-loadtest report-athenz-loadtest
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify

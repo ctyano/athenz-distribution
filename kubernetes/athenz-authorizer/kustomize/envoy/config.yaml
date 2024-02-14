@@ -65,11 +65,6 @@ static_resources:
                               "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
                               disabled: true
                         - match:
-                            prefix: "/health"
-                          route:
-                            cluster: opa
-                          typed_per_filter_config: *filters_disabled
-                        - match:
                             path_separated_prefix: "/zms/v1"
                           route:
                             cluster: zms
@@ -135,10 +130,6 @@ static_resources:
                   - name: envoy.filters.http.ext_authz.authorization
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
-                      # https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/grpc_service.proto#envoy-v3-api-msg-config-core-v3-grpcservice
-                      #grpc_service:
-                      #  google_grpc: # or envoy_grpc
-                      #  target_uri: "127.0.0.1:9191"
                       # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-httpservice
                       http_service:
                         server_uri:
@@ -301,19 +292,6 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 8280
-    - name: opa
-      connect_timeout: 0.25s
-      type: STATIC # LOGICAL_DNS or STATIC
-      lb_policy: ROUND_ROBIN
-      load_assignment:
-        cluster_name: opa
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: 127.0.0.1
-                      port_value: 8181
     - name: echoserver
       connect_timeout: 0.25s
       type: STATIC # LOGICAL_DNS or STATIC

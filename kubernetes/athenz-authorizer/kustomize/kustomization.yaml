@@ -7,8 +7,6 @@ namespace: athenz
 resources:
   - deployment.yaml
   - namespace.yaml
-  - role.yaml
-  - rolebinding.yaml
   - service.yaml
   - serviceaccount.yaml
 
@@ -25,16 +23,6 @@ configMapGenerator:
       - identity_sds.yaml=envoy/identity_sds.yaml
       - role_sds.yaml=envoy/role_sds.yaml
       - ca_sds.yaml=envoy/ca_sds.yaml
-  - name: athenz-authorizer
-    envs:
-      - athenz-authorizer/athenz-authorizer.env
-  - name: authorizer-config
-    files:
-      - config.yaml=athenz-authorizer/config.yaml
-  - name: authorizer-policy
-    files:
-      - system.authz.rego=athenz-authorizer/policy/system.authz.rego
-      - system.log.rego=athenz-authorizer/policy/system.log.rego
 #  - name: athenz-cacert
 #    files:
 #      - ca.cert.pem=certs/ca.cert.pem

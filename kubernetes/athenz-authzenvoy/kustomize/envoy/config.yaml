@@ -186,7 +186,7 @@ static_resources:
                               cluster: zts
                               timeout: 5s
                               uri: "https://athenz-zts-server.athenz:4443/zts/v1/oauth2/keys?rfc=true"
-                          # Accept only certain athenz domains
+                          # Accept JWT for only certain athenz domains
                           #audiences:
                           #  - athenz
                           from_headers:

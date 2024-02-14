@@ -1,1 +1,0 @@
-# athenz-authorizer policy

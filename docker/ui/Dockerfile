@@ -4,7 +4,9 @@ ARG RUNTIME_IMAGE=docker.io/library/node:hydrogen-alpine
 FROM ${BUILDER_IMAGE} AS builder
 
 #RUN apk add --no-cache ca-certificates net-tools wget unzip curl openssl git jq tzdata tree netcat-openbsd bash make nodejs-current npm
-RUN set -eux && apk update && apk add --no-cache --update ca-certificates libstdc++ libgcc tini make git bash
+RUN set -eux && apk add --no-cache --update tini
+
+RUN set -eux && apk add --no-cache --virtual build-dependencies --update ca-certificates libstdc++ libgcc make git bash
 
 WORKDIR /tmp/work
 
@@ -36,6 +38,8 @@ RUN rm -rf scripts \
     && rm -rf Makefile \
     && rm -rf pom.xml \
     && rm -rf README.md
+
+RUN apk del build-dependencies
 
 FROM ${RUNTIME_IMAGE}
 

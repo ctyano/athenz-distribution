@@ -49,6 +49,8 @@ RUN case ${TARGETPLATFORM} in \
 
 RUN go install github.com/smallstep/cli/cmd/step@latest
 
+RUN go clean -cache
+
 RUN apk del build-dependencies
 
 FROM docker.io/library/alpine:3

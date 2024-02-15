@@ -22,6 +22,6 @@ kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
 To try the authorization checks in various showcases:
 
 ```
-make test-kubernetes-athenz-usecases
+make test-kubernetes-athenz-showcases
 ```
 

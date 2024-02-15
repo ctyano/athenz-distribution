@@ -74,6 +74,20 @@ spec:
           volumeMounts:
             - name: athenz-plugins
               mountPath: /athenz/plugins
+        # TODO: athenz-zms-server-wait should be implemented in athenz-zms-server in future
+        - name: athenz-zms-server-wait
+          image: ghcr.io/ctyano/athenz-zms-server:latest
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              while true; do nc -vzw3 athenz-db.athenz.svc.cluster.local 3306 && break; done
       containers:
         - name: athenz-zms-server
           image: ghcr.io/ctyano/athenz-zms-server:latest

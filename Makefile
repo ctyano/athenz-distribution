@@ -274,6 +274,12 @@ install-step: install-pathman
 && ln -sf ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step \
 && ~/.local/bin/pathman add ~/.local/bin)
 
+install-kustomize: install-pathman
+	which kustomize \
+|| (cd ~/.local/bin \
+&& curl "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
+&& ~/.local/bin/pathman add ~/.local/bin)
+
 install-parsers: install-jq install-yq install-step
 
 clean-certificates:
@@ -378,7 +384,7 @@ load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
 	docker pull docker.io/athenz/authorization-proxy:latest
 
-load-kubernetes-images: version
+load-kubernetes-images: version install-kustomize
 	@$(MAKE) -C kubernetes kind-load-images
 
 deploy-kubernetes-athenz: generate-certificates

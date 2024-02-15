@@ -49,8 +49,6 @@ RUN case ${TARGETPLATFORM} in \
 
 RUN go install github.com/smallstep/cli/cmd/step@latest
 
-RUN go clean -cache
-
 RUN apk del build-dependencies
 
 FROM docker.io/library/alpine:3
@@ -86,7 +84,7 @@ COPY --from=builder /go/bin/zts-svccert /usr/bin/zts-svccert
 COPY --from=builder /go/bin/step /usr/bin/step
 
 RUN set -eux \
-    && apk --no-cache add --virtual build-dependencies unzip curl openssl git tzdata tree netcat-openbsd bash jq yq dasel go
+    && apk --no-cache add --virtual build-dependencies unzip curl openssl git tzdata tree netcat-openbsd bash jq yq dasel
 
 RUN cp /usr/share/zoneinfo/Japan /etc/localtime
 

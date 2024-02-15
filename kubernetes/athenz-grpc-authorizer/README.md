@@ -98,22 +98,11 @@ curl -svXPOST \
 ### Test rego files for opa
 
 ```
-OPA_CACERT_PATH="./admin/ca.cert.pem" \
-    opa test \
-        -v \
-        ./policy/*.rego \
-        ./policy/*/*.rego \
-        ./policy/test/data.yaml
+opa test -v ./policy/*.rego ./policy/*/*.rego ./policy/test/data.yaml
 ```
 
 ```
-OPA_CACERT_PATH="./admin/ca.cert.pem" \
-    opa test \
-        -vc \
-        --explain=full \
-        ./policy/*.rego \
-        ./policy/*/*.rego \
-        ./policy/test/data.yaml \
+opa test -vc --explain=full ./policy/*.rego ./policy/*/*.rego ./policy/test/data.yaml \
     | jq -r "del(.files[] | select(.coverage == 100)) | del(.files[].covered)"
 ```
 

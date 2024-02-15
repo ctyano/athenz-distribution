@@ -13,4 +13,4 @@ athenz:
   cert_file: ./admin/athenz_admin.cert.pem
   policy:
     domains:
-      - identity.provider
+      - athenz

@@ -8,7 +8,7 @@
 ## Full setup on a Kubernetes cluster ⎈
 
 ```
-make clean-kubernetes-athenz load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+make clean-kubernetes-athenz load-docker-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 You may access Athenz UI at http://localhost:3000 by forwarding requests.

@@ -366,7 +366,7 @@ test-athenz-envoy2authzproxy:
 	@echo "**************************************"
 	@echo ""
 
-test-athenz-usecases: test-athenz-workloads test-athenz-envoy2echoserver test-athenz-envoy2echoserver test-athenz-envoy2envoyextauthz test-athenz-envoy2envoyfilter test-athenz-envoy2authzproxy
+test-athenz-showcases: test-athenz-workloads test-athenz-envoy2echoserver test-athenz-envoy2echoserver test-athenz-envoy2envoyextauthz test-athenz-envoy2envoyfilter test-athenz-envoy2authzproxy
 
 deploy-athenz-loadtest:
 	@$(MAKE) -C loadtest deploy-athenz-loadtest test-athenz-loadtest

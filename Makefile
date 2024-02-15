@@ -441,8 +441,8 @@ test-kubernetes-athenz-envoy2envoyfilter:
 test-kubernetes-athenz-envoy2authzproxy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy
 
-test-kubernetes-athenz-usecases:
-	@$(MAKE) -C kubernetes test-athenz-usecases
+test-kubernetes-athenz-showcases:
+	@$(MAKE) -C kubernetes test-athenz-showcases
 
 check-kubernetes-athenz: install-parsers
 	@$(MAKE) -C kubernetes check-athenz

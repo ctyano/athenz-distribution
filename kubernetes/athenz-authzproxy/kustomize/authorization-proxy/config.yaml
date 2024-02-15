@@ -27,20 +27,15 @@ proxy:
   originHealthCheckPaths: [/status] # No defaults
   noAuthPaths: [] # No defaults
   mappingRules:
-    domain1:
-      - method: get
-        action: action
-        path: "/path1/{path2}"
-        resource: "path1.{path2}"
-      - method: get
-        action: action
-        path: "/path?param={value}"
-        resource: "path.{value}"
-    domain2:
-      - method: get
-        action: action
-        path: "/path1/{path2}?param={value}"
-        resource: "{path2}.{value}"
+    athenz:
+      - method: GET
+        action: get
+        path: "/server/{path}"
+        resource: "server.{path}"
+      - method: GET
+        action: get
+        path: "/server?{param}={value}"
+        resource: "server.{param}.{value}"
 # Configurations for authorization section relies on:
 # AthenZ/athenz-authorizer
 # https://github.com/AthenZ/athenz-authorizer/tree/master#configuration

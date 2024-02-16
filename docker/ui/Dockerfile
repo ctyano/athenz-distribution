@@ -57,7 +57,7 @@ ARG GID=1001
 ARG UID=10001
 
 RUN set -eux \
-    && apk --no-cache add --virtual build-dependencies ca-certificates unzip curl openssl git jq tzdata tree netcat-openbsd bash nodejs-current npm
+    && apk --no-cache add ca-certificates unzip curl openssl git jq tzdata tree netcat-openbsd bash nodejs-current npm
 
 RUN cp /usr/share/zoneinfo/Japan /etc/localtime
 

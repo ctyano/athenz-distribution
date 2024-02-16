@@ -372,7 +372,6 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
 
 load-docker-images-external:
-	docker pull docker.io/linuxserver/mariadb:latest
 	docker pull docker.io/ghostunnel/ghostunnel:latest
 	docker pull $(DOCKER_REGISTRY)athenz-auth-core:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest

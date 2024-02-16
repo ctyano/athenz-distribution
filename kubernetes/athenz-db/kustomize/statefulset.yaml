@@ -24,7 +24,7 @@ spec:
         - name: databases
           emptyDir: {}
       containers:
-        - name: mariadb
+        - name: athenz-db
           image: ghcr.io/ctyano/athenz-db:latest
           imagePullPolicy: IfNotPresent
           env:

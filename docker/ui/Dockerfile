@@ -19,10 +19,6 @@ COPY docker/ui/src/__tests__/server/handlers/AuthStrategy.test.js /tmp/work/src/
 RUN npm install -g npm
 RUN npm install --omit=dev
 
-#RUN npm install
-#RUN sed -i 's/\("test": "[^"]*\)/\1 --maxWorkers=8 ...AuthStrategy.test.js/' /tmp/work/package.json
-#RUN npm run test
-
 RUN rm -rf scripts \
     && rm -rf __mocks__ \
     && rm -rf .editorconfig \
@@ -73,7 +69,7 @@ RUN mkdir -p /var/lib/sia/tokens/msd-api-access && \
   touch /var/lib/sia/tokens/msd-api-access/msd-api-access-token
 
 # requires root permission
-RUN npm install -g npm
+#RUN npm install -g npm
 
 RUN addgroup -g ${GID} ${APP_NAME} && \
   adduser -S -D -H -s /sbin/nologin -u ${UID} -G ${APP_NAME} ${APP_NAME}

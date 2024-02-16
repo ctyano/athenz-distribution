@@ -4,9 +4,7 @@ ARG RUNTIME_IMAGE=docker.io/library/node:hydrogen-alpine
 FROM ${BUILDER_IMAGE} AS builder
 
 #RUN apk add --no-cache ca-certificates net-tools wget unzip curl openssl git jq tzdata tree netcat-openbsd bash make nodejs-current npm
-RUN set -eux && apk add --no-cache --update tini
-
-RUN set -eux && apk add --no-cache --virtual build-dependencies --update ca-certificates libstdc++ libgcc make git bash
+RUN set -eux && apk update && apk add --no-cache --update ca-certificates libstdc++ libgcc tini make git bash
 
 WORKDIR /tmp/work
 
@@ -21,6 +19,10 @@ COPY docker/ui/src/__tests__/server/handlers/AuthStrategy.test.js /tmp/work/src/
 RUN npm install -g npm
 RUN npm install --omit=dev
 
+#RUN npm install
+#RUN sed -i 's/\("test": "[^"]*\)/\1 --maxWorkers=8 ...AuthStrategy.test.js/' /tmp/work/package.json
+#RUN npm run test
+
 RUN rm -rf scripts \
     && rm -rf __mocks__ \
     && rm -rf .editorconfig \
@@ -34,8 +36,6 @@ RUN rm -rf scripts \
     && rm -rf Makefile \
     && rm -rf pom.xml \
     && rm -rf README.md
-
-RUN apk del build-dependencies
 
 FROM ${RUNTIME_IMAGE}
 
@@ -73,7 +73,7 @@ RUN mkdir -p /var/lib/sia/tokens/msd-api-access && \
   touch /var/lib/sia/tokens/msd-api-access/msd-api-access-token
 
 # requires root permission
-RUN npm install -g npm --omit=dev
+RUN npm install -g npm
 
 RUN addgroup -g ${GID} ${APP_NAME} && \
   adduser -S -D -H -s /sbin/nologin -u ${UID} -G ${APP_NAME} ${APP_NAME}

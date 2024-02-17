@@ -151,9 +151,7 @@ jobs:
               )"
           fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build
-          sudo df -h
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make load-docker-images-external load-kubernetes-images
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build load-docker-images-external load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

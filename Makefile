@@ -44,6 +44,10 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/$${USER}/
 endif
 
+ifeq ($(DOCKER_CACHE),)
+#DOCKER_CACHE=true
+endif
+
 JDK_IMAGE := docker.io/library/openjdk:22-slim-bullseye
 
 ifeq ($(GOOS),)
@@ -76,31 +80,36 @@ build-athenz-db: copy-ddl
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zms-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-zts-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-ui:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 build-athenz-cli:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
-	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 
@@ -274,6 +283,12 @@ install-step: install-pathman
 && ln -sf ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step \
 && ~/.local/bin/pathman add ~/.local/bin)
 
+install-kustomize: install-pathman
+	which kustomize \
+|| (cd ~/.local/bin \
+&& curl "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
+&& ~/.local/bin/pathman add ~/.local/bin)
+
 install-parsers: install-jq install-yq install-step
 
 clean-certificates:
@@ -366,7 +381,6 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
 
 load-docker-images-external:
-	docker pull docker.io/linuxserver/mariadb:latest
 	docker pull docker.io/ghostunnel/ghostunnel:latest
 	docker pull $(DOCKER_REGISTRY)athenz-auth-core:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest
@@ -378,7 +392,7 @@ load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
 	docker pull docker.io/athenz/authorization-proxy:latest
 
-load-kubernetes-images: version
+load-kubernetes-images: version install-kustomize
 	@$(MAKE) -C kubernetes kind-load-images
 
 deploy-kubernetes-athenz: generate-certificates

@@ -10,7 +10,7 @@ default allow := false
 allow if {
     http.path == "/helloworld"
     http.method == "GET"
-    athenz_authenticate(token, "identity.provider")
+    athenz_authenticate(token, "athenz")
 }
 
 allow if {
@@ -20,7 +20,7 @@ allow if {
 #allow if {
 #    http.path == "/helloworld"
 #    http.method == "GET"
-#    athenz_access(token, "launch", "identity.provider:service.identityd")
+#    athenz_access(token, "launch", "athenz:service.identityprovider")
 #}
 #
 #allow if {

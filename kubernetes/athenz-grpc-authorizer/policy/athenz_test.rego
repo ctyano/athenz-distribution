@@ -5,9 +5,9 @@ test_authorize {
     with input as {
         "path": ["v0", "data", "athenz", "authorize"],
         "method": "GET",
-        "role": "identity.provider:role.zts_instance_launch_provider",
+        "role": "athenz:role.zts_instance_launch_provider",
         "action": "launch",
-        "resource": "identity.provider:service.identityd",
+        "resource": "athenz:service.identityprovider",
     }
 }
 
@@ -16,17 +16,17 @@ test_access {
     with input as {
         "path": ["v0", "data", "athenz", "access"],
         "method": "GET",
-        "identity": athenz_access_token_request("identity.provider", ""),
+        "identity": athenz_access_token_request("athenz", ""),
         "action": "launch",
-        "resource": "identity.provider:service.identityd",
+        "resource": "athenz:service.identityprovider",
     }
 }
 
 test_policy_cache {
-    policy_cache == {"policy": athenz_policy("identity.provider")}
+    policy_cache == {"policy": athenz_policy("athenz")}
     with input as {
         "path": ["v0", "data", "athenz", "policy_cache"],
         "method": "GET",
-        "domain": "identity.provider",
+        "domain": "athenz",
     }
 }

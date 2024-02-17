@@ -13,4 +13,4 @@ athenz:
   cert_file: /var/run/athenz/tls.crt
   policy:
     domains:
-      - identity.provider
+      - athenz

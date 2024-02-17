@@ -17,20 +17,9 @@ spec:
     spec:
       containers:
         - name: opa
-          #image: docker.io/openpolicyagent/opa:latest-envoy
-          image: ghcr.io/cty3000/opa:latest-envoy
+          image: docker.io/openpolicyagent/opa:latest-envoy
           imagePullPolicy: IfNotPresent
-          #imagePullPolicy: Always
-          command:
-            - /app/opa_envoy_linux_arm64
-            #- /bin/sh
-            #- -c
           args:
-            #- |
-            #  apk add --update binutils libc6-compat musl-dev; \
-            #- |
-            #  readelf -l /app/opa_envoy_linux_arm64; \
-            #  /app/opa_envoy_linux_arm64 run --server --log-format=json --log-level=info --config-file=/etc/opa/config/config.yaml --addr=0.0.0.0:8181 --diagnostic-addr=0.0.0.0:8282 --ignore=.* --disable-telemetry /etc/opa/policy
             - run
             - --server
             - --log-format=json
@@ -71,21 +60,15 @@ spec:
             limits:
               cpu: 2m
               memory: 128Mi
-          #readinessProbe:
-          #  httpGet:
-          #    path: /health?plugins
-          #    port: 8181
-          #    scheme: HTTP
-          #  initialDelaySeconds: 0
-          #  periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health?plugins
+              port: 8181
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 10
         - name: envoy
-          # Envoy crashes in Raspberry Pi 4
-          #image: docker.io/envoyproxy/envoy:v1.29-latest
-          #
-          # See:
-          # https://github.com/envoyproxy/envoy/issues/23339#issuecomment-1290509732
-          # https://github.com/envoyproxy/envoy/issues/15235
-          image: docker.io/thegrandpkizzle/envoy:1.26.1
+          image: docker.io/envoyproxy/envoy:v1.29-latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: https

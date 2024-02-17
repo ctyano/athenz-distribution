@@ -43,7 +43,6 @@ kind-setup:
 kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
-		docker.io/linuxserver/mariadb:latest \
 		docker.io/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY)athenz-auth-core:latest
 	kind load docker-image \

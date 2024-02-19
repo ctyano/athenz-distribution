@@ -28,7 +28,7 @@ curl \
 ### policy
 
 ```
-ATHENZ_DOMAIN="identity.provider" \
+ATHENZ_DOMAIN="athenz" \
 && curl \
     -H "Content-type: application/json" \
     -sXPOST \
@@ -47,7 +47,7 @@ ATHENZ_DOMAIN="identity.provider" \
 ### access token
 
 ```
-ATHENZ_DOMAIN="identity.provider" \
+ATHENZ_DOMAIN="athenz" \
 ATHENZ_ROLE="admin" \
 && curl \
     -H "Content-type: application/x-www-form-urlencoded" \
@@ -84,12 +84,12 @@ opa run --server \
 ```
 curl -svXPOST \
     -H"Content-type: application/json" \
-    -d"{\"role\":\"identity.provider:role.zts_instance_launch_provider\", \"action\":\"launch\", \"resource\":\"identity.provider:service.identityd\"}" \
+    -d"{\"role\":\"athenz:role.zts_instance_launch_provider\", \"action\":\"launch\", \"resource\":\"athenz:service.identityprovider\"}" \
     http://localhost:8181/v0/data/athenz/authorize
 
 curl -svXPOST \
     -H"Content-type: application/json" \
-    -d"{\"identity\":\"$(cat .access_token)\", \"action\":\"launch\", \"resource\":\"identity.provider:service.identityd\"}" \
+    -d"{\"identity\":\"$(cat .access_token)\", \"action\":\"launch\", \"resource\":\"athenz:service.identityprovider\"}" \
     http://localhost:8181/v0/data/athenz/access
 ```
 

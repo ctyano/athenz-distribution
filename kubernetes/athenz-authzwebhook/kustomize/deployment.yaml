@@ -2,18 +2,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: authzenvoy-deployment
+  name: authzwebhook-deployment
   labels:
-    app: authzenvoy-deployment
+    app: authzwebhook-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: authzenvoy-deployment
+      app: authzwebhook-deployment
   template:
     metadata:
       labels:
-        app: authzenvoy-deployment
+        app: authzwebhook-deployment
     spec:
       serviceAccountName: athenz-sia
       securityContext:
@@ -30,7 +30,7 @@ spec:
           emptyDir: {}
         - name: envoy
           configMap:
-            name: authzenvoy-envoy
+            name: authzwebhook-envoy
         - name: athenz-cacert
           configMap:
             name: athenz-cacert
@@ -70,7 +70,7 @@ spec:
             - --delay-jitter-seconds=5
           envFrom: &sia-envFrom
             - configMapRef:
-                name: authzenvoy-sia
+                name: authzwebhook-sia
           env: &sia-env
             - name: NAMESPACE
               valueFrom:

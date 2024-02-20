@@ -14,10 +14,10 @@ generatorOptions:
   disableNameSuffixHash: true
 
 configMapGenerator:
-  - name: authzenvoy-sia
+  - name: authzwebhook-sia
     envs:
       - athenz-sia/athenz-sia.env
-  - name: authzenvoy-envoy
+  - name: authzwebhook-envoy
     files:
       - config.yaml=envoy/config.yaml
       - identity_sds.yaml=envoy/identity_sds.yaml
@@ -31,13 +31,13 @@ replacements:
   - source:
       version: v1
       kind: ConfigMap
-      name: authzenvoy-sia
+      name: authzwebhook-sia
       fieldpath: data.SERVICEACCOUNT
     targets:
       - select:
           version: v1
           kind: ServiceAccount
-          name: authzenvoy-serviceaccount
+          name: authzwebhook-serviceaccount
         fieldPaths:
           - metadata.name
         options:
@@ -45,7 +45,7 @@ replacements:
       - select:
           version: v1
           kind: Deployment
-          name: authzenvoy-deployment
+          name: authzwebhook-deployment
         fieldPaths:
           - spec.template.spec.serviceAccountName
         options:

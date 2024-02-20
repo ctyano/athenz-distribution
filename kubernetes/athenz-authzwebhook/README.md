@@ -1,4 +1,4 @@
-# athenz-authzenvoy
+# athenz-authzwebhook
 
 ## Configuration
 
@@ -16,7 +16,7 @@ kubectl -n athenz apply -k kustomize
 ## Registering Authzenvoy Service to Athenz
 
 ```
-make register-athenz-authzenvoy
+make register-athenz-authzwebhook
 ```
 
 confirm registration with:
@@ -34,5 +34,5 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 ## Debugging
 
 ```
-kubectl -n athenz exec -it deployment/authzenvoy-deployment -c athenz-cli -- /bin/sh -c "curl -sv --resolve authzenvoy.athenz.svc.cluster.local:443:127.0.0.1 https://authzenvoy.athenz.svc.cluster.local/echoserver | jq -r .request"
+kubectl -n athenz exec -it deployment/authzwebhook-deployment -c athenz-cli -- /bin/sh -c "curl -sv --resolve authzwebhook.athenz.svc.cluster.local:443:127.0.0.1 https://authzwebhook.athenz.svc.cluster.local/echoserver | jq -r .request"
 ```

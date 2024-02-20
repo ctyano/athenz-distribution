@@ -2,10 +2,10 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
 
-clean-athenz-authzenvoy:
+clean-athenz-authzwebhook:
 	kubectl delete -k kustomize
 
-register-athenz-authzenvoy:
+register-athenz-authzwebhook:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		curl \
 		-sv \
@@ -35,7 +35,7 @@ register-athenz-authzenvoy:
 			add-service \
 			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
 			0 \
-			$$(cat kustomize/keys/authzenvoy.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
+			$$(cat kustomize/keys/authzwebhook.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -74,7 +74,7 @@ register-athenz-authzenvoy:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
-check-register-athenz-authzenvoy:
+check-register-athenz-authzwebhook:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -105,7 +105,7 @@ done
 	@echo "**************************************"
 	@echo ""
 
-kustomize-edit-athenz-authzenvoy-image:
+kustomize-edit-athenz-authzwebhook-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
@@ -114,19 +114,19 @@ kustomize-edit-athenz-authzenvoy-image:
 	) \
 	fi
 
-deploy-athenz-authzenvoy: kustomize-edit-athenz-authzenvoy-image
+deploy-athenz-authzwebhook: kustomize-edit-athenz-authzwebhook-image
 	kubectl apply -k kustomize
 
-test-athenz-authzenvoy:
+test-athenz-authzwebhook:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep authzenvoy | grep -E "0/1" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep authzwebhook | grep -E "0/1" | wc -l) )) -eq 0 \
 	&& \
-	kubectl -n athenz exec deployment/authzenvoy-deployment -it -c sia -- \
+	kubectl -n athenz exec deployment/authzwebhook-deployment -it -c sia -- \
 		ls \
 		-alF \
 		/var/run/athenz/tls.key \
@@ -139,8 +139,8 @@ while true; do \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
 		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n athenz get all | grep -E "pod/authzenvoy-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
-		kubectl -n athenz get all | grep -E "pod/authzenvoy-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
+		kubectl -n athenz get all | grep -E "pod/authzwebhook-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
+		kubectl -n athenz get all | grep -E "pod/authzwebhook-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
 		kubectl -n athenz get all; \
 		exit 1; \
 	fi; \

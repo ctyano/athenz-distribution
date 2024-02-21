@@ -60,6 +60,9 @@ run-athenz-envoy-loadtest:
 	CASE=client2filterauthzmtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
 	CASE=client2filterauthzjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
 	CASE=client2filterauthzmtlsjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2webhookauthzmtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2webhookauthzjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=client2webhookauthzmtlsjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
 	CASE=client2authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://client.athenz.svc.cluster.local/$$CASE\" | vegeta attack -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
 	@echo ""
 	@echo "**************************************"
@@ -74,6 +77,9 @@ report-athenz-envoy-loadtest:
 	CASE=client2filterauthzmtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
 	CASE=client2filterauthzjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
 	CASE=client2filterauthzmtlsjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2webhookauthzmtls; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2webhookauthzjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	CASE=client2webhookauthzmtlsjwt; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
 	CASE=client2authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
 	@echo ""
 	@echo "**************************************"
@@ -119,7 +125,7 @@ report-athenz-envoyfilter-loadtest:
 
 run-athenz-envoywebhook-loadtest:
 	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: envoyclients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
-	CASE=envoywebhook; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://authzwebhook.athenz.svc.cluster.local/echoserver\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	CASE=envoywebhook; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://authzwebhook.athenz.svc.cluster.local/jwtauthn\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
 	@echo ""
 	@echo "**************************************"
 	@echo "**  Loadtest completed successfully **"

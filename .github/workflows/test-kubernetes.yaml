@@ -165,6 +165,7 @@ jobs:
         name: Load container images to KinD cluster
         run: |
           set -ex
+          df -h
           USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster

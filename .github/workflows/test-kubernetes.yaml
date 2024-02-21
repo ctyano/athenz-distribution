@@ -45,6 +45,20 @@ jobs:
       statuses: none
 
     steps:
+      # This action maximizes the available disk space on public shared GitHub runners
+      # https://github.com/easimon/maximize-build-space
+      - 
+        name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: '30720'
+          temp-reserve-mb: '1024'
+          swap-size-mb: '8192'
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+ 
       # A GitHub Action to expose useful environment variables.
       # https://github.com/FranzDiebold/github-env-vars-action
       -
@@ -151,7 +165,22 @@ jobs:
               )"
           fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build load-docker-images-external load-kubernetes-images
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build
+
+      # A GitHub Action to pull container images
+      -
+        name: Pull container images
+        run: |
+          set -ex
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-docker-images-external
+
+      # A GitHub Action to load container images to KinD cluster
+      -
+        name: Load container images to KinD cluster
+        run: |
+          set -ex
+          df -h
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
@@ -235,6 +264,14 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2envoyextauthz
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoywebhook
 
       # A GitHub Action to check and test application
       -

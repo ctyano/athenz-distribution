@@ -131,30 +131,20 @@ jobs:
         with:
           cluster_name: kind
 
-      # A GitHub Action to build Docker container images
+      # A GitHub Action to pull container images
       -
-        name: Load Docker container images
+        name: Pull container images
         run: |
-          # Get latest release tag with:
-          #   curl -s https://api.github.com/repos/AthenZ/athenz/releases \
-          #     | jq -r .[].tag_name \
-          #     | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-          #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-          #     | head -n1
-          if [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
-            PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
-          else
-            PACKAGE_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ru \
-                | head -n1
-              )"
-          fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make load-docker-images load-kubernetes-images
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-docker-images
+
+      # A GitHub Action to load container images to KinD cluster
+      -
+        name: Load container images to KinD cluster
+        run: |
+          set -ex
+          df -h
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
@@ -246,6 +236,14 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2envoyfilter
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoywebhook
 
       # A GitHub Action to check and test application
       -

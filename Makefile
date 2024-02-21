@@ -463,6 +463,9 @@ test-kubernetes-athenz-envoy2envoyextauthz:
 test-kubernetes-athenz-envoy2envoyfilter:
 	@$(MAKE) -C kubernetes test-athenz-envoy2envoyfilter
 
+test-kubernetes-athenz-envoy2envoywebhook:
+	@$(MAKE) -C kubernetes test-athenz-envoy2envoywebhook
+
 test-kubernetes-athenz-envoy2authzproxy:
 	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy
 

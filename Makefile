@@ -356,6 +356,11 @@ generate-authzenvoy: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -out keys/authzenvoy.private.pem
 	openssl rsa -pubout -in keys/authzenvoy.private.pem -out keys/authzenvoy.public.pem
 
+generate-authzwebhook: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out - 4096 | openssl pkey -out keys/authzwebhook.private.pem
+	openssl rsa -pubout -in keys/authzwebhook.private.pem -out keys/authzwebhook.public.pem
+
 generate-authzproxy: generate-ca
 	mkdir keys certs ||:
 	openssl genrsa -out - 4096 | openssl pkey -out keys/authzproxy.private.pem
@@ -366,7 +371,7 @@ generate-client: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -out keys/client.private.pem
 	openssl rsa -pubout -in keys/client.private.pem -out keys/client.public.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzenvoy generate-authzproxy
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzenvoy generate-authzwebhook generate-authzproxy
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
@@ -415,6 +420,12 @@ deploy-kubernetes-athenz-authzenvoy:
 
 test-kubernetes-athenz-authzenvoy:
 	@$(MAKE) -C kubernetes test-athenz-authzenvoy
+
+deploy-kubernetes-athenz-authzwebhook:
+	@$(MAKE) -C kubernetes setup-athenz-authzwebhook deploy-athenz-authzwebhook
+
+test-kubernetes-athenz-authzwebhook:
+	@$(MAKE) -C kubernetes test-athenz-authzwebhook
 
 deploy-kubernetes-athenz-authzproxy:
 	@$(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy

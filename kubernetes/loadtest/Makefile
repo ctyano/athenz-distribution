@@ -117,6 +117,23 @@ report-athenz-envoyfilter-loadtest:
 	@echo "**************************************"
 	@echo ""
 
+run-athenz-envoywebhook-loadtest:
+	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: envoyclients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
+	CASE=envoywebhook; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://authzwebhook.athenz.svc.cluster.local/echoserver\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Loadtest completed successfully **"
+	@echo "**************************************"
+	@echo ""
+
+report-athenz-envoywebhook-loadtest:
+	CASE=envoywebhook; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "cat /data/$$CASE.bin | vegeta report -reporter=plot" > ../../$$CASE.html
+	@echo ""
+	@echo "**************************************"
+	@echo "* Loadtest result is printed to html *"
+	@echo "**************************************"
+	@echo ""
+
 run-athenz-proxy-loadtest:
 	accesstoken=$$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: authorization-proxy-clients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken" | xargs echo -n); \
 	CASE=authzproxy; kubectl -n athenz exec deployment/vegeta -- /bin/sh -c "echo \"GET https://$$CASE.athenz.svc.cluster.local/echoserver\" | vegeta attack -header \"Authorization: Bearer $${accesstoken}\" -header \"X-Athenz-Action: get\" -header \"X-Athenz-Resource: /extauthz\" -workers=100 -rate=100 -duration=30s -keepalive false | tee /data/$$CASE.bin | vegeta report"

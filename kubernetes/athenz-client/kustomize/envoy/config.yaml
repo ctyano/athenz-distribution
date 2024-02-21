@@ -130,6 +130,28 @@ static_resources:
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
+                            path_separated_prefix: "/client2webhookauthzmtls"
+                          route:
+                            cluster: envoy_webhook_mtls
+                            prefix_rewrite: "/echoserver"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.envoyclients.token: *ext_authz_envoyclients_tokensidecar_disabled
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
+                        - match:
+                            path_separated_prefix: "/client2webhookauthzjwt"
+                          route:
+                            cluster: envoy_webhook_tls
+                            prefix_rewrite: "/echoserver"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
+                        - match:
+                            path_separated_prefix: "/client2webhookauthzmtlsjwt"
+                          route:
+                            cluster: envoy_webhook_mtls
+                            prefix_rewrite: "/echoserver"
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
+                        - match:
                             path_separated_prefix: "/client2authzproxy"
                           route:
                             cluster: authzproxy
@@ -297,6 +319,26 @@ static_resources:
           "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
           common_tls_context:
             validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
+    - name: envoy_webhook_tls
+      connect_timeout: 0.25s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: envoy_webhook_tls
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authzwebhook.athenz.svc.cluster.local
+                      port_value: 443
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            validation_context_sds_secret_config: *validation_context_sds_secret_config_ca
     - name: envoy_extauthz_mtls
       connect_timeout: 0.25s
       type: LOGICAL_DNS
@@ -336,6 +378,21 @@ static_resources:
                   address:
                     socket_address:
                       address: authzenvoy.athenz.svc.cluster.local
+                      port_value: 4443
+      transport_socket: *transport_socket
+    - name: envoy_webhook_mtls
+      connect_timeout: 0.25s
+      type: LOGICAL_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: envoy_webhook_mtls
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: authzwebhook.athenz.svc.cluster.local
                       port_value: 4443
       transport_socket: *transport_socket
     - name: authzproxy

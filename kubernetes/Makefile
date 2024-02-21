@@ -16,6 +16,7 @@ clean-certificates:
 	rm -rf athenz-identityprovider/kustomize/{keys,certs}
 	rm -rf athenz-authorizer/kustomize/{keys,certs}
 	rm -rf athenz-authzenvoy/kustomize/{keys,certs}
+	rm -rf athenz-authzwebhook/kustomize/{keys,certs}
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
 
@@ -34,6 +35,7 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-identityprovider/kustomize/
 	cp -r ../keys ../certs athenz-authorizer/kustomize/
 	cp -r ../keys ../certs athenz-authzenvoy/kustomize/
+	cp -r ../keys ../certs athenz-authzwebhook/kustomize/
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/
 	cp -r ../keys ../certs athenz-client/kustomize/
 
@@ -283,6 +285,15 @@ deploy-athenz-authzenvoy: test-athenz-identityprovider
 test-athenz-authzenvoy:
 	@$(MAKE) -C athenz-authzenvoy test-athenz-authzenvoy
 
+setup-athenz-authzwebhook: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzwebhook register-athenz-authzwebhook check-register-athenz-authzwebhook
+
+deploy-athenz-authzwebhook: test-athenz-identityprovider
+	@$(MAKE) -C athenz-authzwebhook deploy-athenz-authzwebhook
+
+test-athenz-authzwebhook:
+	@$(MAKE) -C athenz-authzwebhook test-athenz-authzwebhook
+
 setup-athenz-authzproxy: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy check-register-athenz-authzproxy
 
@@ -304,22 +315,26 @@ test-athenz-client:
 setup-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer
 	@$(MAKE) -C athenz-authzenvoy register-athenz-authzenvoy
+	@$(MAKE) -C athenz-authzwebhook register-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy
 	@$(MAKE) -C athenz-client register-athenz-client
 	@$(MAKE) -C athenz-authorizer check-register-athenz-authorizer
 	@$(MAKE) -C athenz-authzenvoy check-register-athenz-authzenvoy
+	@$(MAKE) -C athenz-authzwebhook check-register-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy check-register-athenz-authzproxy
 	@$(MAKE) -C athenz-client check-register-athenz-client
 
 deploy-athenz-workloads: test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer deploy-athenz-authorizer
 	@$(MAKE) -C athenz-authzenvoy deploy-athenz-authzenvoy
+	@$(MAKE) -C athenz-authzwebhook deploy-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy deploy-athenz-authzproxy
 	@$(MAKE) -C athenz-client deploy-athenz-client
 
 test-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
 	@$(MAKE) -C athenz-authzenvoy test-athenz-authzenvoy
+	@$(MAKE) -C athenz-authzwebhook test-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
 	@$(MAKE) -C athenz-client test-athenz-client
 
@@ -348,6 +363,9 @@ test-athenz-envoy2envoyextauthz:
 	@echo ""
 
 test-athenz-envoy2envoyfilter:
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)

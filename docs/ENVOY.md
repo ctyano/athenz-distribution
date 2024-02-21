@@ -14,6 +14,10 @@ Envoy configuration: [config.yaml](../kubernetes/athenz-authorizer/kustomize/env
 
 Envoy configuration: [config.yaml](../kubernetes/athenz-authzenvoy/kustomize/envoy/config.yaml)
 
+### [athenz-authzwebhook](../kubernetes/athenz-authzwebhook)
+
+Envoy configuration: [config.yaml](../kubernetes/athenz-authzwebhook/kustomize/envoy/config.yaml)
+
 ### [athenz-client](../kubernetes/athenz-client)
 
 Envoy configuration: [config.yaml](../kubernetes/athenz-client/kustomize/envoy/config.yaml)
@@ -199,6 +203,26 @@ accesstoken=$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- 
 
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Authorization: Bearer $accesstoken\" https://authzenvoy.athenz.svc.cluster.local/jwtauthn | jq -r .request"
+```
+
+### envoywebhook(jwt filter/lua filter)
+
+[Load Test Result](https://ctyano.github.io/athenz-distribution/envoywebhook.html)
+
+```mermaid
+flowchart LR
+A(curl) -->|https/tls + jwt| B(ingress server proxy envoy\nwith lua filter\nwith jwt filter\nwith lua filter for zts authz webhook) -->|http + headers| C(echoserver)
+B(ingress server proxy envoy\nwith lua filter\nwith jwt filter\nwith lua filter for zts authz webhook) -->|https/mutual tls| D(zts)
+```
+
+with Access Token:
+
+```
+accesstoken=$(kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s -H\"X-Athenz-Domain: athenz\" -H\"X-Athenz-Role: envoyclients\" https://client.athenz.svc.cluster.local/tokensidecar | jq -r .accesstoken | xargs echo -n")
+```
+
+```
+kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv -H \"Authorization: Bearer $accesstoken\" https://authzwebhook.athenz.svc.cluster.local/echoserver | jq -r .request"
 ```
 
 ### echoserver(client)

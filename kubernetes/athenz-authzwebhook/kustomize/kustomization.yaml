@@ -1,0 +1,52 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+resources:
+  - deployment.yaml
+  - namespace.yaml
+  - service.yaml
+  - serviceaccount.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: authzwebhook-sia
+    envs:
+      - athenz-sia/athenz-sia.env
+  - name: authzwebhook-envoy
+    files:
+      - config.yaml=envoy/config.yaml
+      - identity_sds.yaml=envoy/identity_sds.yaml
+      - role_sds.yaml=envoy/role_sds.yaml
+      - ca_sds.yaml=envoy/ca_sds.yaml
+#  - name: athenz-cacert
+#    files:
+#      - ca.cert.pem=certs/ca.cert.pem
+
+replacements:
+  - source:
+      version: v1
+      kind: ConfigMap
+      name: authzwebhook-sia
+      fieldpath: data.SERVICEACCOUNT
+    targets:
+      - select:
+          version: v1
+          kind: ServiceAccount
+          name: authzwebhook-serviceaccount
+        fieldPaths:
+          - metadata.name
+        options:
+          create: true
+      - select:
+          version: v1
+          kind: Deployment
+          name: authzwebhook-deployment
+        fieldPaths:
+          - spec.template.spec.serviceAccountName
+        options:
+          create: true

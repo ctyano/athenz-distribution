@@ -151,7 +151,21 @@ jobs:
               )"
           fi
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build load-docker-images-external load-kubernetes-images
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} VERSION=${PACKAGE_VERSION} make build
+
+      # A GitHub Action to pull container images
+      -
+        name: Pull container images
+        run: |
+          set -ex
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-docker-images-external
+
+      # A GitHub Action to load container images to KinD cluster
+      -
+        name: Load container images to KinD cluster
+        run: |
+          set -ex
+          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

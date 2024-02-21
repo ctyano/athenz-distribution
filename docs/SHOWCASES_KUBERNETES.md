@@ -13,11 +13,15 @@ Other required dependencies will be automatically installed.
 make clean-kubernetes-athenz load-docker-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
-- `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources with `athenz` namespace.
-- `load-docker-images` pulls container images from remote registry.
-- `deploy-kubernetes-athenz` deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-cli`.
-- `deploy-kubernetes-athenz-identityprovider` deploys copper-argos identity provider.
-- `deploy-kubernetes-athenz-workloads` deploys miscellaneous workload applications for authentication/authorization showcases.
+`clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.
+
+`load-docker-images` pulls container images from remote registry.
+
+`deploy-kubernetes-athenz` prepares the keys and the certs locally and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
+
+`deploy-kubernetes-athenz-identityprovider` registers required informations to athenz and deploys copper argos identity provider.
+
+`deploy-kubernetes-athenz-workloads` registers required informations to athenz for the each showcase and deploys miscellaneous workload applications for authentication/authorization showcases.
 
 You may access Athenz UI at http://localhost:3000 by forwarding requests.
 
@@ -46,4 +50,6 @@ To execute load testing:
 ```
 make test-kubernetes-athenz-loadtest
 ```
+
+The loadtest results will be printed to html files in the current directory.
 

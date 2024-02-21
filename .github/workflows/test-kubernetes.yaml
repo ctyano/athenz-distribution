@@ -45,6 +45,20 @@ jobs:
       statuses: none
 
     steps:
+      # This action maximizes the available disk space on public shared GitHub runners
+      # https://github.com/easimon/maximize-build-space
+      - 
+        name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: '30720'
+          temp-reserve-mb: '1024'
+          swap-size-mb: '8192'
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+ 
       # A GitHub Action to expose useful environment variables.
       # https://github.com/FranzDiebold/github-env-vars-action
       -

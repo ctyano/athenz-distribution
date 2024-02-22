@@ -10,12 +10,14 @@ Other required dependencies will be automatically installed.
 ## Full setup on a Kubernetes cluster ⎈
 
 ```
-make clean-kubernetes-athenz load-docker-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.
 
 `load-docker-images` pulls container images from remote registry.
+
+`load-kubernetes-images` loads container images to kind cluster.
 
 `deploy-kubernetes-athenz` prepares the keys and the certs locally and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
 

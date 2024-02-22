@@ -40,12 +40,16 @@ XPLATFORM_ARGS := --platform=$(XPLATFORMS)
 
 BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)'
 
+ifeq ($(DOCKER_REGISTRY_OWNER),)
+DOCKER_REGISTRY_OWNER=ctyano
+endif
+
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/$${USER}/
+DOCKER_REGISTRY=ghcr.io/$(DOCKER_REGISTRY_OWNER)/
 endif
 
 ifeq ($(DOCKER_CACHE),)
-#DOCKER_CACHE=true
+DOCKER_CACHE=false
 endif
 
 JDK_IMAGE := docker.io/library/openjdk:22-slim-bullseye

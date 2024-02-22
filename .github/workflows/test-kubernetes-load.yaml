@@ -136,7 +136,7 @@ jobs:
         name: Pull container images
         run: |
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-docker-images
+          make load-docker-images
 
       # A GitHub Action to load container images to KinD cluster
       -
@@ -144,14 +144,14 @@ jobs:
         run: |
           set -ex
           df -h
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} make load-kubernetes-images
+          make load-kubernetes-images
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application
         run: |
           set -ex
-          USER=${{ env.DOCKER_REGISTRY_OWNER }} make deploy-kubernetes-athenz
+          make deploy-kubernetes-athenz
 
       # A GitHub Action to check and test application
       -
@@ -302,7 +302,7 @@ jobs:
           mv -f *.html docs/
           rm -rf athenz && git rm -rf athenz
           git add -f docs/*.html
-          git commit -m "Updated html files" ||:
+          git commit -m "Updated html files $(date)" ||:
 
       # A GitHub Action to push ghpages branch
       -

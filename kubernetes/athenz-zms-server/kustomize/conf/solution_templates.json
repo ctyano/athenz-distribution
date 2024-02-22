@@ -63,6 +63,11 @@
                 "keywordsToReplace": "_instanceprovider_,_service_",
                 "autoUpdate": false
             },
+            "services": [
+                {
+                    "name": "_domain_._service_"
+                }
+            ],
             "roles": [
                 {
                     "name": "_domain_:role.identityproviders",
@@ -88,6 +93,45 @@
                 }
             ]
         },
+        "instance_registeration": {
+            "metadata":
+            {
+                "latestVersion": 1,
+                "timestamp": "2020-06-16T00:00:00.000Z",
+                "description": "identity provisioning template for instance register token request",
+                "keywordsToReplace": "_instanceregisterer_,_service_",
+                "autoUpdate": false
+            },
+            "services": [
+                {
+                    "name": "_domain_._service_"
+                }
+            ],
+            "roles": [
+                {
+                    "name": "_domain_:role.instanceregisterer",
+                    "modified": "1970-01-01T00:00:00.000Z",
+                    "roleMembers": [
+                        {
+                            "memberName": "_instanceregisterer_"
+                        }
+                    ]
+                }
+            ],
+            "policies": [
+                {
+                    "name": "_domain_:policy.instanceregisterer",
+                    "modified": "1970-01-01T00:00:00.000Z",
+                    "assertions": [
+                        {
+                            "resource": "_domain_:service._service_",
+                            "role": "_domain_:role.instanceregisterer",
+                            "action": "update"
+                        }
+                    ]
+                }
+            ]
+        },
         "zts_instance_launch_provider": {
             "metadata":
             {
@@ -97,6 +141,11 @@
                 "keywordsToReplace": "_service_",
                 "autoUpdate": false
             },
+            "services": [
+                {
+                    "name": "_domain_._service_"
+                }
+            ],
             "roles": [
                 {
                     "name": "_domain_:role.zts_instance_launch_provider",

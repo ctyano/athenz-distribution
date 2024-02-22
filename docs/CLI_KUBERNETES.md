@@ -58,6 +58,21 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -signer-cert-file /tmp/ca.cert.pem
 ```
 
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-svccert \
+        -get-instance-register-token \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -domain home.athenz_admin \
+        -service showcase \
+        -provider sys.auth.zts \
+        -instance $(hostname) \
+        -attestation-data /tmp/.identitydocument.jwt \
+        -dns-domain zts.athenz.cloud \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /tmp/home.athenz_admin.showcase.cert.pem
+```
+
 ### Retriving tokens
 
 ```

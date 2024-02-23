@@ -37,9 +37,24 @@ spec:
               - key: ca.cert.pem
                 path: ca-certificates.crt
       initContainers:
-        - name: sia-init
+        - name: sia-register
           image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
+          command:
+          
+          args: 
+          resources: &sia-resources
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: athenz-registerer-tls-certs
+              mountPath: /var/run/athenz
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
+        - name: sia-init
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
           args: &sia-args
             - --mode=init
             - --delay-jitter-seconds=5
@@ -71,10 +86,7 @@ spec:
               value: ""
             - name: BACKUP
               value: read
-          resources: &sia-resources
-            limits:
-              cpu: 50m
-              memory: 64Mi
+          resources: *sia-resources
           volumeMounts: &sia-volumeMounts
             - name: athenz-tls-certs
               mountPath: /var/run/athenz

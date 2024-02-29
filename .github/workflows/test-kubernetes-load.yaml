@@ -271,7 +271,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-loadtest
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -280,7 +280,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Report Tests for athenz-loadtest
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -289,7 +289,7 @@ jobs:
       # A GitHub Action to update and commit ghpages branch
       -
         name: Update ghpages branch and commit
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         run: |
           set -x
           git checkout kubernetes/
@@ -307,7 +307,7 @@ jobs:
       # A GitHub Action to push ghpages branch
       -
         name: Push ghpages branch
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

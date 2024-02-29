@@ -157,7 +157,7 @@ jobs:
       -
         name: Create GitHub Release
         id: create_release
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

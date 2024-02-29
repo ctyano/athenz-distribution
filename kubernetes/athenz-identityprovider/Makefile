@@ -161,6 +161,21 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 			-signer-cert-file /tmp/ca.cert.pem \
 		"
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		sh \
+		-c \
+		" \
+		zts-svccert \
+			-get-instance-register-token \
+			-zts $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^ENDPOINT | sed -e 's/ENDPOINT=\(.*\)/\1/g') \
+			-domain $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
+			-service $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\2/g') \
+			-provider sys.auth.zts \
+			-instance $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g') \
+			-svc-key-file /tmp/private.key.pem \
+			-svc-cert-file /tmp/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g').cert.pem \
+			-attestation-data /tmp/.identitydocument \
+		"
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		cat /tmp/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g').cert.pem \
 	| tee identityprovider.cert.pem
 	kubectl \

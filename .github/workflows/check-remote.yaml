@@ -40,6 +40,14 @@ jobs:
       statuses: none
 
     steps:
+      # A GitHub Action to expose useful environment variables.
+      # https://github.com/FranzDiebold/github-env-vars-action
+      -
+        name: GitHub Environment Variables Action
+        id: env
+        # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
+        uses: FranzDiebold/github-env-vars-action@v2
+
       # A GitHub Action to check remote repositories
       -
         name: Check remote repositories
@@ -134,7 +142,7 @@ jobs:
       # A GitHub Action to dispatch event
       # https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
       - name: Trigger Workflows
-        if: ${{ env.VERSION != env.CURRENT_VERSION }}
+        if: ${{ env.CURRENT_VERSION != '' && env.VERSION != '' && env.VERSION != env.CURRENT_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

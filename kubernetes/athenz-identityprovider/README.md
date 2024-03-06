@@ -1,4 +1,4 @@
-# athenz-identity-provider
+# athenz-identityprovider
 
 ## Configuration
 

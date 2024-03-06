@@ -132,7 +132,7 @@ check-athenz:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=300; \
 i=0; \
-while [ $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
+while [ $$(( $$(kubectl -n athenz get all | grep -E "athenz-db-|athenz-zms-server-|athenz-zts-server-|athenz-ui-|athenz-cli-" | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \

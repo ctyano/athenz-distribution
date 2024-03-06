@@ -37,6 +37,20 @@ spec:
               - key: ca.cert.pem
                 path: ca-certificates.crt
       initContainers:
+        # TODO: sia-wait should be implemented in sia-init in future
+        - name: sia-wait
+          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
+          resources: &sia-resources
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && break; done
         - name: sia-init
           image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
@@ -57,11 +71,6 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.serviceAccountName
-            - name: POD_UID
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.uid
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -264,12 +273,12 @@ spec:
       restartPolicy: Always
       volumes:
         - name: attestation-data
-          projected:
-            sources:
-              - serviceAccountToken:
-                  audience: https://kubernetes.default.svc
-                  expirationSeconds: 3600
-                  path: token
+          secret:
+            secretName: identityprovider-jwt
+            defaultMode: 0555
+            items:
+              - key: identitydocument.jwt
+                path: identitydocument.jwt
         - name: athenz-tls-certs
           emptyDir: {}
         - name: athenz-cacert
@@ -292,7 +301,7 @@ spec:
             - -c
           args:
             - |
-              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
+              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && break; done
         - name: sia-init
           image: *sia-image
           imagePullPolicy: *sia-imagePullPolicy
@@ -314,11 +323,6 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.serviceAccountName
-            - name: POD_UID
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.uid
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -334,7 +338,7 @@ spec:
               value: ""
           volumeMounts: &sia-volumeMounts
             - name: attestation-data
-              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              mountPath: /var/run/athenz/attestation-data
               readOnly: true
             - name: athenz-tls-certs
               mountPath: /var/run/athenz

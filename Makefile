@@ -407,7 +407,7 @@ load-kubernetes-images: version install-kustomize
 deploy-kubernetes-athenz: generate-certificates
 	@$(MAKE) -C kubernetes deploy-athenz
 
-deploy-kubernetes-athenz-identityprovider:
+deploy-kubernetes-athenz-identityprovider: install-parsers
 	@$(MAKE) -C kubernetes setup-athenz-identityprovider deploy-athenz-identityprovider
 
 test-kubernetes-athenz-identityprovider:

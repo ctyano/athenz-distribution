@@ -16,6 +16,11 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
+      target_version:
+        description: 'Target version to release this repository e.g. 0.0.0'
+        required: true
+        type: string
+    inputs:
       current_version:
         description: 'Current released version of this repository e.g. 0.0.0'
         required: true

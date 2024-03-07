@@ -221,16 +221,20 @@ static_resources:
                       default_source_code:
                         inline_string: |
                           function envoy_on_request(request_handle)
+
+                            -- pre-define authorized domains and roles
                             local authorized_domains = {'athenz'}
                             local authorized_roles = {'envoyclients'}
-                            -- we are going to check the domain first
+                            -- we are going to extract domain and role from the headers
                             local domain = request_handle:headers():get("x-athenz-domain")
+                            local role = request_handle:headers():get("x-athenz-role")
+
+                            -- we are going to check the domain first
                             if domain ~= nil then
                               request_handle:logInfo(string.format('x-athenz-domain %s', domain))
                               for domainindex, domainvalue in ipairs(authorized_domains) do
                                 if domainvalue == domain then
                                   -- if the domain matches, then we are going to check the role
-                                  local role = request_handle:headers():get("x-athenz-role")
                                   if role ~= nil then
                                     request_handle:logInfo(string.format('x-athenz-role %s', role))
                                     for roleindex, rolevalue in ipairs(authorized_roles) do
@@ -242,9 +246,11 @@ static_resources:
                                 end
                               end
                             end
+                            request_handle:logWarn(string.format("x-athenz-domain:%s, x-athenz-role:%s", domain, role))
                             request_handle:respond(
                               {[":status"] = "401", ["x-ahenz-domain"] = domain, ["x-ahenz-role"] = role},
                             "")
+
                             ::authorized::
                             -- if authorized, then we will set x-athenz-proxy header
                             request_handle:headers():add("x-athenz-proxy", "lua authz complete")

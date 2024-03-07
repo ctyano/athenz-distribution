@@ -141,14 +141,14 @@ static_resources:
                             path_separated_prefix: "/client2webhookauthzjwt"
                           route:
                             cluster: envoy_webhook_tls
-                            prefix_rewrite: "/echoserver"
+                            prefix_rewrite: "/jwtauthn"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:
                             path_separated_prefix: "/client2webhookauthzmtlsjwt"
                           route:
                             cluster: envoy_webhook_mtls
-                            prefix_rewrite: "/echoserver"
+                            prefix_rewrite: "/jwtauthn"
                           typed_per_filter_config:
                             envoy.filters.http.ext_authz.authorization-proxy-clients.token: *ext_authz_authorization-proxy-clients_tokensidecar_disabled
                         - match:

@@ -223,14 +223,16 @@ static_resources:
                       default_source_code:
                         inline_string: |
                           function envoy_on_request(request_handle)
-                            local authorized_domains = {'athenz'}
 
-                            -- we are going to check the domain first
-                            local domain = request_handle:headers():get("x-athenz-domain")
-                            request_handle:logInfo(string.format('x-athenz-domain %s', domain))
+                            -- we are going to extract principal, method, path and domain from the headers
                             local principal = request_handle:headers():get("x-athenz-principal")
-                            request_handle:logInfo(string.format('x-athenz-principal %s', principal))
-                            local authzpath = string.format("/zts/v1/access/%s?resource=%s:%s", request_handle:headers():get(":method"), domain, request_handle:headers():get(":path"))
+                            local domain = request_handle:headers():get("x-athenz-domain")
+                            local method = request_handle:headers():get(":method")
+                            local path = request_handle:headers():get(":path")
+                            request_handle:logInfo(string.format('x-athenz-principal %s, x-athenz-domain %s, :method %s, :path %s', principal, domain, method, path))
+
+                            -- we are going to check if the access is granted or not by assuming :method to be action and :path to be path
+                            local authzpath = string.format("/zts/v1/access/%s?resource=%s:%s&principal=%s", method, domain, path, principal)
                             request_handle:logInfo(string.format('authzpath %s', authzpath))
                             local headers = {
                               [":method"] = "GET",
@@ -238,12 +240,15 @@ static_resources:
                               [":authority"] = "envoy_localhost",
                             }
                             local headers, body = request_handle:httpCall("envoy_localhost", headers, "", 500, false)
-                            if headers[":status"] == "200" then
+                            local granted = string.match(body, '{"granted":(%w+)}')
+                            if (headers[":status"] == "200" and granted == "true") then
                               goto authorized
                             end
+                            request_handle:logWarn(string.format("granted:%s, x-athenz-principal:%s, x-athenz-domain:%s, method:%s, path:%s", granted, principal, domain, method, path))
                             request_handle:respond(
                               {[":status"] = "401", ["x-ahenz-domain"] = domain, ["x-ahenz-role"] = role},
                             "")
+
                             ::authorized::
                             -- if authorized, then we will set x-athenz-proxy header
                             request_handle:headers():add("x-athenz-proxy", "lua authz complete")

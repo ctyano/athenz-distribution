@@ -142,12 +142,6 @@ static_resources:
                         inline_string: |
                           function envoy_on_request(request_handle)
                             if request_handle:connection():ssl() ~= nil then
-                              -- extract x-athenz-principal from sans uri
-                              for _, uri in pairs(request_handle:connection():ssl():uriSanPeerCertificate()) do
-                                if string.sub(uri, 1, string.len("athenz://principal/")) == "athenz://principal/" then
-                                  request_handle:headers():add("x-athenz-principal", string.gsub(uri, "athenz://principal/(%w+)", "%1"))
-                                end
-                              end
                               -- extract x-athenz-domain and x-athenz-role from subject cn
                               local subject = request_handle:connection():ssl():subjectPeerCertificate()
                               if string.match(subject, ".*CN=(%w+):role.(%w+),.*") ~= nil then
@@ -157,6 +151,12 @@ static_resources:
                                 local role = string.gsub(subject, ".*CN=(%w+):role.(%w+),.*", "%2")
                                 request_handle:headers():add("x-athenz-role", role)
                                 request_handle:logInfo(string.format('%s was set to x-athenz-role from role cert', role))
+                              end
+                              -- extract x-athenz-principal from sans uri
+                              for _, uri in pairs(request_handle:connection():ssl():uriSanPeerCertificate()) do
+                                if string.sub(uri, 1, string.len("athenz://principal/")) == "athenz://principal/" then
+                                  request_handle:headers():add("x-athenz-principal", string.gsub(uri, "athenz://principal/(%w+)", "%1"))
+                                end
                               end
                               -- extract x-athenz-issued-at from valid from
                               request_handle:headers():add("x-athenz-issued-at", string.format('%d', request_handle:connection():ssl():validFromPeerCertificate()))

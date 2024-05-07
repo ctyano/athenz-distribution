@@ -346,7 +346,7 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo ""
 
 test-athenz-envoy2echoserver:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoserver" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoserver" | jq -r .request || (kubectl -n athenz logs deployment/client-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -363,14 +363,14 @@ test-athenz-envoy2envoyextauthz:
 	@echo ""
 
 test-athenz-envoy2envoyfilter:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
 
 test-athenz-envoy2envoywebhook:
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
-	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"

@@ -4,9 +4,9 @@
 
 ### Prerequisite
 
-- kubectl
-- jq
-- step
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/)
+- [jq](https://jqlang.github.io/jq/)
+- [step](https://smallstep.com/docs/step-cli/)
 
 ### Athenz Domain Management 
 

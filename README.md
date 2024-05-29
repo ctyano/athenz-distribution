@@ -4,7 +4,7 @@ This is an unofficial repository to provide tools, packages and instructions for
 
 This repository is currently privately owned and maintained by [ctyano](https://github.com/ctyano).
 
-Pull requests are always welcome. ❤️❤️
+Stars ⭐️ and Pull Requests ❤️  are always welcome.
 
 ## Minimum setup on a Kubernetes cluster ⎈
 

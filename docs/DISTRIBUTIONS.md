@@ -14,8 +14,8 @@ Primary Docker(OCI) image distributions:
   - [athenz-cli](https://github.com/users/ctyano/packages/container/package/athenz-cli)
     - includes various clis for debugging/demonstrating perposes.
   - [athenz-ui](https://github.com/users/ctyano/packages/container/package/athenz-ui)
-    - functional athenz ui.
-    - includes additional compatibiliry with oidc auth proxy.
+    - functional athenz web ui.
+    - includes additional compatibiliry with oidc auth proxy (e.g. [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)).
 
 External Docker(OCI) image distributions:
 

@@ -4,9 +4,9 @@
 
 ### Prerequisite
 
-- docker
-- jq
-- step
+- [docker](https://www.docker.com/)
+- [jq](https://jqlang.github.io/jq/)
+- [step](https://smallstep.com/docs/step-cli/)
 
 ### Athenz Domain Management 
 

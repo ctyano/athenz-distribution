@@ -24,6 +24,8 @@ Envoy configuration: [config.yaml](../kubernetes/athenz-client/kustomize/envoy/c
 
 ## How to try them out
 
+Setup [Kubernetes Showcase](https://github.com/ctyano/athenz-distribution/blob/main/docs/SHOWCASES_KUBERNETES.md#full-setup-on-a-kubernetes-cluster-) as prerequisite.
+
 ### client2echoserver
 
 [Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoserver.html)
@@ -344,3 +346,4 @@ A(curl) -->|https/tls| B(ingress server proxy envoy\n/stats/prometheus)
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://authorizer.athenz.svc.cluster.local/stats/prometheus"
 ```
+

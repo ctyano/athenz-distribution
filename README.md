@@ -2,7 +2,9 @@
 
 This is an unofficial repository to provide tools, packages and instructions for [Athenz](https://www.athenz.io).
 
-It is currently owned and maintained by [ctyano](https://github.com/ctyano).
+This repository is currently privately owned and maintained by [ctyano](https://github.com/ctyano).
+
+Stars ⭐️ and Pull Requests ❤️  are always welcome.
 
 ## Minimum setup on a Kubernetes cluster ⎈
 

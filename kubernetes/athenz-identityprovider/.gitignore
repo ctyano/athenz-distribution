@@ -3,6 +3,7 @@
 *.pkcs12
 *.srl
 *.jar
+*.jwt
 .ntoken
 athenz.conf
 admin

@@ -186,7 +186,7 @@ spec:
           env:
             - name: PORT
               value: "3000"
-          resources: *sia-resources
+          resources: *envoy-resources
         - name: authorization-proxy
           image: docker.io/athenz/authorization-proxy:latest
           imagePullPolicy: IfNotPresent

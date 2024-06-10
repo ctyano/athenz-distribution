@@ -1,7 +1,6 @@
-version: '3.9'
+version: "3.9"
 
 services:
-
   athenz-cli:
     container_name: athenz-cli
     build:
@@ -200,7 +199,7 @@ services:
 
   athenz-auth-core:
     container_name: athenz-auth-core
-    image: ghcr.io/ctyano/athenz-auth-core:latest
+    image: ghcr.io/t4niwa/athenz-auth-core:latest
     environment:
       JAR_DESTINATION: /athenz/plugins/
     volumes:

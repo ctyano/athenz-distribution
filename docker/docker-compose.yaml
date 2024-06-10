@@ -1,10 +1,9 @@
-version: '3.9'
+version: "3.9"
 
 services:
-
   athenz-cli:
     container_name: athenz-cli
-    image: ghcr.io/ctyano/athenz-cli:v${VERSION}
+    image: ghcr.io/t4niwa/athenz-cli:v${VERSION}
     depends_on:
       - athenz-zms-server
       - athenz-zts-server
@@ -57,7 +56,7 @@ services:
     container_name: athenz-ui
     depends_on:
       - athenz-zms-server
-    image: ghcr.io/ctyano/athenz-ui:v${VERSION}
+    image: ghcr.io/t4niwa/athenz-ui:v${VERSION}
     hostname: localhost
     expose:
       - 443
@@ -89,7 +88,7 @@ services:
 
   athenz-zms-server:
     container_name: athenz-zms-server
-    image: ghcr.io/ctyano/athenz-zms-server:v${VERSION}
+    image: ghcr.io/t4niwa/athenz-zms-server:v${VERSION}
     depends_on:
       - athenz-db
     hostname: localhost
@@ -126,7 +125,7 @@ services:
 
   athenz-zts-server:
     container_name: athenz-zts-server
-    image: ghcr.io/ctyano/athenz-zts-server:v${VERSION}
+    image: ghcr.io/t4niwa/athenz-zts-server:v${VERSION}
     depends_on:
       - athenz-db
     hostname: localhost
@@ -162,7 +161,7 @@ services:
 
   athenz-db:
     container_name: athenz-db
-    image: ghcr.io/ctyano/athenz-db:v${VERSION}
+    image: ghcr.io/t4niwa/athenz-db:v${VERSION}
     ports:
       - target: 3306
         published: 3306
@@ -180,7 +179,7 @@ services:
 
   athenz-auth-core:
     container_name: athenz-auth-core
-    image: ghcr.io/ctyano/athenz-auth-core:v${VERSION}
+    image: ghcr.io/t4niwa/athenz-auth-core:v${VERSION}
     environment:
       JAR_DESTINATION: /athenz/plugins/
     volumes:

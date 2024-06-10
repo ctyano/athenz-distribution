@@ -47,7 +47,7 @@ spec:
         # zts-roletoken -zts https://athenz-zts-server.athenz:4443/zts/v1 -svc-key-file /var/run/athenz/athenz_admin.private.pem -svc-cert-file /var/run/athenz/athenz_admin.cert.pem -domain sys.auth -role admin | rev | cut -d';' -f2- | rev | tr ';' '\n'
         # athenz-conf -svc-key-file /var//run/athenz/athenz_admin.private.pem -svc-cert-file /var/run/athenz/athenz_admin.cert.pem -z https://athenz-zms-server.athenz:4443/zms/v1 -t https://athenz-zts-server.athenz:4443/zts/v1 -o /tmp/athenz.conf && cat /tmp/athenz.conf | jq -r .
         - name: athenz-cli
-          image: ghcr.io/ctyano/athenz-cli:latest
+          image: ghcr.io/t4niwa/athenz-cli:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

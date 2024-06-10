@@ -28,7 +28,6 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
     permissions:
@@ -47,15 +46,13 @@ jobs:
     steps:
       # A GitHub Action to expose useful environment variables.
       # https://github.com/FranzDiebold/github-env-vars-action
-      -
-        name: GitHub Environment Variables Action
+      - name: GitHub Environment Variables Action
         id: env
         # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
         uses: FranzDiebold/github-env-vars-action@v2
 
       # A GitHub Action to prepare default environment variables.
-      -
-        name: Set Default Environment Variables
+      - name: Set Default Environment Variables
         id: default_env
         run: |
           # Use docker.io for Docker Hub if empty
@@ -68,8 +65,7 @@ jobs:
 
       # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
       # https://github.com/actions/checkout
-      -
-        name: Checkout repository
+      - name: Checkout repository
         id: checkout
         # You may pin to the exact commit or the version.
         # uses: https://github.com/actions/checkout/tags
@@ -80,8 +76,7 @@ jobs:
       # GitHub Action to login against a Docker registry.
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
-      -
-        name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
+      - name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
         id: login
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/login-action/tags
@@ -100,8 +95,7 @@ jobs:
       # - Optionally downloading and caching a version of Go by version and adding to PATH.
       # - Registering problem matchers for error output.
       # https://github.com/actions/setup-go
-      -
-        name: Setup Golang
+      - name: Setup Golang
         id: setup-go
         # You may pin to the exact commit or the version.
         # uses: https://github.com/actions/setup-go/tags
@@ -111,25 +105,22 @@ jobs:
           check-latest: true
 
       # A GitHub Action to set environment variables for Go
-      -
-        name: Set Golang env
+      - name: Set Golang env
         id: go-env
         run: |
           go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
 
       # A GitHub Action to setup Docker Compose
-      -
-        name: Set up Docker Compose
+      - name: Set up Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get -y install docker-compose
 
       # A GitHub Action to deploy application with Docker Compose
-      -
-        name: Deploy Application
+      - name: Deploy Application
         run: |
           # Get latest release tag with:
-          #   curl -s https://api.github.com/repos/ctyano/athenz-distribution/releases \
+          #   curl -s https://api.github.com/repos/t4niwa/athenz-distribution/releases \
           #     | jq -r .[].tag_name \
           #     | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
           #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
@@ -146,10 +137,8 @@ jobs:
           VERSION=${CURRENT_VERSION} make build-deploy-docker-athenz
 
       # A GitHub Action to check and test application
-      -
-        name: Run Tests
+      - name: Run Tests
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make check-docker-athenz test-docker-athenz
-

@@ -29,6 +29,6 @@ configMapGenerator:
   - extended-config.js=config/extended-config.js
   name: athenz-ui-config
 images:
-- name: ghcr.io/ctyano/athenz-ui:latest
-  newName: ghcr.io/ctyano/athenz-ui
+- name: ghcr.io/t4niwa/athenz-ui:latest
+  newName: ghcr.io/t4niwa/athenz-ui
   newTag: latest

@@ -142,145 +142,145 @@ jobs:
         with:
           cluster_name: kind
 
-      # A GitHub Action to build Docker container images
-      -
-        name: Build Docker container images
-        run: |
-          # Get latest release tag with:
-          #   curl -s https://api.github.com/repos/ctyano/athenz-distribution/releases \
-          #     | jq -r .[].tag_name \
-          #     | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-          #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-          #     | head -n1
-          CURRENT_VERSION="$( \
-            curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
-              | jq -r .[].tag_name \
-              | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-              | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-              | sort -ru \
-              | head -n1 \
-          )"
-          set -ex
-          VERSION=${CURRENT_VERSION} make build
+      # # A GitHub Action to build Docker container images
+      # -
+      #   name: Build Docker container images
+      #   run: |
+      #     # Get latest release tag with:
+      #     #   curl -s https://api.github.com/repos/t4niwa/athenz-distribution/releases \
+      #     #     | jq -r .[].tag_name \
+      #     #     | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
+      #     #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
+      #     #     | head -n1
+      #     CURRENT_VERSION="$( \
+      #       curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
+      #         | jq -r .[].tag_name \
+      #         | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
+      #         | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
+      #         | sort -ru \
+      #         | head -n1 \
+      #     )"
+      #     set -ex
+      #     VERSION=${CURRENT_VERSION} make build
 
-      # A GitHub Action to pull container images
-      -
-        name: Pull container images
-        run: |
-          set -ex
-          make load-docker-images-external
+      # # A GitHub Action to pull container images
+      # -
+      #   name: Pull container images
+      #   run: |
+      #     set -ex
+      #     make load-docker-images-external
 
-      # A GitHub Action to load container images to KinD cluster
-      -
-        name: Load container images to KinD cluster
-        run: |
-          set -ex
-          df -h
-          make load-kubernetes-images
+      # # A GitHub Action to load container images to KinD cluster
+      # -
+      #   name: Load container images to KinD cluster
+      #   run: |
+      #     set -ex
+      #     df -h
+      #     make load-kubernetes-images
 
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Application
-        run: |
-          set -ex
-          make deploy-kubernetes-athenz
+      # # A GitHub Action to deploy application to a Kubernetes cluster
+      # -
+      #   name: Deploy Application
+      #   run: |
+      #     set -ex
+      #     make deploy-kubernetes-athenz
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make check-kubernetes-athenz test-kubernetes-athenz
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make check-kubernetes-athenz test-kubernetes-athenz
 
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Applicationfor athenz-identityprovider
-        run: |
-          make deploy-kubernetes-athenz-identityprovider
+      # # A GitHub Action to deploy application to a Kubernetes cluster
+      # -
+      #   name: Deploy Applicationfor athenz-identityprovider
+      #   run: |
+      #     make deploy-kubernetes-athenz-identityprovider
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for athenz-identityprovider
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-identityprovider
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for athenz-identityprovider
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-identityprovider
 
-      # A GitHub Action to deploy application to a Kubernetes cluster
-      -
-        name: Deploy Applicationfor athenz-workloads
-        run: |
-          make deploy-kubernetes-athenz-workloads
+      # # A GitHub Action to deploy application to a Kubernetes cluster
+      # -
+      #   name: Deploy Applicationfor athenz-workloads
+      #   run: |
+      #     make deploy-kubernetes-athenz-workloads
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for athenz-authorizer
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-authorizer
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for athenz-authorizer
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-authorizer
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for athenz-authzenvoy
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-authzenvoy
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for athenz-authzenvoy
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-authzenvoy
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for athenz-authzwebhook
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-authzwebhook
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for athenz-authzwebhook
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-authzwebhook
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for athenz-authzproxy
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-authzproxy
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for athenz-authzproxy
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-authzproxy
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for athenz-client
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-client
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for athenz-client
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-client
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with ExtAuthz filter
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-envoy2envoyextauthz
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with ExtAuthz filter
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-envoy2envoyextauthz
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-envoy2envoywebhook
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-envoy2envoywebhook
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-envoy2envoyfilter
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-envoy2envoyfilter
 
-      # A GitHub Action to check and test application
-      -
-        name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
-        run: |
-          # Run tests against your deployed application in KinD
-          # Replace this with your test command
-          make test-kubernetes-athenz-envoy2authzproxy
+      # # A GitHub Action to check and test application
+      # -
+      #   name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
+      #   run: |
+      #     # Run tests against your deployed application in KinD
+      #     # Replace this with your test command
+      #     make test-kubernetes-athenz-envoy2authzproxy

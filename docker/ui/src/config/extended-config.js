@@ -43,17 +43,17 @@ const config = {
             },
             {
                 title: 'GitHub',
-                url: 'https://github.com/ctyano/athenz-distribution',
+                url: 'https://github.com/t4niwa/athenz-distribution',
                 target: '_blank',
             },
             {
                 title: 'Contribute',
-                url: 'https://github.com/ctyano/athenz-distribution/pulls',
+                url: 'https://github.com/t4niwa/athenz-distribution/pulls',
                 target: '_blank',
             },
             {
                 title: 'Contact Us',
-                url: 'https://github.com/ctyano/',
+                url: 'https://github.com/t4niwa/',
                 target: '_blank',
             },
             {

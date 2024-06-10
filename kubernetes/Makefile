@@ -1,5 +1,5 @@
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=ghcr.io/t4niwa/
 endif
 
 install-kustomize:
@@ -67,10 +67,10 @@ kind-shutdown:
 	kind delete cluster
 
 kustomize-edit-athenz-db-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/t4niwa/" ]; then \
 	( \
 	cd athenz-db/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-db:latest=$(DOCKER_REGISTRY)athenz-db:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-db:latest=$(DOCKER_REGISTRY)athenz-db:latest \
 	) \
 	fi
 
@@ -78,10 +78,10 @@ setup-athenz-db: kustomize-edit-athenz-db-image
 	kubectl apply -k athenz-db/kustomize
 
 kustomize-edit-athenz-cli-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/t4niwa/" ]; then \
 	( \
 	cd athenz-cli/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	) \
 	fi
 
@@ -89,11 +89,11 @@ setup-athenz-cli: kustomize-edit-athenz-cli-image
 	kubectl apply -k athenz-cli/kustomize
 
 kustomize-edit-athenz-zms-server-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/t4niwa/" ]; then \
 	( \
 	cd athenz-zms-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
 	) \
 	fi
 
@@ -101,12 +101,12 @@ setup-athenz-zms-server: setup-athenz-db kustomize-edit-athenz-zms-server-image
 	kubectl apply -k athenz-zms-server/kustomize
 
 kustomize-edit-athenz-zts-server-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/t4niwa/" ]; then \
 	( \
 	cd athenz-zts-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
 	) \
 	fi
 
@@ -114,10 +114,10 @@ setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server kustomize-edit-
 	kubectl apply -k athenz-zts-server/kustomize
 
 kustomize-edit-athenz-ui-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/t4niwa/" ]; then \
 	( \
 	cd athenz-ui/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:latest \
+	&& kustomize edit set image ghcr.io/t4niwa/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:latest \
 	) \
 	fi
 

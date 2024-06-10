@@ -57,7 +57,7 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          image: &sia-image ghcr.io/t4niwa/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:
@@ -119,7 +119,7 @@ spec:
           resources: *sia-resources
           volumeMounts: *sia-volumeMounts
         - name: athenz-cli
-          image: ghcr.io/ctyano/athenz-cli:latest
+          image: ghcr.io/t4niwa/athenz-cli:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

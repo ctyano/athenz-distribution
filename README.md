@@ -2,7 +2,7 @@
 
 This is an unofficial repository to provide tools, packages and instructions for [Athenz](https://www.athenz.io).
 
-This repository is currently privately owned and maintained by [ctyano](https://github.com/ctyano).
+This repository is currently privately owned and maintained by [t4niwa](https://github.com/t4niwa).
 
 Stars ⭐️ and Pull Requests ❤️  are always welcome.
 

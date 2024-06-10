@@ -25,7 +25,7 @@ spec:
           emptyDir: {}
       containers:
         - name: athenz-db
-          image: ghcr.io/ctyano/athenz-db:latest
+          image: ghcr.io/t4niwa/athenz-db:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

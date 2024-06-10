@@ -24,11 +24,11 @@ Envoy configuration: [config.yaml](../kubernetes/athenz-client/kustomize/envoy/c
 
 ## How to try them out
 
-Setup [Kubernetes Showcase](https://github.com/ctyano/athenz-distribution/blob/main/docs/SHOWCASES_KUBERNETES.md#full-setup-on-a-kubernetes-cluster-) as prerequisite.
+Setup [Kubernetes Showcase](https://github.com/t4niwa/athenz-distribution/blob/main/docs/SHOWCASES_KUBERNETES.md#full-setup-on-a-kubernetes-cluster-) as prerequisite.
 
 ### client2echoserver
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2echoserver.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2echoserver.html)
 
 ```mermaid
 flowchart LR
@@ -41,7 +41,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2extauthz
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2extauthz.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2extauthz.html)
 
 ```mermaid
 flowchart LR
@@ -54,7 +54,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2extauthzmtls
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2extauthzmtls.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2extauthzmtls.html)
 
 ```mermaid
 flowchart LR
@@ -67,7 +67,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2authzproxy
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2authzproxy.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2authzproxy.html)
 
 ```mermaid
 flowchart LR
@@ -80,7 +80,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli — /bin/sh -c "c
 
 ### tokensidecar
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/tokensidecar.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/tokensidecar.html)
 
 ```mermaid
 flowchart LR
@@ -93,7 +93,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### authorizationsidecar
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/authorizationsidecar.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/authorizationsidecar.html)
 
 ```mermaid
 flowchart LR
@@ -122,7 +122,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### authzproxy(authorization-proxy)
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/authzproxy.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/authzproxy.html)
 
 ```mermaid
 flowchart LR
@@ -151,7 +151,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2filterauthzmtls
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2filterauthzmtls.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2filterauthzmtls.html)
 
 ```mermaid
 flowchart LR
@@ -164,7 +164,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2filterauthzjwt
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2filterauthzjwt.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2filterauthzjwt.html)
 
 ```mermaid
 flowchart LR
@@ -177,7 +177,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2filterauthzmtlsjwt
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2filterauthzmtlsjwt.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2filterauthzmtlsjwt.html)
 
 ```mermaid
 flowchart LR
@@ -190,7 +190,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### envoyjwtfilter(jwt filter/lua filter)
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/envoyjwtfilter.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/envoyjwtfilter.html)
 
 ```mermaid
 flowchart LR
@@ -209,7 +209,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2webhookauthzmtls
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2webhookauthzmtls.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2webhookauthzmtls.html)
 
 ```mermaid
 flowchart LR
@@ -223,7 +223,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2webhookauthzjwt
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2webhookauthzjwt.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2webhookauthzjwt.html)
 
 ```mermaid
 flowchart LR
@@ -237,7 +237,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### client2webhookauthzmtlsjwt
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/client2webhookauthzmtlsjwt.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/client2webhookauthzmtlsjwt.html)
 
 ```mermaid
 flowchart LR
@@ -251,7 +251,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### envoywebhook(jwt filter/lua filter/lua filter for zts authz webhook)
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/envoywebhook.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/envoywebhook.html)
 
 ```mermaid
 flowchart LR
@@ -271,7 +271,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### echoserver(client)
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/echoserver.client.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/echoserver.client.html)
 
 ```mermaid
 flowchart LR
@@ -284,7 +284,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### echoserver(authorizer)
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/echoserver.authorizer.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/echoserver.authorizer.html)
 
 ```mermaid
 flowchart LR
@@ -297,7 +297,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### zms
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/zms.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/zms.html)
 
 ```mermaid
 flowchart LR
@@ -310,7 +310,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 ### zts
 
-[Load Test Result](https://ctyano.github.io/athenz-distribution/zts.html)
+[Load Test Result](https://t4niwa.github.io/athenz-distribution/zts.html)
 
 ```mermaid
 flowchart LR

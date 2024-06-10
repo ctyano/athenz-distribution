@@ -13,6 +13,6 @@ resources:
 
 configMapGenerator:
 images:
-- name: ghcr.io/ctyano/athenz-db:latest
-  newName: ghcr.io/ctyano/athenz-db
+- name: ghcr.io/t4niwa/athenz-db:latest
+  newName: ghcr.io/t4niwa/athenz-db
   newTag: latest

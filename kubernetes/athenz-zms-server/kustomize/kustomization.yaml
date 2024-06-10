@@ -34,9 +34,9 @@ configMapGenerator:
   - ca.cert.pem=certs/ca.cert.pem
   name: athenz-cacert
 images:
-- name: ghcr.io/ctyano/athenz-auth-core:latest
-  newName: ghcr.io/ctyano/athenz-auth-core
+- name: ghcr.io/t4niwa/athenz-auth-core:latest
+  newName: ghcr.io/t4niwa/athenz-auth-core
   newTag: latest
-- name: ghcr.io/ctyano/athenz-zms-server:latest
-  newName: ghcr.io/ctyano/athenz-zms-server
+- name: ghcr.io/t4niwa/athenz-zms-server:latest
+  newName: ghcr.io/t4niwa/athenz-zms-server
   newTag: latest

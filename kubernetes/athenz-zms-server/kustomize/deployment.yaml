@@ -59,7 +59,7 @@ spec:
                 path: ca-certificates.crt
       initContainers:
         - name: athenz-auth-core
-          image: ghcr.io/ctyano/athenz-auth-core:latest
+          image: ghcr.io/t4niwa/athenz-auth-core:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: JAR_DESTINATION
@@ -76,7 +76,7 @@ spec:
               mountPath: /athenz/plugins
         # TODO: athenz-zms-server-wait should be implemented in athenz-zms-server in future
         - name: athenz-zms-server-wait
-          image: ghcr.io/ctyano/athenz-zms-server:latest
+          image: ghcr.io/t4niwa/athenz-zms-server:latest
           imagePullPolicy: IfNotPresent
           resources:
             limits:
@@ -90,7 +90,7 @@ spec:
               while true; do nc -vzw3 athenz-db.athenz.svc.cluster.local 3306 && break; done
       containers:
         - name: athenz-zms-server
-          image: ghcr.io/ctyano/athenz-zms-server:latest
+          image: ghcr.io/t4niwa/athenz-zms-server:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

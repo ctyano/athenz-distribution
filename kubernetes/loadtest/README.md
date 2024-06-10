@@ -3,8 +3,8 @@
 ## How to setup
 
 ```
-DOCKER_REGISTRY=ghcr.io/ctyano
-kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=${DOCKER_REGISTRY:-ghcr.io/ctyano/}docker-vegeta:latest
+DOCKER_REGISTRY=ghcr.io/t4niwa
+kustomize edit set image ghcr.io/t4niwa/docker-vegeta:latest=${DOCKER_REGISTRY:-ghcr.io/t4niwa/}docker-vegeta:latest
 kubectl apply -k kustomize
 ```
 

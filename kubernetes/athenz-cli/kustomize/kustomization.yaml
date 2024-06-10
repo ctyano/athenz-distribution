@@ -17,6 +17,6 @@ secretGenerator:
   name: athenz-admin-keys
   type: Opaque
 images:
-- name: ghcr.io/ctyano/athenz-cli:latest
-  newName: ghcr.io/ctyano/athenz-cli
+- name: ghcr.io/t4niwa/athenz-cli:latest
+  newName: ghcr.io/t4niwa/athenz-cli
   newTag: latest

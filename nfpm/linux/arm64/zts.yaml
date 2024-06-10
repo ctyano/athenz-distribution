@@ -1,9 +1,9 @@
 # https://nfpm.goreleaser.com/configuration/
 name: athenz-zts
 description: Package for Athenz ZTS
-maintainer: ctyano <ctyano@duck.com>
-vendor: ctyano
-homepage: https://ctyano.com
+maintainer: t4niwa <t4niwa@duck.com>
+vendor: t4niwa
+homepage: https://t4niwa.com
 license: Private
 arch: arm64
 platform: linux

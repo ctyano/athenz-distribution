@@ -32,7 +32,7 @@ spec:
                 path: ca-certificates.crt
       containers:
         - name: vegeta
-          image: ghcr.io/ctyano/docker-vegeta:latest
+          image: ghcr.io/t4niwa/docker-vegeta:latest
           imagePullPolicy: IfNotPresent
           command:
             - tail

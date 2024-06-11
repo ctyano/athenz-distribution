@@ -39,7 +39,7 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/t4niwa/k8s-athenz-sia:latest
+          image: &sia-image docker.io/athenz/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:
@@ -52,7 +52,7 @@ spec:
             - |
               while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && break; done
         - name: sia-init
-          image: &sia-image ghcr.io/t4niwa/k8s-athenz-sia:latest
+          image: &sia-image docker.io/athenz/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           args: &sia-args
             - --mode=init
@@ -290,7 +290,7 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/t4niwa/k8s-athenz-sia:latest
+          image: &sia-image docker.io/athenz/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:

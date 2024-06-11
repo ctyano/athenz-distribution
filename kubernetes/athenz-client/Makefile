@@ -129,7 +129,7 @@ kustomize-edit-athenz-client-image:
 	( \
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/t4niwa/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/t4niwa/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+	&& kustomize edit set image docker.io/athenz/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 	) \
 	fi
 

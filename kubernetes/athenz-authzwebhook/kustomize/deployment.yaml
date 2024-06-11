@@ -49,7 +49,7 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/t4niwa/k8s-athenz-sia:latest
+          image: &sia-image docker.io/athenz/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:

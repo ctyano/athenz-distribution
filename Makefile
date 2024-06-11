@@ -153,7 +153,7 @@ mirror-athenz-amd64-images:
 	IMAGE=athenz-zts-server; docker pull --platform linux/amd64 ghcr.io/t4niwa/$$IMAGE:latest && docker tag ghcr.io/t4niwa/$$IMAGE:latest docker.io/t4niwa/$$IMAGE:latest && docker push docker.io/t4niwa/$$IMAGE:latest
 	IMAGE=athenz-ui; docker pull --platform linux/amd64 ghcr.io/t4niwa/$$IMAGE:latest && docker tag ghcr.io/t4niwa/$$IMAGE:latest docker.io/t4niwa/$$IMAGE:latest && docker push docker.io/t4niwa/$$IMAGE:latest
 	IMAGE=athenz-cli; docker pull --platform linux/amd64 ghcr.io/t4niwa/$$IMAGE:latest && docker tag ghcr.io/t4niwa/$$IMAGE:latest docker.io/t4niwa/$$IMAGE:latest && docker push docker.io/t4niwa/$$IMAGE:latest
-	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 ghcr.io/t4niwa/$$IMAGE:latest && docker tag ghcr.io/t4niwa/$$IMAGE:latest docker.io/t4niwa/$$IMAGE:latest && docker push docker.io/t4niwa/$$IMAGE:latest
+	# IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 ghcr.io/t4niwa/$$IMAGE:latest && docker tag ghcr.io/t4niwa/$$IMAGE:latest docker.io/t4niwa/$$IMAGE:latest && docker push docker.io/t4niwa/$$IMAGE:latest
 	IMAGE=athenz-auth-core; docker pull --platform linux/amd64 ghcr.io/t4niwa/$$IMAGE:latest && docker tag ghcr.io/t4niwa/$$IMAGE:latest docker.io/t4niwa/$$IMAGE:latest && docker push docker.io/t4niwa/$$IMAGE:latest
 
 install-golang:
@@ -397,7 +397,7 @@ load-docker-images-external:
 	docker pull docker.io/envoyproxy/envoy:v1.29-latest
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
-	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull docker.io/athenz/k8s-athenz-sia:latest
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
 	docker pull docker.io/athenz/authorization-proxy:latest
 

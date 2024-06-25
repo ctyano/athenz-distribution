@@ -127,7 +127,7 @@ jobs:
         id: kind
         # You may pin to the exact commit or the version.
         # uses: https://github.com/helm/kind-action/tags
-        uses: helm/kind-action@1
+        uses: helm/kind-action@v1
         with:
           cluster_name: kind
 

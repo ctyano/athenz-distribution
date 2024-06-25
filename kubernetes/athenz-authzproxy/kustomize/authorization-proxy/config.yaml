@@ -26,16 +26,6 @@ proxy:
   bufferSize: 4096 # No defaults
   originHealthCheckPaths: [/status] # No defaults
   noAuthPaths: [] # No defaults
-  mappingRules:
-    athenz:
-      - method: GET
-        action: get
-        path: "/server/{path}"
-        resource: "server.{path}"
-      - method: GET
-        action: get
-        path: "/server?{param}={value}"
-        resource: "server.{param}.{value}"
 # Configurations for authorization section relies on:
 # AthenZ/athenz-authorizer
 # https://github.com/AthenZ/athenz-authorizer/tree/master#configuration
@@ -46,6 +36,17 @@ authorization:
     expiryMargin: 48h # default 3h
     refreshPeriod: 1h # default 30m
     purgePeriod: 24h # default 1h
+    resourcePrefix: ""
+    mappingRules:
+      athenz:
+        - method: GET
+          action: get
+          path: "/server/{path}"
+          resource: "server.{path}"
+        - method: GET
+          action: get
+          path: "/server?{param}={value}"
+          resource: "server.{param}.{value}"
   jwk:
     refreshPeriod: 30s # No defaults
   accessToken:

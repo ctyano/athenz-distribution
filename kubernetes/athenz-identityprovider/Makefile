@@ -54,7 +54,7 @@ register-athenz-identityprovider:
 			-d \
 			$$(cat kustomize/kustomization.yaml | yq .namespace) \
 			set-domain-template \
-			instance_registeration \
+			instance_registration \
 			instanceregisterer="user.athenz_admin" \
 			service="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g')"
 	kubectl -n athenz exec deployment/athenz-cli -it -- \

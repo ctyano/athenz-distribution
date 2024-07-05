@@ -10,7 +10,7 @@ clean-docker:
 clean-athenz: clean-docker clean-certificates
 
 copy-to-compose:
-	mkdir -p admin zms/truststore zts/truststore zms/truststore zts/keystore ||:
+	mkdir -p admin zms/truststore zts/truststore zms/keystore zts/keystore ||:
 	cp -r ../keys ../certs admin/
 	cp -r ../keys ../certs zms/var/
 	cp -r ../keys ../certs zts/var/

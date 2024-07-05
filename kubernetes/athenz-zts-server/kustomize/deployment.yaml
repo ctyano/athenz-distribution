@@ -63,6 +63,8 @@ spec:
                 path: zts.private.pem
               - key: zts.public.pem
                 path: zts.public.pem
+              - key: ca.private.pem
+                path: ca.private.pem
         - name: athenz-admin-keys
           secret:
             secretName: athenz-admin-keys

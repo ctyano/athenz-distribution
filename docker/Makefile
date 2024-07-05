@@ -1,7 +1,7 @@
 clean-certificates:
 	rm -rf admin/{keys,certs}
-	rm -rf zms/var/{keys,certs,truststore}
-	rm -rf zts/var/{keys,certs,truststore}
+	rm -rf zms/var/{keys,certs,truststore,keystore}
+	rm -rf zts/var/{keys,certs,truststore,keystore}
 	rm -rf ui/tls/*.*
 
 clean-docker:

@@ -55,7 +55,7 @@ if [ ! -z "${ZMS_CLIENT_KEYSTORE_CERT_PEM_PATH}" -a ! -z "${ZMS_CLIENT_KEYSTORE_
     openssl pkcs12 -export -noiter -out $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.keystore_path=" | cut -d= -f2) -in ${ZMS_CLIENT_KEYSTORE_CERT_PEM_PATH} -inkey ${ZMS_CLIENT_KEYSTORE_KEY_PEM_PATH} -password pass:${ZMS_CLIENT_KEYSTORE_PASS:-athenz}
 fi
 if [ ! -z "${ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH}" -a ! -z "${ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH}" ]; then
-    openssl pkcs12 -export -noiter -out $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.ssl_key_store=" | cut -d= -f2) -in ${ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH} -inkey ${ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH} -password pass:${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz}
+    openssl pkcs12 -export -noiter -out $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.ssl_key_store=" | cut -d= -f2) -in ${ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH} -inkey ${ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH} -password pass:${ZTS_SIGNER_KEYSTORE_PASS:-athenz}
     openssl pkcs12 -export -noiter -out $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.keystore_signer.keystore_path=" | cut -d= -f2) -in ${ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH} -inkey ${ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH} -password pass:${ZTS_SIGNER_KEYSTORE_PASS:-athenz}
 fi
 # system properties for private keys

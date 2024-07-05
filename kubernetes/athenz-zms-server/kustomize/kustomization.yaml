@@ -22,6 +22,7 @@ secretGenerator:
   type: Opaque
 - files:
   - zms.cert.pem=certs/zms.cert.pem
+  - ca.cert.pem=certs/ca.cert.pem
   name: athenz-zms-certs
   type: Opaque
 

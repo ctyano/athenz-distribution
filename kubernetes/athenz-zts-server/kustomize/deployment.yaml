@@ -52,6 +52,8 @@ spec:
             items:
               - key: zts.cert.pem
                 path: zts.cert.pem
+              - key: ca.cert.pem
+                path: ca.cert.pem
         - name: athenz-zts-keys
           secret:
             secretName: athenz-zts-keys
@@ -251,6 +253,18 @@ spec:
               value: /etc/ssl/certs/ca-certificates.crt
             - name: ZMS_CLIENT_TRUSTSTORE_PEM_PATH
               value: /etc/ssl/certs/ca-certificates.crt
+            - name: ZTS_KEYSTORE_CERT_PEM_PATH
+              value: /opt/athenz/zts/var/certs/zts.cert.pem
+            - name: ZTS_KEYSTORE_KEY_PEM_PATH
+              value: /opt/athenz/zts/var/keys/zts.private.pem
+            - name: ZMS_CLIENT_KEYSTORE_CERT_PEM_PATH
+              value: /opt/athenz/zts/var/certs/zts.cert.pem
+            - name: ZMS_CLIENT_KEYSTORE_KEY_PEM_PATH
+              value: /opt/athenz/zts/var/keys/zts.private.pem
+            - name: ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH
+              value: /opt/athenz/zts/var/certs/ca.cert.pem
+            - name: ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH
+              value: /opt/athenz/zts/var/keys/ca.private.pem
           ports:
             - name: https
               containerPort: 4443

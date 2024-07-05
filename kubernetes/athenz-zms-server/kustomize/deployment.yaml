@@ -26,17 +26,24 @@ spec:
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
       volumes:
-        - name: athenz-zms-cert-stores
+        #- name: athenz-zms-cert-stores
+        #  secret:
+        #    secretName: athenz-zms-cert-stores
+        #    defaultMode: 0555
+        #    items:
+        #      - key: zms_keystore.pkcs12
+        #        path: zms_keystore.pkcs12
+        #      #- key: zms_truststore.jks
+        #      #  path: zms_truststore.jks
+        #      #- key: zms_truststore.pkcs12
+        #      #  path: zms_truststore.pkcs12
+        - name: athenz-zms-certs
           secret:
-            secretName: athenz-zms-cert-stores
+            secretName: athenz-zms-certs
             defaultMode: 0555
             items:
-              - key: zms_keystore.pkcs12
-                path: zms_keystore.pkcs12
-              #- key: zms_truststore.jks
-              #  path: zms_truststore.jks
-              #- key: zms_truststore.pkcs12
-              #  path: zms_truststore.pkcs12
+              - key: zms.cert.pem
+                path: zms.cert.pem
         - name: athenz-zms-keys
           secret:
             secretName: athenz-zms-keys
@@ -48,6 +55,8 @@ spec:
           configMap:
             name: athenz-zms-conf
         - name: athenz-plugins
+          emptyDir: {}
+        - name: athenz-key-store
           emptyDir: {}
         - name: athenz-trust-store
           emptyDir: {}
@@ -169,9 +178,11 @@ spec:
             - name: athenz-zms-keys
               mountPath: /opt/athenz/zms/var/keys
               readOnly: true
-            - name: athenz-zms-cert-stores
-              mountPath: /opt/athenz/zms/var/certs
-              readOnly: true
+            #- name: athenz-zms-cert-stores
+            #  mountPath: /opt/athenz/zms/var/certs
+            #  readOnly: true
+            - name: athenz-key-store
+              mountPath: /var/run/athenz/keystore
             - name: athenz-trust-store
               mountPath: /var/run/athenz/truststore
             - name: athenz-plugins

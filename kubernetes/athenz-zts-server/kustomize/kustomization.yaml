@@ -12,11 +12,15 @@ generatorOptions:
   disableNameSuffixHash: true
 
 secretGenerator:
+#- files:
+#  - zts_keystore.pkcs12=certs/zts_keystore.pkcs12
+#  - zts_signer_keystore.pkcs12=certs/zts_signer_keystore.pkcs12
+#  - zms_client_keystore.pkcs12=certs/zms_client_keystore.pkcs12
+#  name: athenz-zts-cert-stores
+#  type: Opaque
 - files:
-  - zts_keystore.pkcs12=certs/zts_keystore.pkcs12
-  - zts_signer_keystore.pkcs12=certs/zts_signer_keystore.pkcs12
-  - zms_client_keystore.pkcs12=certs/zms_client_keystore.pkcs12
-  name: athenz-zts-cert-stores
+  - zts.cert.pem=certs/zts.cert.pem
+  name: athenz-zts-certs
   type: Opaque
 - files:
   - zts.private.pem=keys/zts.private.pem

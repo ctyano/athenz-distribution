@@ -26,25 +26,34 @@ spec:
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
       volumes:
-        - name: athenz-zts-cert-stores
+        #- name: athenz-zts-cert-stores
+        #  secret:
+        #    secretName: athenz-zts-cert-stores
+        #    defaultMode: 0555
+        #    items:
+        #      - key: zts_keystore.pkcs12
+        #        path: zts_keystore.pkcs12
+        #      #- key: zts_truststore.jks
+        #      #  path: zts_truststore.jks
+        #      #- key: zts_truststore.pkcs12
+        #      #  path: zts_truststore.pkcs12
+        #      - key: zts_signer_keystore.pkcs12
+        #        path: zts_signer_keystore.pkcs12
+        #      - key: zms_client_keystore.pkcs12
+        #        path: zms_client_keystore.pkcs12
+        #      #- key: zms_client_truststore.jks
+        #      #  path: zms_client_truststore.jks
+        #      #- key: zms_client_truststore.pkcs12
+        #      #  path: zms_client_truststore.pkcs12
+        - name: athenz-zts-certs
           secret:
-            secretName: athenz-zts-cert-stores
+            secretName: athenz-zts-certs
             defaultMode: 0555
             items:
-              - key: zts_keystore.pkcs12
-                path: zts_keystore.pkcs12
-              #- key: zts_truststore.jks
-              #  path: zts_truststore.jks
-              #- key: zts_truststore.pkcs12
-              #  path: zts_truststore.pkcs12
-              - key: zts_signer_keystore.pkcs12
-                path: zts_signer_keystore.pkcs12
-              - key: zms_client_keystore.pkcs12
-                path: zms_client_keystore.pkcs12
-              #- key: zms_client_truststore.jks
-              #  path: zms_client_truststore.jks
-              #- key: zms_client_truststore.pkcs12
-              #  path: zms_client_truststore.pkcs12
+              - key: zts.cert.pem
+                path: zts.cert.pem
+              - key: ca.cert.pem
+                path: ca.cert.pem
         - name: athenz-zts-keys
           secret:
             secretName: athenz-zts-keys
@@ -54,6 +63,8 @@ spec:
                 path: zts.private.pem
               - key: zts.public.pem
                 path: zts.public.pem
+              - key: ca.private.pem
+                path: ca.private.pem
         - name: athenz-admin-keys
           secret:
             secretName: athenz-admin-keys
@@ -67,6 +78,8 @@ spec:
           configMap:
             name: athenz-zts-conf
         - name: athenz-plugins
+          emptyDir: {}
+        - name: athenz-key-store
           emptyDir: {}
         - name: athenz-trust-store
           emptyDir: {}
@@ -242,6 +255,18 @@ spec:
               value: /etc/ssl/certs/ca-certificates.crt
             - name: ZMS_CLIENT_TRUSTSTORE_PEM_PATH
               value: /etc/ssl/certs/ca-certificates.crt
+            - name: ZTS_KEYSTORE_CERT_PEM_PATH
+              value: /opt/athenz/zts/var/certs/zts.cert.pem
+            - name: ZTS_KEYSTORE_KEY_PEM_PATH
+              value: /opt/athenz/zts/var/keys/zts.private.pem
+            - name: ZMS_CLIENT_KEYSTORE_CERT_PEM_PATH
+              value: /opt/athenz/zts/var/certs/zts.cert.pem
+            - name: ZMS_CLIENT_KEYSTORE_KEY_PEM_PATH
+              value: /opt/athenz/zts/var/keys/zts.private.pem
+            - name: ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH
+              value: /opt/athenz/zts/var/certs/ca.cert.pem
+            - name: ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH
+              value: /opt/athenz/zts/var/keys/ca.private.pem
           ports:
             - name: https
               containerPort: 4443
@@ -284,12 +309,17 @@ spec:
             - name: athenz-zts-keys
               mountPath: /opt/athenz/zts/var/keys
               readOnly: true
+            - name: athenz-zts-certs
+              mountPath: /opt/athenz/zts/var/certs
+              readOnly: true
             - name: athenz-conf
               mountPath: /opt/athenz/zts/conf/athenz
               readOnly: true
-            - name: athenz-zts-cert-stores
-              mountPath: /opt/athenz/zts/var/certs
-              readOnly: true
+            #- name: athenz-zts-cert-stores
+            #  mountPath: /opt/athenz/zts/var/certs
+            #  readOnly: true
+            - name: athenz-key-store
+              mountPath: /var/run/athenz/keystore
             - name: athenz-trust-store
               mountPath: /var/run/athenz/truststore
             - name: athenz-plugins

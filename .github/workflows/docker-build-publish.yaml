@@ -118,7 +118,7 @@ jobs:
         id: meta
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/metadata-action/tags
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/${{ env.DOCKER_REGISTRY_IMAGE }}
           # for latest tag
@@ -164,7 +164,7 @@ jobs:
         id: qemu
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/setup-qemu-action/tags
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       # GitHub Action to set up Docker Buildx.
       # https://github.com/docker/setup-buildx-action
@@ -173,7 +173,7 @@ jobs:
         id: buildx
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/setup-buildx-action/tags
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       # This action sets up a go environment for use in actions by:
       # - Optionally downloading and caching a version of Go by version and adding to PATH.
@@ -202,7 +202,7 @@ jobs:
         name: Cache Go Modules
         id: cache-go
         # uses: https://github.com/actions/cache/tags
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -229,7 +229,7 @@ jobs:
         name: Setup Java
         id: setup-java
         # uses: https://github.com/actions/setup-java/tags
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '11'

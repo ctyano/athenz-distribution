@@ -233,7 +233,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '11'
-          cache: maven
+          #cache: maven
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action

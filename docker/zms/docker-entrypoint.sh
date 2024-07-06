@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 
 if [ -z "${ROOT}" ]; then
     BINDIR=$(dirname "$0")
@@ -32,10 +33,12 @@ if [ ! -z "${ZMS_TRUSTSTORE_PASS}" ]; then
 fi
 [ ! -z "${ZMS_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.ssl_key_store_password=${ZMS_KEYSTORE_PASS}"
 if [ ! -z "${ZMS_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool -import -noprompt -file ${ZMS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZMS_TRUSTSTORE_PASS:-athenz}
+    keytool --list -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZMS_TRUSTSTORE_PASS:-athenz} | grep ssl_trust_store || \
+      keytool -import -noprompt -file ${ZMS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZMS_TRUSTSTORE_PASS:-athenz}
 fi
 if [ ! -z "${ZMS_KEYSTORE_CERT_PEM_PATH}" -a ! -z "${ZMS_KEYSTORE_KEY_PEM_PATH}" ]; then
-    openssl pkcs12 -export -noiter -out $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_key_store=" | cut -d= -f2) -in ${ZMS_KEYSTORE_CERT_PEM_PATH} -inkey ${ZMS_KEYSTORE_KEY_PEM_PATH} -password pass:${ZMS_KEYSTORE_PASS:-athenz}
+    openssl pkcs12 -export -noiter -in $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_key_store=" | cut -d= -f2) -password pass:${ZMS_KEYSTORE_PASS:-athenz} || \
+      openssl pkcs12 -export -noiter -out $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_key_store=" | cut -d= -f2) -in ${ZMS_KEYSTORE_CERT_PEM_PATH} -inkey ${ZMS_KEYSTORE_KEY_PEM_PATH} -password pass:${ZMS_KEYSTORE_PASS:-athenz}
 fi
 # system properties for private keys
 [ ! -z "${ZMS_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_key=${ZMS_PRIVATE_KEY}"

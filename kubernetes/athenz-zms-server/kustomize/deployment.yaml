@@ -136,8 +136,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: ZMS_TRUSTSTORE_PEM_PATH
-              value: /etc/ssl/certs/ca-certificates.crt
+            #- name: ZMS_TRUSTSTORE_PEM_PATH
+            #  value: /etc/ssl/certs/ca-certificates.crt
             - name: ZMS_TRUSTSTORE_PEM_PATH
               value: /opt/athenz/zms/var/certs/ca.cert.pem
             - name: ZMS_KEYSTORE_CERT_PEM_PATH

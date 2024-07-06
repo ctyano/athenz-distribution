@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
 
   athenz-cli:
@@ -23,7 +21,7 @@ services:
     environment:
       ZMS: https://athenz-zms-server:4443/zms/v1
       ZTS: https://athenz-zts-server:8443/zts/v1
-    restart: unless-stopped
+    restart: no
 
   # https://github.com/ghostunnel/ghostunnel
   ghostunnel:
@@ -55,7 +53,7 @@ services:
       - athenz
     volumes:
       - ./ui/tls:/home/athenz/tls:ro
-    restart: unless-stopped
+    restart: no
 
   athenz-ui:
     container_name: athenz-ui
@@ -137,7 +135,7 @@ services:
       ZMS_TRUSTSTORE_PEM_PATH: /opt/athenz/zms/var/certs/ca.cert.pem
       ZMS_KEYSTORE_CERT_PEM_PATH: /opt/athenz/zms/var/certs/zms.cert.pem
       ZMS_KEYSTORE_KEY_PEM_PATH: /opt/athenz/zms/var/keys/zms.private.pem
-    restart: unless-stopped
+    restart: no
 
   athenz-zts-server:
     container_name: athenz-zts-server
@@ -184,7 +182,7 @@ services:
       ZMS_CLIENT_KEYSTORE_KEY_PEM_PATH: /opt/athenz/zts/var/keys/zts.private.pem
       ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH: /opt/athenz/zts/var/certs/ca.cert.pem
       ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH: /opt/athenz/zts/var/keys/ca.private.pem
-    restart: unless-stopped
+    restart: no
 
   athenz-db:
     container_name: athenz-db
@@ -206,7 +204,7 @@ services:
       TZ: Asia/Tokyo
       MYSQL_ROOT_PASSWORD: ""
       MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
-    restart: unless-stopped
+    restart: no
 
   athenz-auth-core:
     container_name: athenz-auth-core

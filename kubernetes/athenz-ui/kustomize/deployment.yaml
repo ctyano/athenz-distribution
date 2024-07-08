@@ -44,8 +44,9 @@ spec:
               - key: extended-config.js
                 path: extended-config.js
         - name: athenz-cacert
-          configMap:
-            name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            defaultMode: 0555
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt

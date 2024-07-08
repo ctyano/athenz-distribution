@@ -12,6 +12,10 @@ generatorOptions:
 
 secretGenerator:
 - files:
+  - ca.cert.pem=certs/ca.cert.pem
+  name: athenz-cacert
+  type: Opaque
+- files:
   - athenz_admin.cert.pem=certs/athenz_admin.cert.pem
   - athenz_admin.private.pem=keys/athenz_admin.private.pem
   name: athenz-admin-keys

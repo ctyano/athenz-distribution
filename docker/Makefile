@@ -19,8 +19,6 @@ copy-to-compose:
 	cp -r ../keys/*.* ../certs/*.* ui/tls/
 	chmod -R a+r admin zms/var/keys zms/var/certs zts/var/keys zts/var/certs ui/tls
 	chmod -R a+rw zms/truststore zts/truststore zms/keystore zts/keystore zts/conf zts/var
-	cp ../athenz/servers/zms/schema/zms_server.sql db/schema/zms_server.sql
-	cp ../athenz/servers/zts/schema/zts_server.sql db/schema/zts_server.sql
 
 build-setup-athenz:
 	docker compose -f docker-compose-build.yaml up --pull always --no-start -d

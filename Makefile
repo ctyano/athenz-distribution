@@ -350,32 +350,7 @@ generate-identityprovider: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -out keys/identityprovider.private.pem
 	openssl rsa -pubout -in keys/identityprovider.private.pem -out keys/identityprovider.public.pem
 
-generate-authorizer: generate-ca
-	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/authorizer.private.pem
-	openssl rsa -pubout -in keys/authorizer.private.pem -out keys/authorizer.public.pem
-
-generate-authzenvoy: generate-ca
-	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/authzenvoy.private.pem
-	openssl rsa -pubout -in keys/authzenvoy.private.pem -out keys/authzenvoy.public.pem
-
-generate-authzwebhook: generate-ca
-	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/authzwebhook.private.pem
-	openssl rsa -pubout -in keys/authzwebhook.private.pem -out keys/authzwebhook.public.pem
-
-generate-authzproxy: generate-ca
-	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/authzproxy.private.pem
-	openssl rsa -pubout -in keys/authzproxy.private.pem -out keys/authzproxy.public.pem
-
-generate-client: generate-ca
-	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/client.private.pem
-	openssl rsa -pubout -in keys/client.private.pem -out keys/client.public.pem
-
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-client generate-authorizer generate-authzenvoy generate-authzwebhook generate-authzproxy
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz

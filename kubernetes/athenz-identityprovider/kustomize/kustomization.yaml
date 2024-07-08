@@ -18,6 +18,12 @@ resources:
 generatorOptions:
   disableNameSuffixHash: true
 
+#secretGenerator:
+#- files:
+#  - ca.cert.pem=certs/ca.cert.pem
+#  name: athenz-cacert
+#  type: Opaque
+
 configMapGenerator:
   - name: identityprovider-sia
     envs:
@@ -38,9 +44,6 @@ configMapGenerator:
       - identityprovider.rego=athenz-identityprovider/policy/identityprovider.rego
       - system.log.rego=athenz-identityprovider/policy/system.log.rego
       - config.yaml=athenz-identityprovider/policy/config.yaml
-#  - name: athenz-cacert
-#    files:
-#      - ca.cert.pem=certs/ca.cert.pem
 
 replacements:
   - source:

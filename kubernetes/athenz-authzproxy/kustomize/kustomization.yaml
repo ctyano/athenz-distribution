@@ -13,6 +13,12 @@ resources:
 generatorOptions:
   disableNameSuffixHash: true
 
+#secretGenerator:
+#- files:
+#  - ca.cert.pem=certs/ca.cert.pem
+#  name: athenz-cacert
+#  type: Opaque
+
 configMapGenerator:
   - name: authzproxy-sia
     envs:

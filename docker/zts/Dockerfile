@@ -88,6 +88,7 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 # ENV for healthcheck
 ENV ZTS_HOST=athenz-zts-server
 ENV ZTS_PORT='8443'
+ENV DEBUG ""
 
 #HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
 #  CMD wget -O - --quiet --tries=1 --no-check-certificate \

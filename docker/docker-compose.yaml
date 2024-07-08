@@ -108,6 +108,8 @@ services:
       - ./zms/keystore:/var/run/athenz/keystore:rw
       - athenz-plugins:/athenz/plugins
     environment:
+      DEBUG: "true"
+      TZ: Asia/Tokyo
       ROOT: /opt/athenz/zms
       CLASSPATH: /opt/athenz/zms/lib/jars/*
       CONF_PATH: /opt/athenz/zms/conf/zms_server
@@ -149,6 +151,8 @@ services:
       - ./zts/keystore:/var/run/athenz/keystore:rw
       - athenz-plugins:/athenz/plugins
     environment:
+      DEBUG: "true"
+      TZ: Asia/Tokyo
       ROOT: /opt/athenz/zts
       CLASSPATH: /opt/athenz/zts/lib/jars/*
       CONF_PATH: /opt/athenz/zts/conf/zts_server

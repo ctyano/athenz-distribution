@@ -197,6 +197,8 @@ spec:
           image: ghcr.io/ctyano/athenz-zts-server:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: DEBUG
+              value: "true"
             - name: TZ
               value: Asia/Tokyo
             - name: ROOT

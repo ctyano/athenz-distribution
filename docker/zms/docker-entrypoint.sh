@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -x
+[ "${DEBUG}" = "true" ] && set -x
 
 if [ -z "${ROOT}" ]; then
     BINDIR=$(dirname "$0")

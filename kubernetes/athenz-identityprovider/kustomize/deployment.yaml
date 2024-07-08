@@ -31,8 +31,9 @@ spec:
           configMap:
             name: identityprovider-config
         - name: athenz-cacert
-          configMap:
-            name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            defaultMode: 0555
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt
@@ -88,7 +89,9 @@ spec:
             - name: athenz-tls-certs
               mountPath: /var/run/athenz
             - name: athenz-cacert
-              mountPath: /etc/ssl/certs
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
       containers:
         - name: sia
           image: *sia-image
@@ -282,8 +285,9 @@ spec:
         - name: athenz-tls-certs
           emptyDir: {}
         - name: athenz-cacert
-          configMap:
-            name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            defaultMode: 0555
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt
@@ -343,7 +347,9 @@ spec:
             - name: athenz-tls-certs
               mountPath: /var/run/athenz
             - name: athenz-cacert
-              mountPath: /etc/ssl/certs
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
       containers:
         - name: sia
           image: *sia-image

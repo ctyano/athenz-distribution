@@ -26,26 +26,6 @@ spec:
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
       volumes:
-        #- name: athenz-zms-cert-stores
-        #  secret:
-        #    secretName: athenz-zms-cert-stores
-        #    defaultMode: 0555
-        #    items:
-        #      - key: zms_keystore.pkcs12
-        #        path: zms_keystore.pkcs12
-        #      #- key: zms_truststore.jks
-        #      #  path: zms_truststore.jks
-        #      #- key: zms_truststore.pkcs12
-        #      #  path: zms_truststore.pkcs12
-        - name: athenz-zms-certs
-          secret:
-            secretName: athenz-zms-certs
-            defaultMode: 0555
-            items:
-              - key: zms.cert.pem
-                path: zms.cert.pem
-              - key: ca.cert.pem
-                path: ca.cert.pem
         - name: athenz-zms-keys
           secret:
             secretName: athenz-zms-keys
@@ -53,21 +33,29 @@ spec:
             items:
               - key: zms.private.pem
                 path: zms.private.pem
+        - name: athenz-zms-certs
+          secret:
+            secretName: athenz-zms-certs
+            defaultMode: 0555
+            items:
+              - key: zms.cert.pem
+                path: zms.cert.pem
+        - name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            defaultMode: 0555
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+        - name: athenz-key-store
+          emptyDir: {}
+        - name: athenz-trust-store
+          emptyDir: {}
         - name: athenz-zms-conf
           configMap:
             name: athenz-zms-conf
         - name: athenz-plugins
           emptyDir: {}
-        - name: athenz-key-store
-          emptyDir: {}
-        - name: athenz-trust-store
-          emptyDir: {}
-        - name: athenz-cacert
-          configMap:
-            name: athenz-cacert
-            items:
-              - key: ca.cert.pem
-                path: ca-certificates.crt
       initContainers:
         - name: athenz-auth-core
           image: ghcr.io/ctyano/athenz-auth-core:latest
@@ -104,6 +92,8 @@ spec:
           image: ghcr.io/ctyano/athenz-zms-server:latest
           imagePullPolicy: IfNotPresent
           env:
+            - name: DEBUG
+              value: "true"
             - name: TZ
               value: Asia/Tokyo
             - name: ROOT
@@ -136,10 +126,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            #- name: ZMS_TRUSTSTORE_PEM_PATH
-            #  value: /etc/ssl/certs/ca-certificates.crt
             - name: ZMS_TRUSTSTORE_PEM_PATH
-              value: /opt/athenz/zms/var/certs/ca.cert.pem
+              value: /etc/ssl/certs/ca-certificates.crt
             - name: ZMS_KEYSTORE_CERT_PEM_PATH
               value: /opt/athenz/zms/var/certs/zms.cert.pem
             - name: ZMS_KEYSTORE_KEY_PEM_PATH
@@ -180,25 +168,22 @@ spec:
               memory: 100Mi
               cpu: 200m
           volumeMounts:
-            - name: athenz-zms-conf
-              mountPath: /opt/athenz/zms/conf/zms_server
-              readOnly: true
             - name: athenz-zms-keys
               mountPath: /opt/athenz/zms/var/keys
               readOnly: true
             - name: athenz-zms-certs
               mountPath: /opt/athenz/zms/var/certs
               readOnly: true
-            #- name: athenz-zms-cert-stores
-            #  mountPath: /opt/athenz/zms/var/certs
-            #  readOnly: true
-            - name: athenz-key-store
-              mountPath: /var/run/athenz/keystore
-            - name: athenz-trust-store
-              mountPath: /var/run/athenz/truststore
-            - name: athenz-plugins
-              mountPath: /athenz/plugins
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
               readOnly: true
+            - name: athenz-key-store
+              mountPath: /var/run/athenz/keystore
+            - name: athenz-trust-store
+              mountPath: /var/run/athenz/truststore
+            - name: athenz-zms-conf
+              mountPath: /opt/athenz/zms/conf/zms_server
+              readOnly: true
+            - name: athenz-plugins
+              mountPath: /athenz/plugins

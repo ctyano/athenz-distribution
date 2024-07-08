@@ -7,4 +7,3 @@
 .ntoken
 athenz.conf
 admin
-*.jwt

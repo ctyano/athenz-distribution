@@ -45,10 +45,10 @@ LABEL org.opencontainers.image.created=$BUILD_DATE
 LABEL org.opencontainers.image.title="Athenz ZMS Server"
 LABEL org.opencontainers.image.authors="ctyano <ctyano@duck.com>"
 LABEL org.opencontainers.image.vendor="ctyano <ctyano@duck.com>"
-LABEL org.opencontainers.image.licenses="Private"
+LABEL org.opencontainers.image.licenses="GPL-3.0 license"
 LABEL org.opencontainers.image.url="ghcr.io/ctyano/athenz-cli"
 LABEL org.opencontainers.image.documentation="https://www.athenz.io/"
-LABEL org.opencontainers.image.source="https://github.com/AthenZ/athenz"
+LABEL org.opencontainers.image.source="https://github.com/ctyano/athenz-distribution"
 
 #RUN apk add --no-cache bash
 RUN apt-get update
@@ -85,6 +85,7 @@ ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 # ENV for healthcheck
 ENV ZMS_HOST=athenz-zms-server
 ENV ZMS_PORT='4443'
+ENV DEBUG ""
 
 #HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
 #  CMD wget -O - --quiet --tries=1 --no-check-certificate \

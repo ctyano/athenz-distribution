@@ -12,18 +12,17 @@ generatorOptions:
   disableNameSuffixHash: true
 
 secretGenerator:
-#- files:
-#  - zms_keystore.pkcs12=certs/zms_keystore.pkcs12
-#  name: athenz-zms-cert-stores
-#  type: Opaque
 - files:
   - zms.private.pem=keys/zms.private.pem
   name: athenz-zms-keys
   type: Opaque
 - files:
   - zms.cert.pem=certs/zms.cert.pem
-  - ca.cert.pem=certs/ca.cert.pem
   name: athenz-zms-certs
+  type: Opaque
+- files:
+  - ca.cert.pem=certs/ca.cert.pem
+  name: athenz-cacert
   type: Opaque
 
 configMapGenerator:
@@ -35,9 +34,6 @@ configMapGenerator:
   - logback.xml=conf/logback.xml
   - solution_templates.json=conf/solution_templates.json
   name: athenz-zms-conf
-- files:
-  - ca.cert.pem=certs/ca.cert.pem
-  name: athenz-cacert
 images:
 - name: ghcr.io/ctyano/athenz-auth-core:latest
   newName: ghcr.io/ctyano/athenz-auth-core

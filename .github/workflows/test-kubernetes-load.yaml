@@ -174,7 +174,7 @@ jobs:
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
-        name: Deploy Applicationfor athenz-workloads
+        name: Deploy Application for athenz-workloads
         run: |
           make deploy-kubernetes-athenz-workloads
 

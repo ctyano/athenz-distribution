@@ -11,6 +11,9 @@ on:
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
+  pull_request:
+    branches:
+      - main
 
 env:
   # Use docker.io for Docker Hub if empty

@@ -11,6 +11,9 @@ on:
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
+  pull_request:
+    branches:
+      - main
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -98,7 +101,7 @@ jobs:
       -
         name: Extract files from Docker image
         id: extract
-        if: ${{ github.event.inputs.target_version != '' }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         run: |
           set -x
           tag=$(basename ${{ env.CI_REF }})
@@ -141,7 +144,7 @@ jobs:
       -
         name: Create packages with nFPM
         id: nfpm
-        if: ${{ github.event.inputs.target_version != '' }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         run: |
           set -x
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
@@ -159,7 +162,7 @@ jobs:
       -
         name: Create GitHub Release
         id: create_release
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -177,7 +180,7 @@ jobs:
       -
         name: Upload GitHub Release Assets
         id: upload_release_assets
-        if: ${{ github.event.inputs.target_version != '' }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

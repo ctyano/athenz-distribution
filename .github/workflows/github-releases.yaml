@@ -102,11 +102,8 @@ jobs:
         name: Extract files from Docker image
         id: extract
         if: |
-          ${{ 
-            ( github.event_name == 'schedule' || 
-              github.event_name == 'workflow_dispatch' ||
-              github.event_name == 'push'
-            ) &&
+          ${{
+            github.event_name != 'pull_request' &&
             github.event.inputs.current_version != '' &&
             github.event.inputs.target_version != '' &&
             github.event.inputs.target_version != github.event.inputs.current_version
@@ -155,10 +152,7 @@ jobs:
         id: nfpm
         if: |
           ${{ 
-            ( github.event_name == 'schedule' || 
-              github.event_name == 'workflow_dispatch' ||
-              github.event_name == 'push'
-            ) &&
+            github.event_name != 'pull_request' &&
             github.event.inputs.current_version != '' &&
             github.event.inputs.target_version != '' &&
             github.event.inputs.target_version != github.event.inputs.current_version
@@ -182,10 +176,7 @@ jobs:
         id: create_release
         if: |
           ${{ 
-            ( github.event_name == 'schedule' || 
-              github.event_name == 'workflow_dispatch' ||
-              github.event_name == 'push'
-            ) &&
+            github.event_name != 'pull_request' &&
             github.event.inputs.current_version != '' &&
             github.event.inputs.target_version != '' &&
             github.event.inputs.target_version != github.event.inputs.current_version
@@ -209,10 +200,7 @@ jobs:
         id: upload_release_assets
         if: |
           ${{ 
-            ( github.event_name == 'schedule' || 
-              github.event_name == 'workflow_dispatch' ||
-              github.event_name == 'push'
-            ) &&
+            github.event_name != 'pull_request' &&
             github.event.inputs.current_version != '' &&
             github.event.inputs.target_version != '' &&
             github.event.inputs.target_version != github.event.inputs.current_version

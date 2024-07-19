@@ -168,7 +168,7 @@ jobs:
         run: |
           set -x
           tag=$(git tag --points-at HEAD)
-          body=$(curl -s https://api.github.com/repos/athenz/athenz/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\",\"\",(.body)" | awk '{gsub(/'"'"'/,"\\\047"); gsub(/"/,"\\\""); print}')
+          body=$(curl -s https://api.github.com/repos/athenz/athenz/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\",\"\",(.body)" | jq -Rs @json)
           curl \
             -XPOST \
             -H "Accept: application/vnd.github+json" \

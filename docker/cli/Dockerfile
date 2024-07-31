@@ -3,7 +3,7 @@ FROM docker.io/library/golang:1-alpine AS builder
 ARG VERSION=
 
 RUN set -eux \
-    && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl git tini
+    && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl git
 
 WORKDIR ${GOPATH}/src/github.com/AthenZ/athenz
 
@@ -50,6 +50,8 @@ RUN case ${TARGETPLATFORM} in \
 RUN go install github.com/smallstep/cli/cmd/step@latest
 
 RUN apk del build-dependencies
+
+RUN set -eux && apk update && apk add --no-cache --update tini
 
 FROM docker.io/library/alpine:3
 

@@ -3,7 +3,7 @@ FROM docker.io/library/golang:1-alpine AS builder
 ARG VERSION=
 
 RUN set -eux \
-    && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl git
+    && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl git tini
 
 WORKDIR ${GOPATH}/src/github.com/AthenZ/athenz
 
@@ -72,6 +72,8 @@ LABEL org.opencontainers.image.source="https://github.com/ctyano/athenz-distribu
 
 ENV APP_NAME athenz
 
+COPY --from=builder /sbin/tini /sbin/tini
+
 COPY --from=builder /go/bin/athenz-conf /usr/bin/athenz-conf
 COPY --from=builder /go/bin/zms-cli /usr/bin/zms-cli
 COPY --from=builder /go/bin/zms-svctoken /usr/bin/zms-svctoken
@@ -96,4 +98,5 @@ RUN addgroup -g ${GID} ${APP_NAME} && \
 USER ${APP_NAME}:${APP_NAME}
 WORKDIR /home/athenz
 
-ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/usr/bin/tail", "-f", "/dev/null"]

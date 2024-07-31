@@ -186,7 +186,7 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "identityprovider-sia" | grep -E "0/1" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-sia" | grep -Ev "Running" | wc -l) )) -eq 0 \
 	&& \
 	kubectl -n athenz exec deployment/identityprovider-sia -it -c sia -- \
 		ls \
@@ -216,7 +216,7 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment" | grep -Ev "Running" | wc -l) )) -eq 0 \
 	&& \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \

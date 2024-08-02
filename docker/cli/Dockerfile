@@ -51,6 +51,8 @@ RUN go install github.com/smallstep/cli/cmd/step@latest
 
 RUN apk del build-dependencies
 
+RUN set -eux && apk update && apk add --no-cache --update tini
+
 FROM docker.io/library/alpine:3
 
 ARG VERSION
@@ -71,6 +73,8 @@ LABEL org.opencontainers.image.documentation="https://www.athenz.io/"
 LABEL org.opencontainers.image.source="https://github.com/ctyano/athenz-distribution"
 
 ENV APP_NAME athenz
+
+COPY --from=builder /sbin/tini /sbin/tini
 
 COPY --from=builder /go/bin/athenz-conf /usr/bin/athenz-conf
 COPY --from=builder /go/bin/zms-cli /usr/bin/zms-cli
@@ -96,4 +100,5 @@ RUN addgroup -g ${GID} ${APP_NAME} && \
 USER ${APP_NAME}:${APP_NAME}
 WORKDIR /home/athenz
 
-ENTRYPOINT ["/usr/bin/tail", "-f", "/dev/null"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/usr/bin/tail", "-f", "/dev/null"]

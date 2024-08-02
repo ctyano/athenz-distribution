@@ -7,6 +7,11 @@ metadata:
     app: identityprovider-deployment
 spec:
   replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
   selector:
     matchLabels:
       app: identityprovider-deployment
@@ -113,7 +118,12 @@ spec:
           resources: *sia-resources
           volumeMounts: *sia-volumeMounts
         - name: opa
-          image: docker.io/openpolicyagent/opa:latest-static
+          # NOTE: opa fails to respond from v0.67.0 thus required to lock to v0.67.0 until the investigation is complete.
+          # https://github.com/open-policy-agent/opa/releases/tag/v0.67.0
+          #
+          #image: docker.io/openpolicyagent/opa:latest-static
+          #image: docker.io/openpolicyagent/opa:0.67.0-static
+          image: docker.io/openpolicyagent/opa:0.66.0-static
           imagePullPolicy: IfNotPresent
           resources: &opa-resources
             limits:

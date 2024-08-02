@@ -163,7 +163,7 @@ while true; do \
 		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
 		kubectl -n athenz get all | grep -E "pod/client-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
 		kubectl -n athenz get all | grep -E "pod/client-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
-		kubectl -n athenz get all | grep -E "pod/identityprovider-deployment-| sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% -c opa ||:; \
+		kubectl -n athenz get all | grep -E "pod/identityprovider-deployment-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% -c opa ||:; \
 		kubectl -n athenz get all; \
 		exit 1; \
 	fi; \

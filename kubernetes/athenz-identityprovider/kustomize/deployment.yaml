@@ -118,7 +118,9 @@ spec:
           resources: *sia-resources
           volumeMounts: *sia-volumeMounts
         - name: opa
-          image: docker.io/openpolicyagent/opa:latest-static
+          #image: docker.io/openpolicyagent/opa:latest-static
+          #image: docker.io/openpolicyagent/opa:0.67.0-static
+          image: docker.io/openpolicyagent/opa:0.66.0-static
           imagePullPolicy: IfNotPresent
           resources: &opa-resources
             limits:

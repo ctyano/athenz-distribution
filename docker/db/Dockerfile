@@ -6,6 +6,10 @@ ARG BUILD_DATE
 # git rev-parse --short HEAD
 ARG VCS_REF
 
+ENV VERSION=$VERSION
+ENV BUILD_DATE=$BUILD_DATE
+ENV VCS_REF=$VCS_REF
+
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$VCS_REF
 LABEL org.opencontainers.image.created=$BUILD_DATE
@@ -28,10 +32,10 @@ RUN curl -svL https://raw.githubusercontent.com/AthenZ/athenz/v$VERSION/servers/
 
 VOLUME /config/databases
 
-ENV TZ Asia/Tokyo
-ENV PUID 1000
-ENV PGID 1000
-ENV MYSQL_ROOT_PASSWORD ""
+ENV TZ='Asia/Tokyo'
+ENV PUID='1000'
+ENV PGID='1000'
+ENV MYSQL_ROOT_PASSWORD=''
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 \
   CMD nc -vz 127.0.0.1 3306 \

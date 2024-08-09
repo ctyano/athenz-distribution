@@ -61,6 +61,10 @@ ARG BUILD_DATE
 # git rev-parse --short HEAD
 ARG VCS_REF
 
+ENV VERSION=$VERSION
+ENV BUILD_DATE=$BUILD_DATE
+ENV VCS_REF=$VCS_REF
+
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$VCS_REF
 LABEL org.opencontainers.image.created=$BUILD_DATE
@@ -72,7 +76,7 @@ LABEL org.opencontainers.image.url="ghcr.io/ctyano/athenz-cli"
 LABEL org.opencontainers.image.documentation="https://www.athenz.io/"
 LABEL org.opencontainers.image.source="https://github.com/ctyano/athenz-distribution"
 
-ENV APP_NAME athenz
+ENV APP_NAME='athenz'
 
 COPY --from=builder /sbin/tini /sbin/tini
 

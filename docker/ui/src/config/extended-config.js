@@ -61,6 +61,11 @@ const config = {
                 url: '/login',
                 target: ''
             },
+            {
+                title: 'Athenz Version: ' + process.env.VERSION + ', Built at: ' + process.env.BUILD_DATE + ', VCS ref: ' + process.env.VCS_REF,
+                url: 'https://github.com/ctyano/athenz-distribution/pkgs/container/athenz-ui',
+                target: '_blank',
+            },
         ],
         productMasterLink: {
             title: 'Product ID',

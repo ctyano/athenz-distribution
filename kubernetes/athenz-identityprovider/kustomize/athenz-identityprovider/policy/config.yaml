@@ -11,7 +11,7 @@ config:
     serviceaccount:
       name: identityprovider
       token:
-        issuer: https://kubernetes.default.svc
+        issuer: https://kubernetes.default.svc.cluster.local
         audience: https://kubernetes.default.svc
   cert:
     expiry:
@@ -23,8 +23,5 @@ config:
       url: http://127.0.0.1:8001/openid/v1/jwks
       cacert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
       forcecachedurationseconds: 3600
-      apinodes:
-        url: ""
-        domain: ""
     static: ""
   debug: true

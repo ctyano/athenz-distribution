@@ -21,8 +21,37 @@ import data.config.debug
 # logger function
 log(prefix, value) = true {
     debug
-    print("Identity Provider OPA Rego: Identity Provider Debug", ":", prefix, ":", value)
+    print("Identity Provider Debug:", sprintf("%s: %v", [prefix, value]))
 } else = true
+
+jwt := object.get(input, "attestationData", "")
+default unverified_jwt = [null, null, null]
+unverified_jwt = io.jwt.decode(jwt)
+
+keys = jwks_cached {
+    jwks_cached := http.send({
+        "url": jwks_url,
+        "method": "GET",
+        "force_cache": true,
+        "force_cache_duration_seconds": jwks_force_cache_duration_seconds,
+    }).raw_body
+    json.unmarshal(jwks_cached).keys[i].kid == unverified_jwt[0].kid 
+    log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK:%s", [unverified_jwt[0].kid, jwks_cached]))
+} else = public_key {
+    log("Failed to retrieve JWKs. Using the default public_key", public_key)
+}
+
+constraints = {
+    "iss": service_account_token_issuer,
+    "aud": service_account_token_audience,
+    "cert": keys,
+} {
+    service_account_token_issuer
+    service_account_token_audience
+    keys
+} else = null
+
+verified_jwt := io.jwt.decode_verify(jwt, constraints)
 
 # ZTS response
 instance := response
@@ -48,6 +77,11 @@ response = {
     log("response.service", input.service)
     log("response.provider", input.provider)
     log("response.attributes", attributes)
+    log("jwt", jwt)
+    log("constraints", constraints)
+    log("verified_jwt", verified_jwt)
+
+    verified_jwt
 
 } else = {
     "allow": false,
@@ -55,5 +89,5 @@ response = {
         "reason": "No matching validations found",
     },
 } {
-    log("input: ", input)
+    log("input", input)
 }

@@ -6,22 +6,44 @@
 
 Some can be overwritten by environment variable
 
-  | environment variable name | config field | default value | example value | description |
-  | ----- | ----- | ----- | ----- | ----- |
-  | `IDENTITYPROVIDER_NAMESPACE` | "identityproviderNamespace" | `""` | `"athenz"` | k8s namespace to deploy identityprovider |
-  | `IDENTITYPROVIDER_SERVICEACCOUNT_NAME` | "identityproviderServiceAccount" | `""` | `"identityprovider-service"` | k8s serciceaccount name represented in the service account token for kube-mgmt in identityprovider |
-  | N/A | "athenzProviderService" | `""` | `"athenz.identityprovider"` | athenz identity provider service full name |
-  | N/A | "athenzDomain" | `""` | `""` | must be specified to hard-code an athenz domain for k8s users |
-  | N/A | "athenzDomainPrefix" | `""` | `"identityprovider"` | must be specified to concatenate static prefix to k8s namespace to dynamically resolve athenz domain for k8s users |
-  | N/A | "athenzDomainSuffix" | `""` | `""` | must be specified to concatenate static suffix to k8s namespace to dynamically resolve athenz domain for k8s users |
-  | N/A | "certExpiryTimeMax" | `43200` | `10080` or `20160` | allowed max expiry time in minutes for X.509 identity certificate |
-  | N/A | "certExpiryTimeDefault" | `43200` | `10080` or `20160` | default value for allowed expiry time in minutes for X.509 identity certificate |
-  | N/A | "certRefresh" | `false` | `true` | set true to allow refreshing X.509 identity certificate or not |
-  | N/A | "serviceAccountTokenIssuer" | `"https://kubernetes.default.svc"` | `"https://kubernetes.default.svc.cluster.local"` | an expected value for "iss" field in jwt |
-  | N/A | "jwksURL" | `""` | `"https://10.96.0.1/openid/v1/jwks"` | endpoint url to retrieve jwks as public keys(verification keys) for k8s service account token(jwt) |
-  | `IDENTITYPROVIDER_OPA_CACERT_FILE` | "jwksCACertFile" | `""` | `"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"` | a certificate authority file path to intract with the endpoint url to retrieve jwks |
-  | N/A | "jwksForceCacheDurationSeconds" | `` | `3600` | cache duration in seconds for storing jwks on memory (to prevent increasing load to kube-apiserver) |
-  | N/A | "jwksAPINodesAPI" | `` | `` | endpoint url to retrieve controller node list to retrieve jwks |
-  | N/A | "jwksAPINodesAPIDomain" | `` | `` | endpoint domain for tls server certificate verification for every each controller node |
-  | N/A | "publicKey" | `""` | `""` | public key(verification key) for k8s service account token(jwt) |
-  | N/A | "debug" | `` | `true` | enable debug logging |
+  | environment variable name   | config field  | default value | example value | description           |
+  | -----                       | -----         | -----         | -----         | -----                 |
+  | N/A                         | config.debug  | ``            | `true`        | enable debug logging  |
+
+### How to test
+
+```
+opa test -v {policy,test}/*.rego {policy,test}/*.yaml
+```
+
+#### How to generate key pairs
+
+```
+openssl genrsa 2048 > test/private.key.pem
+```
+
+```
+openssl rsa -in test/private.key.pem -pubout > test/public.key.pem
+```
+
+#### How to generate a test jwks
+
+```
+step crypto jwk create --alg RS256 --kid jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo --from-pem=test/private.key.pem --no-password --insecure -f test/public.jwks.json test/private.jwks.json
+```
+
+#### How to generate a test jwt
+
+```
+cat test/mock.yaml | yq .mock.jwt.body | dasel -ryaml -wjson | step crypto jws sign --alg RS256 --kid jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo --key test/private.key.pem
+```
+
+### How to test verifying jwt
+
+```
+cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.jwks.json --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
+```
+
+```
+cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.key.pem --alg RS256 --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
+```

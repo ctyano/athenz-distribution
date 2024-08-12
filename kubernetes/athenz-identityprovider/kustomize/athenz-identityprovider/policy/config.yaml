@@ -1,27 +1,27 @@
 config:
-  athenz:
-    domain:
-      name: ""
-      prefix: ""
-      suffix: ""
-    identityprovider:
-      service: athenz.identityprovider
-  kubernetes:
-    namespace: athenz
-    serviceaccount:
-      name: identityprovider
-      token:
-        issuer: https://kubernetes.default.svc.cluster.local
-        audience: https://kubernetes.default.svc
-  cert:
-    expiry:
-      defaultmins: 43200
-      maxmins: 43200
-    refresh: true
-  keys:
-    jwks:
-      url: http://127.0.0.1:8001/openid/v1/jwks
-      cacert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-      forcecachedurationseconds: 3600
-    static: ""
   debug: true
+  constraints:
+    athenz:
+      domain:
+        name: ""
+        prefix: ""
+        suffix: ""
+      identityprovider:
+        service: athenz.identityprovider
+    kubernetes:
+      serviceaccount:
+        name: identityprovider
+        token:
+          issuer: https://kubernetes.default.svc.cluster.local
+          audience: https://kubernetes.default.svc
+    cert:
+      expiry:
+        defaultmins: 43200
+        maxmins: 43200
+      refresh: true
+    keys:
+      jwks:
+        url: http://127.0.0.1:8001/openid/v1/jwks
+        cacert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        forcecachedurationseconds: 3600
+      static: ""

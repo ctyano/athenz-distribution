@@ -1,21 +1,21 @@
 package identityprovider
 
 import data.kubernetes.pods
-import data.config.athenz.domain.name as athenz_domain
-import data.config.athenz.domain.prefix as athenz_domain_prefix
-import data.config.athenz.domain.suffix as athenz_domain_suffix
-import data.config.athenz.identityprovider.service as athenz_provider
-import data.config.cert.expiry.maxmins as cert_expiry_time_max
-import data.config.cert.expiry.defaultmins as cert_expiry_time_default
-import data.config.cert.refresh as cert_refresh_default
-import data.config.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
-import data.config.kubernetes.serviceaccount.token.audience as service_account_token_audience
-import data.config.keys.jwks.url as jwks_url
-import data.config.keys.jwks.cacert as jwks_cacert_file
-import data.config.keys.jwks.forcecachedurationseconds as jwks_force_cache_duration_seconds
-import data.config.keys.jwks.apinodes.url as api_node_api
-import data.config.keys.jwks.apinodes.domain as api_node_api_domain
-import data.config.keys.static as public_key
+import data.config.constraints.athenz.domain.name as athenz_domain
+import data.config.constraints.athenz.domain.prefix as athenz_domain_prefix
+import data.config.constraints.athenz.domain.suffix as athenz_domain_suffix
+import data.config.constraints.athenz.identityprovider.service as athenz_provider
+import data.config.constraints.cert.expiry.maxmins as cert_expiry_time_max
+import data.config.constraints.cert.expiry.defaultmins as cert_expiry_time_default
+import data.config.constraints.cert.refresh as cert_refresh_default
+import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
+import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
+import data.config.constraints.keys.jwks.url as jwks_url
+import data.config.constraints.keys.jwks.cacert as jwks_cacert_file
+import data.config.constraints.keys.jwks.forcecachedurationseconds as jwks_force_cache_duration_seconds
+import data.config.constraints.keys.jwks.apinodes.url as api_node_api
+import data.config.constraints.keys.jwks.apinodes.domain as api_node_api_domain
+import data.config.constraints.keys.static as public_key
 import data.config.debug
 
 # logger function

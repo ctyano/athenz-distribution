@@ -3,9 +3,9 @@ package identityprovider
 import data.mock.instance.input as mock_input
 #import data.mock.pem.public as mock_public_key
 import data.mock.jwks as mock_public_key
-import data.config.cert.expiry.defaultmins as cert_expiry_time_default
-import data.config.cert.refresh as cert_refresh_default
-import data.config.debug
+import data.config.constraints.cert.expiry.defaultmins as cert_expiry_time_default
+import data.config.constraints.cert.refresh as cert_refresh_default
+import data.config.constraints.debug
 
 test_instance {
     instance == {
@@ -23,5 +23,5 @@ test_instance {
         }
     }
     with input as mock_input
-    with data.config.keys.static as mock_public_key
+    with data.config.constraints.keys.static as mock_public_key
 }

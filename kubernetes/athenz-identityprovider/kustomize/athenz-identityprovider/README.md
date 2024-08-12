@@ -40,10 +40,19 @@ cat test/mock.yaml | yq .mock.jwt.body | dasel -ryaml -wjson | step crypto jws s
 
 ### How to test verifying jwt
 
+#### With JWK Set
+
+```
+cat test/mock.yaml | yq .mock.jwks > test/public.jwks.json
+```
+
 ```
 cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.jwks.json --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
 ```
 
+#### With PEM file
+
 ```
 cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.key.pem --alg RS256 --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
 ```
+

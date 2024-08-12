@@ -1,6 +1,5 @@
 package identityprovider
 
-import data.kubernetes.pods
 import data.config.constraints.athenz.domain.name as athenz_domain
 import data.config.constraints.athenz.domain.prefix as athenz_domain_prefix
 import data.config.constraints.athenz.domain.suffix as athenz_domain_suffix
@@ -8,15 +7,17 @@ import data.config.constraints.athenz.identityprovider.service as athenz_provide
 import data.config.constraints.cert.expiry.maxmins as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultmins as cert_expiry_time_default
 import data.config.constraints.cert.refresh as cert_refresh_default
-import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
-import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.constraints.keys.jwks.url as jwks_url
 import data.config.constraints.keys.jwks.cacert as jwks_cacert_file
-import data.config.constraints.keys.jwks.forcecachedurationseconds as jwks_force_cache_duration_seconds
+import data.config.constraints.keys.jwks.force_cache as jwks_force_cache
+import data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_force_cache_duration_seconds
 import data.config.constraints.keys.jwks.apinodes.url as api_node_api
 import data.config.constraints.keys.jwks.apinodes.domain as api_node_api_domain
 import data.config.constraints.keys.static as public_key
+import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
+import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.debug
+import data.kubernetes.pods
 
 # logger function
 log(prefix, value) = true {
@@ -32,7 +33,7 @@ keys = jwks_cached {
     jwks_cached := http.send({
         "url": jwks_url,
         "method": "GET",
-        "force_cache": true,
+        "force_cache": jwks_force_cache,
         "force_cache_duration_seconds": jwks_force_cache_duration_seconds,
     }).raw_body
     json.unmarshal(jwks_cached).keys[i].kid == unverified_jwt[0].kid 

@@ -26,6 +26,7 @@ env:
   # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   # DOCKER_BUILD_ARGS: |
   GITHUB_REPOSITORY: AthenZ/athenz
+  EXPECTED_OPA_TEST_COVERAGE: 90
 
 jobs:
   build:
@@ -98,3 +99,18 @@ jobs:
           opa test -v \
             kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.rego \
             kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.yaml
+
+      # A GitHub Action to attest the test coverage of the application
+      -
+        name: Run Tests
+        run: |
+          # Run tests for Open Policy Agent Rego files and attest the test coverage
+          # Replace this with your test command
+          opa test -cv \
+            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.rego \
+            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.yaml \
+          | jq -r .coverage \
+          | xargs -I% echo "${EXPECTED_OPA_TEST_COVERAGE} < %" \
+          | bc -l \
+          | xargs -I% test % = 1
+

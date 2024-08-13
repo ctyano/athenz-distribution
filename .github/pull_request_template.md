@@ -2,8 +2,9 @@
 
 Choose one of the below, or leave them empty:
 
-- [ ] Bug fix
 - [ ] New feature proposal
+- [ ] Bug fix
+- [ ] Minor improvements
 - [ ] Refactoring (no functional changes)
 - [ ] Non-code changes (updating documentation, workflows, etc.)
 

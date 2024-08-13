@@ -4,16 +4,16 @@ mock:
       path:
         - instance
       method: POST
-      provider: identity.provider.identityprovider
-      domain: identity.provider
-      service: identityprovider
+      provider: athenz.identityprovider
+      domain: athenz
+      service: client
       attestationData: eyJhbGciOiJSUzI1NiIsImtpZCI6ImpJb1B5b0RLNmw3d2RUMnZFaF80YjlzVUd3Q3VWQnoxTDl6NGhiZDRWYm8ifQ.ewogICJhdWQiOiBbCiAgICAiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjIgogIF0sCiAgImV4cCI6IDU1NTU1NTU1NTUsCiAgImlhdCI6IDE1NTU1NTE5NTUsCiAgImlzcyI6ICJodHRwczovL2t1YmVybmV0ZXMuZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbCIsCiAgImp0aSI6ICI0MmQyMmY2OS0zMTA5LTQ4NmQtYWIyZC05ZmM3ODdiYzAzYzEiLAogICJrdWJlcm5ldGVzLmlvIjogewogICAgIm5hbWVzcGFjZSI6ICJhdGhlbnoiLAogICAgIm5vZGUiOiB7CiAgICAgICJuYW1lIjogImtpbmQtY29udHJvbC1wbGFuZSIsCiAgICAgICJ1aWQiOiAiMjU3ZmMzZDQtNTIwNy00NTU4LTkzNGYtY2FkMzc3NGIwZmE2IgogICAgfSwKICAgICJwb2QiOiB7CiAgICAgICJuYW1lIjogImNsaWVudC1kZXBsb3ltZW50LTU0NDg4ZmM5ODgtc2xjcGciLAogICAgICAidWlkIjogIjBlNzFlM2Y2LTE3MWEtNDViNy1hMDVjLWNhYWZkNzk5YzdjYyIKICAgIH0sCiAgICAic2VydmljZWFjY291bnQiOiB7CiAgICAgICJuYW1lIjogImNsaWVudCIsCiAgICAgICJ1aWQiOiAiZmEzMGVjZjgtZmZjYi00M2VkLWE5YzAtYjE2NDQ5MWJhNWY3IgogICAgfQogIH0sCiAgIm5iZiI6IDE1NTU1NTE5NTUsCiAgInN1YiI6ICJzeXN0ZW06c2VydmljZWFjY291bnQ6YXRoZW56OmNsaWVudCIKfQo.h2EF1WYVZSqykaw8k6kMODlOPMypS-zsv2OrSO68bqzEnYlGjzWYPmtevQPriRPgEkBRQ4I-qtjEEzV3-HGYDFwQnBvWR5vEI7KYl0KgI1FSSo7zbZCMCeuF0L75eyD-tWsYYnLqhrQ-e5sCPxcbVnO0Alx80B0TKa8hrE3LR-W5BpMhbT7QpodHrK-6w2RCn3E6YHteoVDyMhRT4khsv7pvf_RKxjtyyOgSDK2l5ar7F_tAUvv9j4OXWRJJXH2m2km_XRJLbHbSGUZL6rpBHwAsxZy4Y2KJEiW8-IH50OZQYmgABUxq7eUWXKBSzyXyPSMLtOpPcZRlmhYZR-FO1g
       attributes:
         instanceId: 11111111-2222-3333-4444-555555555555
         sanIP: 10.10.10.10
         clientIP: 100.100.100.255
-        sanURI: spiffe://identity.provider.identityprovider/sa/service
-        sanDNS: identityprovider.provider.svc.cluster.local,11111111-2222-3333-4444-555555555555.instanceid.zts.athenz.cloud
+        sanURI: spiffe://athenz/sa/client
+        sanDNS: client.athenz.svc.cluster.local,11111111-2222-3333-4444-555555555555.instanceid.zts.athenz.cloud
         certExpiryTime: 43200
         certRefresh: false
   jwt:
@@ -60,3 +60,11 @@ mock:
       4oWoeRLA+uKz2trTwKWEYbZivAdrj3WFvnPq06gTScVZox9qRr/dl2bYSzuJImn6
       NQIDAQAB
       -----END PUBLIC KEY-----
+  pods:
+    athenz:
+      client-deployment-54488fc988-slcpg:
+        metadata:
+          namespace: athenz
+          uid: 0e71e3f6-171a-45b7-a05c-caafd799c7cc
+        spec:
+          serviceAccountName: client

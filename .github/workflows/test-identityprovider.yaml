@@ -106,11 +106,12 @@ jobs:
         run: |
           # Run tests for Open Policy Agent Rego files and attest the test coverage
           # Replace this with your test command
-          opa test -cv \
-            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.rego \
-            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.yaml \
-          | jq -r .coverage \
-          | xargs -I% echo "${EXPECTED_OPA_TEST_COVERAGE} < %" \
-          | bc -l \
-          | xargs -I% test % = 1
+          OPA_TEST_COVERAGE=$(opa test -cv \
+              kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.rego \
+              kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.yaml \
+            | jq -r .coverage)
+          echo "${EXPECTED_OPA_TEST_COVERAGE} < ${OPA_TEST_COVERAGE}" \
+            | bc -l \
+            | xargs -I% test % = 1 \
+            && echo "EXPECTED_OPA_TEST_COVERAGE: ${EXPECTED_OPA_TEST_COVERAGE} < OPA_TEST_COVERAGE: ${OPA_TEST_COVERAGE}"
 

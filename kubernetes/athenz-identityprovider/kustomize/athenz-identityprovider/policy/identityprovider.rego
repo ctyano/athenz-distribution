@@ -14,7 +14,7 @@ import data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_fo
 import data.config.constraints.keys.jwks.apinodes.url as api_node_api
 import data.config.constraints.keys.jwks.apinodes.domain as api_node_api_domain
 import data.config.constraints.keys.static as public_key
-import data.config.constraints.kubernetes.namespaces as namespaces
+import data.config.constraints.kubernetes.namespaces as expected_namespaces
 import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
 import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.debug
@@ -72,6 +72,13 @@ expected_athenz_domain = concat("", [athenz_domain_prefix, athenz_domain_name, a
 # we are also preparing an expected athenz service for the verification
 expected_athenz_service = jwt_kubernetes_claim.serviceaccount.name
 
+# we are also checking if the service accout token is from the expected kubernetes namespaces
+namespace_attestation = true {
+    expected_namespaces[_] == jwt_kubernetes_claim.namespace
+} {
+    count(expected_namespaces) > 0
+}
+
 # next, we are checking if the service account token jwt claim matches with the pod information from kube-apiserver
 # this checking prevents the service account token jwt to be used outside the associated pod
 pod_attestation = true {
@@ -105,6 +112,7 @@ response = {
     input.domain == expected_athenz_domain
     input.service == expected_athenz_service
     input.provider == expected_athenz_provider
+    namespace_attestation
     pod_attestation
 
 } else = {

@@ -3,7 +3,7 @@ package identityprovider
 import data.config.constraints.athenz.domain.name as athenz_domain_name
 import data.config.constraints.athenz.domain.prefix as athenz_domain_prefix
 import data.config.constraints.athenz.domain.suffix as athenz_domain_suffix
-import data.config.constraints.athenz.identityprovider.service as athenz_provider
+import data.config.constraints.athenz.identityprovider.service as expected_athenz_provider
 import data.config.constraints.cert.expiry.maxmins as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultmins as cert_expiry_time_default
 import data.config.constraints.cert.refresh as cert_refresh_default
@@ -14,6 +14,7 @@ import data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_fo
 import data.config.constraints.keys.jwks.apinodes.url as api_node_api
 import data.config.constraints.keys.jwks.apinodes.domain as api_node_api_domain
 import data.config.constraints.keys.static as public_key
+import data.config.constraints.kubernetes.namespaces as namespaces
 import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
 import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.debug
@@ -103,7 +104,7 @@ response = {
     verified_jwt
     input.domain == expected_athenz_domain
     input.service == expected_athenz_service
-    input.provider == athenz_provider
+    input.provider == expected_athenz_provider
     pod_attestation
 
 } else = {

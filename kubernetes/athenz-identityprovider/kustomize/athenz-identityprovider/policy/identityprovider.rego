@@ -23,6 +23,8 @@ import data.kubernetes.pods
 # we are preparing a logger function
 log(prefix, value) = true {
     debug
+    prefix
+    value
     print("Identity Provider Debug:", sprintf("%s: %v", [prefix, value]))
 } else = true
 
@@ -122,21 +124,11 @@ response = {
     },
 } {
     log("input", input)
-#    log("response.domain", input.domain)
-#    log("response.service", input.service)
-#    log("response.provider", input.provider)
-#    log("response.attributes", attributes)
-#    log("jwt", jwt)
-#    log("constraints", constraints)
-#    log("verified_jwt", verified_jwt)
-#    log("input.domain", input.domain)
-#    log("expected_athenz_domain", expected_athenz_domain)
-#    log("input.service", input.service)
-#    log("expected_athenz_service", expected_athenz_service)
-#    log("jwt_kubernetes_claim.namespace", jwt_kubernetes_claim.namespace)
-#    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace)
-#    log("jwt_kubernetes_claim.pod.uid", jwt_kubernetes_claim.pod.uid)
-#    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid)
-#    log("jwt_kubernetes_claim.serviceaccount.name", jwt_kubernetes_claim.serviceaccount.name)
-#    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName)
+    log("response.attributes", attributes)
+    log("constraints", constraints)
+    log("expected_athenz_domain", expected_athenz_domain)
+    log("expected_athenz_service", expected_athenz_service)
+    log("expected_namespaces", expected_namespaces)
+    log("jwt_kubernetes_claim", jwt_kubernetes_claim)
+    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name]", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name])
 }

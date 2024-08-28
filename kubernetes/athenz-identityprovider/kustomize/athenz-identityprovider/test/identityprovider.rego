@@ -1,6 +1,7 @@
 package identityprovider
 
 import data.mock.instance.input as mock_input
+import data.invalid.instance.input as invalid_input
 #import data.mock.pem.public as mock_public_key
 import data.mock.jwks as mock_public_key
 import data.mock.pods as mock_pods
@@ -55,11 +56,24 @@ test_instance3 {
     instance == {
         "allow": false,
         "status": {
-            "reason": "No matching validations found",
+            "reason": "Unverified attestation data",
         },
     }
     with input as mock_input
     with input.attestationData as ""
+    with data.config.constraints.keys.static as mock_public_key
+    with data.kubernetes.pods as mock_pods
+}
+
+# with invalid input
+test_instance4 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": "No matching validations found",
+        },
+    }
+    with input as invalid_input
     with data.config.constraints.keys.static as mock_public_key
     with data.kubernetes.pods as mock_pods
 }

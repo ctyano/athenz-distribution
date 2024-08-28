@@ -68,3 +68,21 @@ mock:
           uid: 0e71e3f6-171a-45b7-a05c-caafd799c7cc
         spec:
           serviceAccountName: client
+invalid:
+  instance:
+    input:
+      path:
+        - instance
+      method: POST
+      provider: athenz.identityprovider
+      domain: athenz
+      service: client
+      attestationData: eyJhbGciOiJSUzI1NiIsImtpZCI6ImpJb1B5b0RLNmw3d2RUMnZFaF80YjlzVUd3Q3VWQnoxTDl6NGhiZDRWYm8ifQ.ewogICJhdWQiOiBbCiAgICAiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjIgogIF0sCiAgImV4cCI6IDU1NTU1NTU1NTUsCiAgImlhdCI6IDE1NTU1NTE5NTUsCiAgImlzcyI6ICJodHRwczovL2t1YmVybmV0ZXMuZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbCIsCiAgImp0aSI6ICI0MmQyMmY2OS0zMTA5LTQ4NmQtYWIyZC05ZmM3ODdiYzAzYzEiLAogICJrdWJlcm5ldGVzLmlvIjogewogICAgIm5hbWVzcGFjZSI6ICJhdGhlbnoiLAogICAgIm5vZGUiOiB7CiAgICAgICJuYW1lIjogImtpbmQtY29udHJvbC1wbGFuZSIsCiAgICAgICJ1aWQiOiAiMjU3ZmMzZDQtNTIwNy00NTU4LTkzNGYtY2FkMzc3NGIwZmE2IgogICAgfSwKICAgICJwb2QiOiB7CiAgICAgICJuYW1lIjogImNsaWVudC1kZXBsb3ltZW50LTU0NDg4ZmM5ODgtc2xjcGciLAogICAgICAidWlkIjogIjBlNzFlM2Y2LTE3MWEtNDViNy1hMDVjLWNhYWZkNzk5YzdjYyIKICAgIH0sCiAgICAic2VydmljZWFjY291bnQiOiB7CiAgICAgICJuYW1lIjogImNsaWVudCIsCiAgICAgICJ1aWQiOiAiZmEzMGVjZjgtZmZjYi00M2VkLWE5YzAtYjE2NDQ5MWJhNWY3IgogICAgfQogIH0sCiAgIm5iZiI6IDE1NTU1NTE5NTUsCiAgInN1YiI6ICJzeXN0ZW06c2VydmljZWFjY291bnQ6YXRoZW56OmNsaWVudCIKfQo.aVN8PGXmgpAXpffjBaw8PEuLLje30QepjSq5bH6s13HF8lLoLfprl7j4iDIFfBVi5a9oV715kvzc7BvUVz4HnbfBcUx_6DYzzsvyBADJBx7-Gq01c4RVpCOSLortMxouVFtnUWDDHCMBVOl8vc_TCENQcERnUztYkurRPXgdAB41lXMDFGuIQNKlK6iR3EwCHt2htlO3AoP8Go3CjTZxEeLwT7qUD_EbuEJspcqAdfFeUkTHyg7k8iJsm1e9yJSAxLbFE3R1ibahGhsxsvjN5AO_2la8ZHGlNjDKeipmMUBmdGNj5xeBOyil7bEcm9U80rf5ACkehgROxOZ0SL79rA
+      attributes:
+        instanceId: 11111111-2222-3333-4444-555555555555
+        sanIP: 10.10.10.10
+        clientIP: 100.100.100.255
+        sanURI: spiffe://athenz/sa/client
+        sanDNS: client.athenz.svc.cluster.local,11111111-2222-3333-4444-555555555555.instanceid.zts.athenz.cloud
+        certExpiryTime: 43200
+        certRefresh: false

@@ -71,23 +71,20 @@ expected_athenz_domain = concat("", [athenz_domain_prefix, athenz_domain_name, a
     jwt_kubernetes_claim.namespace
 }
 
-# we are also preparing an expected athenz service for the verification
-expected_athenz_service = jwt_kubernetes_claim.serviceaccount.name
-
 # we are also checking if the service accout token is from the expected kubernetes namespaces
 namespace_attestation = true {
     expected_namespaces[_] == jwt_kubernetes_claim.namespace
-} {
-    count(expected_namespaces) > 0
+} else = true {
+    count(expected_namespaces) == 0
 }
 
 # next, we are checking if the service account token jwt claim matches with the pod information from kube-apiserver
 # this checking prevents the service account token jwt to be used outside the associated pod
-pod_attestation = true {
+attestated_pod = pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name] {
     jwt_kubernetes_claim.namespace == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace
     jwt_kubernetes_claim.pod.uid == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid
     jwt_kubernetes_claim.serviceaccount.name == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName
-}
+} else = null
 
 # finally, we are setting the zts response
 instance := response
@@ -112,10 +109,10 @@ response = {
 
     verified_jwt
     input.domain == expected_athenz_domain
-    input.service == expected_athenz_service
+    input.service == jwt_kubernetes_claim.serviceaccount.name
     input.provider == expected_athenz_provider
     namespace_attestation
-    pod_attestation
+    attestated_pod
 
 } else = {
     "allow": false,
@@ -127,9 +124,24 @@ response = {
     log("cert_expiry_time_default", cert_expiry_time_default)
     log("cert_refresh_default", cert_refresh_default)
     log("constraints", constraints)
-    log("expected_athenz_domain", expected_athenz_domain)
-    log("expected_athenz_service", expected_athenz_service)
     log("expected_namespaces", expected_namespaces)
+    log("athenz_domain_prefix", athenz_domain_prefix)
+    log("athenz_domain_name", athenz_domain_name)
+    log("athenz_domain_suffix", athenz_domain_suffix)
     log("jwt_kubernetes_claim", jwt_kubernetes_claim)
-    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name]", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name])
+    log("attestated_pod", attestated_pod)
+} else = {
+    "allow": false,
+    "status": {
+        "reason": "Unverified attestation data",
+    },
+} {
+    log("input", input)
+    log("cert_expiry_time_default", cert_expiry_time_default)
+    log("cert_refresh_default", cert_refresh_default)
+    log("constraints", constraints)
+    log("expected_namespaces", expected_namespaces)
+    log("athenz_domain_prefix", athenz_domain_prefix)
+    log("athenz_domain_name", athenz_domain_name)
+    log("athenz_domain_suffix", athenz_domain_suffix)
 }

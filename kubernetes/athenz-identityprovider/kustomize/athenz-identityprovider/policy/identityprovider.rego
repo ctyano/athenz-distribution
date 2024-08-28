@@ -3,7 +3,7 @@ package identityprovider
 import data.config.constraints.athenz.domain.name as athenz_domain_name
 import data.config.constraints.athenz.domain.prefix as athenz_domain_prefix
 import data.config.constraints.athenz.domain.suffix as athenz_domain_suffix
-import data.config.constraints.athenz.identityprovider.service as athenz_provider
+import data.config.constraints.athenz.identityprovider.service as expected_athenz_provider
 import data.config.constraints.cert.expiry.maxmins as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultmins as cert_expiry_time_default
 import data.config.constraints.cert.refresh as cert_refresh_default
@@ -14,6 +14,7 @@ import data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_fo
 import data.config.constraints.keys.jwks.apinodes.url as api_node_api
 import data.config.constraints.keys.jwks.apinodes.domain as api_node_api_domain
 import data.config.constraints.keys.static as public_key
+import data.config.constraints.kubernetes.namespaces as expected_namespaces
 import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
 import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.debug
@@ -22,6 +23,8 @@ import data.kubernetes.pods
 # we are preparing a logger function
 log(prefix, value) = true {
     debug
+    prefix
+    value
     print("Identity Provider Debug:", sprintf("%s: %v", [prefix, value]))
 } else = true
 
@@ -30,7 +33,9 @@ jwt := object.get(input, "attestationData", "")
 
 # if we got the attestation data, then we are getting the public key for jwt verification
 # to get the public key, we are decoding the jwt from attestation data without public key verification, to extract the key id so that we can figure out which public key to use for the jwt verification
-unverified_jwt := io.jwt.decode(jwt)
+unverified_jwt := decoded_jwt {
+    decoded_jwt := io.jwt.decode(jwt)
+} else = [{}, {}]
 keys := jwks_cached {
     jwks_cached := http.send({
         "url": jwks_url,
@@ -59,25 +64,31 @@ constraints := {
 verified_jwt := io.jwt.decode_verify(jwt, constraints)
 
 # if the jwt is successfully verified, then we are extracting the "kubernetes.io" claim for further verification
-jwt_kubernetes_claim = object.get(verified_jwt[2], "kubernetes.io", {})
+jwt_kubernetes_claim := extracted_claim {
+    extracted_claim := object.get(verified_jwt[2], "kubernetes.io", {})
+} else = {}
 
 # first, we are preparing an expected athenz domain for the verification
-expected_athenz_domain = concat("", [athenz_domain_prefix, athenz_domain_name, athenz_domain_suffix]) {
+expected_athenz_domain := concat("", [athenz_domain_prefix, athenz_domain_name, athenz_domain_suffix]) {
     athenz_domain_name != ""
 } else = concat("", [athenz_domain_prefix, jwt_kubernetes_claim.namespace, athenz_domain_suffix]) {
     jwt_kubernetes_claim.namespace
 }
 
-# we are also preparing an expected athenz service for the verification
-expected_athenz_service = jwt_kubernetes_claim.serviceaccount.name
+# we are also checking if the service accout token is from the expected kubernetes namespaces
+namespace_attestation := true {
+    expected_namespaces[_] == jwt_kubernetes_claim.namespace
+} else = true {
+    count(expected_namespaces) == 0
+}
 
 # next, we are checking if the service account token jwt claim matches with the pod information from kube-apiserver
 # this checking prevents the service account token jwt to be used outside the associated pod
-pod_attestation = true {
+attestated_pod := pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name] {
     jwt_kubernetes_claim.namespace == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace
     jwt_kubernetes_claim.pod.uid == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid
     jwt_kubernetes_claim.serviceaccount.name == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName
-}
+} else = null
 
 # finally, we are setting the zts response
 instance := response
@@ -102,9 +113,10 @@ response = {
 
     verified_jwt
     input.domain == expected_athenz_domain
-    input.service == expected_athenz_service
-    input.provider == athenz_provider
-    pod_attestation
+    input.service == jwt_kubernetes_claim.serviceaccount.name
+    input.provider == expected_athenz_provider
+    namespace_attestation
+    attestated_pod
 
 } else = {
     "allow": false,
@@ -113,21 +125,14 @@ response = {
     },
 } {
     log("input", input)
-#    log("response.domain", input.domain)
-#    log("response.service", input.service)
-#    log("response.provider", input.provider)
-#    log("response.attributes", attributes)
-#    log("jwt", jwt)
-#    log("constraints", constraints)
-#    log("verified_jwt", verified_jwt)
-#    log("input.domain", input.domain)
-#    log("expected_athenz_domain", expected_athenz_domain)
-#    log("input.service", input.service)
-#    log("expected_athenz_service", expected_athenz_service)
-#    log("jwt_kubernetes_claim.namespace", jwt_kubernetes_claim.namespace)
-#    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace)
-#    log("jwt_kubernetes_claim.pod.uid", jwt_kubernetes_claim.pod.uid)
-#    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid)
-#    log("jwt_kubernetes_claim.serviceaccount.name", jwt_kubernetes_claim.serviceaccount.name)
-#    log("pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName", pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName)
+    log("cert_expiry_time_default", cert_expiry_time_default)
+    log("cert_refresh_default", cert_refresh_default)
+    log("constraints", constraints)
+    log("expected_namespaces", expected_namespaces)
+    log("athenz_domain_prefix", athenz_domain_prefix)
+    log("athenz_domain_name", athenz_domain_name)
+    log("athenz_domain_suffix", athenz_domain_suffix)
+    log("unverified_jwt", unverified_jwt)
+    log("jwt_kubernetes_claim", jwt_kubernetes_claim)
+    log("attestated_pod", attestated_pod)
 }

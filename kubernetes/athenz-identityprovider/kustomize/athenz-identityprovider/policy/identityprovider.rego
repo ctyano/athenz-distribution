@@ -124,7 +124,8 @@ response = {
     },
 } {
     log("input", input)
-    log("response.attributes", attributes)
+    log("cert_expiry_time_default", cert_expiry_time_default)
+    log("cert_refresh_default", cert_refresh_default)
     log("constraints", constraints)
     log("expected_athenz_domain", expected_athenz_domain)
     log("expected_athenz_service", expected_athenz_service)

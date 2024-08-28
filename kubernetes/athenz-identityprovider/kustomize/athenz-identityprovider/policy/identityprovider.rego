@@ -132,22 +132,7 @@ response = {
     log("athenz_domain_prefix", athenz_domain_prefix)
     log("athenz_domain_name", athenz_domain_name)
     log("athenz_domain_suffix", athenz_domain_suffix)
-    log("unverified_jwt[1]", unverified_jwt[1])
+    log("unverified_jwt", unverified_jwt)
     log("jwt_kubernetes_claim", jwt_kubernetes_claim)
     log("attestated_pod", attestated_pod)
-#} else = {
-#    "allow": false,
-#    "status": {
-#        "reason": "Unverified attestation data",
-#    },
-#} {
-#    log("input", input)
-#    log("cert_expiry_time_default", cert_expiry_time_default)
-#    log("cert_refresh_default", cert_refresh_default)
-#    log("constraints", constraints)
-#    log("expected_namespaces", expected_namespaces)
-#    log("athenz_domain_prefix", athenz_domain_prefix)
-#    log("athenz_domain_name", athenz_domain_name)
-#    log("athenz_domain_suffix", athenz_domain_suffix)
-#    log("unverified_jwt[1]", unverified_jwt[1])
 }

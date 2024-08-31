@@ -29,7 +29,7 @@ openssl rsa -in test/private.key.pem -pubout > test/public.key.pem
 #### How to generate a test jwk
 
 ```
-step crypto jwk create --alg RS256 --kid jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo --from-pem=test/private.key.pem --no-password --insecure -f test/public.jwks.json test/private.jwks.json
+step crypto jwk create --alg RS256 --kid jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo --from-pem=test/private.key.pem --no-password --insecure -f test/public.jwk.json test/private.jwk.json
 ```
 
 #### How to generate a test jwt
@@ -40,7 +40,7 @@ cat test/mock.yaml | yq .mock.jwt.body | dasel -ryaml -wjson | step crypto jws s
 
 ### How to test verifying jwt
 
-#### With JWK Set
+#### With JWK file
 
 ```
 cat test/mock.yaml | yq .mock.jwk > test/public.jwk.json

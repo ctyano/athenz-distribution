@@ -43,7 +43,7 @@ keys := jwks_cached {
         "force_cache": jwks_force_cache,
         "force_cache_duration_seconds": jwks_force_cache_duration_seconds,
     }).raw_body
-    json.unmarshal(jwks_cached).keys[i].kid == unverified_jwt[0].kid 
+    json.unmarshal(jwks_cached).keys[_].kid == unverified_jwt[0].kid 
     log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK:%s", [unverified_jwt[0].kid, jwks_cached]))
 } else = public_key {
     log("Failed to retrieve JWKs. Using the default public_key", public_key)

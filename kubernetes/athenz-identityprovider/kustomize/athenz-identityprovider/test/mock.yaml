@@ -40,14 +40,19 @@ mock:
           uid: fa30ecf8-ffcb-43ed-a9c0-b164491ba5f7
       nbf: 1555551955
       sub: system:serviceaccount:athenz:client
+  jwks_url: https://httpbin.org/base64/ewogICJrZXlzIjogWwogICAgewogICAgICAidXNlIjogInNpZyIsCiAgICAgICJrdHkiOiAiUlNBIiwKICAgICAgImtpZCI6ICJqSW9QeW9ESzZsN3dkVDJ2RWhfNGI5c1VHd0N1VkJ6MUw5ejRoYmQ0VmJvIiwKICAgICAgImFsZyI6ICJSUzI1NiIsCiAgICAgICJuIjogIm9oZG1fMmZkWjBaSnk4bVQ4MDJoSmJwdzNvRFNPNElXY0ZCWFVYdkVBZEtBbkNLaDU5a3FfZFpocjNRSVhBVC1yWWc2bWF4R2hITWVxa1RCcHZJWFN5Sm1lYTBVdDAybkhCQlFxUVlwUXI2N2FyN0FBVmxlS1lHYjlGMjlkR29JRmExLVRKR29tdFVUdjNlNEtOR0JMZDduTFd1aE5Ebnc1by1zZmNxNWlZdXVRSjlPN2IwZzA5UjFxTTdMUmc3YW9wcDlsOTBZTjlROWpkMllfTVJIWE9xVmx5S2YzXzN1RDVTU0J0TzZZUFdRczV5Q04xZHRmX2IzZ1BkY3lQZHFSdlBrcERmelVQVVpGX01BQXRIejRvV29lUkxBLXVLejJ0clR3S1dFWWJaaXZBZHJqM1dGdm5QcTA2Z1RTY1Zab3g5cVJyX2RsMmJZU3p1SkltbjZOUSIsCiAgICAgICJlIjogIkFRQUIiCiAgICB9CiAgXQp9Cgo=
   jwks: |
     {
-      "use": "sig",
-      "kty": "RSA",
-      "kid": "jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo",
-      "alg": "RS256",
-      "n": "ohdm_2fdZ0ZJy8mT802hJbpw3oDSO4IWcFBXUXvEAdKAnCKh59kq_dZhr3QIXAT-rYg6maxGhHMeqkTBpvIXSyJmea0Ut02nHBBQqQYpQr67ar7AAVleKYGb9F29dGoIFa1-TJGomtUTv3e4KNGBLd7nLWuhNDnw5o-sfcq5iYuuQJ9O7b0g09R1qM7LRg7aopp9l90YN9Q9jd2Y_MRHXOqVlyKf3_3uD5SSBtO6YPWQs5yCN1dtf_b3gPdcyPdqRvPkpDfzUPUZF_MAAtHz4oWoeRLA-uKz2trTwKWEYbZivAdrj3WFvnPq06gTScVZox9qRr_dl2bYSzuJImn6NQ",
-      "e": "AQAB"
+      "keys": [
+        {
+          "use": "sig",
+          "kty": "RSA",
+          "kid": "jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo",
+          "alg": "RS256",
+          "n": "ohdm_2fdZ0ZJy8mT802hJbpw3oDSO4IWcFBXUXvEAdKAnCKh59kq_dZhr3QIXAT-rYg6maxGhHMeqkTBpvIXSyJmea0Ut02nHBBQqQYpQr67ar7AAVleKYGb9F29dGoIFa1-TJGomtUTv3e4KNGBLd7nLWuhNDnw5o-sfcq5iYuuQJ9O7b0g09R1qM7LRg7aopp9l90YN9Q9jd2Y_MRHXOqVlyKf3_3uD5SSBtO6YPWQs5yCN1dtf_b3gPdcyPdqRvPkpDfzUPUZF_MAAtHz4oWoeRLA-uKz2trTwKWEYbZivAdrj3WFvnPq06gTScVZox9qRr_dl2bYSzuJImn6NQ",
+          "e": "AQAB"
+        }
+      ]
     }
   pem:
     public: |

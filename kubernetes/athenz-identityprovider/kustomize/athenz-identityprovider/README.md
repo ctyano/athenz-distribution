@@ -26,7 +26,7 @@ openssl genrsa 2048 > test/private.key.pem
 openssl rsa -in test/private.key.pem -pubout > test/public.key.pem
 ```
 
-#### How to generate a test jwks
+#### How to generate a test jwk
 
 ```
 step crypto jwk create --alg RS256 --kid jIoPyoDK6l7wdT2vEh_4b9sUGwCuVBz1L9z4hbd4Vbo --from-pem=test/private.key.pem --no-password --insecure -f test/public.jwks.json test/private.jwks.json
@@ -43,11 +43,11 @@ cat test/mock.yaml | yq .mock.jwt.body | dasel -ryaml -wjson | step crypto jws s
 #### With JWK Set
 
 ```
-cat test/mock.yaml | yq .mock.jwks > test/public.jwks.json
+cat test/mock.yaml | yq .mock.jwk > test/public.jwk.json
 ```
 
 ```
-cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.jwks.json --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
+cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.jwk.json --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
 ```
 
 #### With PEM file

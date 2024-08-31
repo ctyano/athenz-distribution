@@ -65,8 +65,8 @@ spec:
               value: /athenz/plugins/
           resources:
             limits:
-              memory: 32Mi
-              cpu: 100m
+              memory: 128Mi
+              cpu: 500m
             requests:
               memory: 16Mi
               cpu: 50m

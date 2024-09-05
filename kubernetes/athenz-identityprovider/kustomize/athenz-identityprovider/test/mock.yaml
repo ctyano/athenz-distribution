@@ -91,3 +91,11 @@ invalid:
         sanDNS: client.athenz.svc.cluster.local,11111111-2222-3333-4444-555555555555.instanceid.zts.athenz.cloud
         certExpiryTime: 43200
         certRefresh: false
+  pods:
+    athenz:
+      client-deployment-54488fc988-slcpg:
+        metadata:
+          namespace: athenz
+          uid: 0e71e3f6-171a-45b7-a05c-caafd799c7cd
+        spec:
+          serviceAccountName: client

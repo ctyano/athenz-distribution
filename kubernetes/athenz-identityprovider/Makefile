@@ -209,6 +209,12 @@ while true; do \
 done
 	kubectl -n athenz rollout restart deployment/identityprovider-deployment
 
+test-athenz-identityprovider-openpolicyagent:
+	opa test -v kustomize/athenz-identityprovider/{policy,test}/*.rego kustomize/athenz-identityprovider/{policy,test}/*.yaml
+
+test-athenz-identityprovider-openpolicyagent-coverage:
+	opa test -cv kustomize/athenz-identityprovider/{policy,test}/*.rego kustomize/athenz-identityprovider/{policy,test}/*.yaml
+
 test-athenz-identityprovider:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \

@@ -99,9 +99,7 @@ cert_expiry_time := cert_expiry {
 } else = cert_expiry {
     input.attributes.certExpiryTime > cert_expiry_time_max
     cert_expiry := cert_expiry_time_max
-} else = cert_expiry_time_default {
-    object.get(input.attributes, "certExpiryTime", true)
-}
+} else = cert_expiry_time_default
 
 # finally, we are setting the zts response
 instance := response

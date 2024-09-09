@@ -265,6 +265,12 @@ deploy-athenz-identityprovider:
 test-athenz-identityprovider:
 	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider
 
+test-athenz-identityprovider-openpolicyagent:
+	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider-openpolicyagent
+
+test-athenz-identityprovider-openpolicyagent-coverage:
+	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider-openpolicyagent-coverage
+
 setup-athenz-authorizer: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer check-register-athenz-authorizer
 

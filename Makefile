@@ -384,6 +384,12 @@ deploy-kubernetes-athenz-identityprovider: install-parsers
 test-kubernetes-athenz-identityprovider:
 	@$(MAKE) -C kubernetes test-athenz-identityprovider
 
+test-kubernetes-athenz-identityprovider-openpolicyagent:
+	@$(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent
+
+test-kubernetes-athenz-identityprovider-openpolicyagent-coverage:
+	@$(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent-coverage
+
 deploy-kubernetes-athenz-authorizer:
 	@$(MAKE) -C kubernetes setup-athenz-authorizer deploy-athenz-authorizer
 

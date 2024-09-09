@@ -4,7 +4,7 @@ import data.config.constraints.athenz.domain.name as athenz_domain_name
 import data.config.constraints.athenz.domain.prefix as athenz_domain_prefix
 import data.config.constraints.athenz.domain.suffix as athenz_domain_suffix
 import data.config.constraints.athenz.identityprovider.service as expected_athenz_provider
-import data.config.constraints.cert.expiry.maxmins as cert_expiry_time_max
+import data.config.constraints.cert.expiry.maxminutes as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultmins as cert_expiry_time_default
 import data.config.constraints.cert.refresh as cert_refresh_default
 import data.config.constraints.keys.jwks.url as jwks_url
@@ -44,7 +44,7 @@ keys := jwks_cached {
         "force_cache_duration_seconds": jwks_force_cache_duration_seconds,
     }).raw_body
     json.unmarshal(jwks_cached).keys[_].kid == unverified_jwt[0].kid 
-    log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK:%s", [unverified_jwt[0].kid, jwks_cached]))
+    log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK Set:%s", [unverified_jwt[0].kid, jwks_cached]))
 } else = public_key {
     log("Failed to retrieve JWKs. Using the default public_key", public_key)
 }
@@ -77,6 +77,7 @@ expected_athenz_domain := concat("", [athenz_domain_prefix, athenz_domain_name, 
 
 # we are also checking if the service accout token is from the expected kubernetes namespaces
 namespace_attestation := true {
+    count(expected_namespaces) > 0
     expected_namespaces[_] == jwt_kubernetes_claim.namespace
 } else = true {
     count(expected_namespaces) == 0
@@ -84,11 +85,21 @@ namespace_attestation := true {
 
 # next, we are checking if the service account token jwt claim matches with the pod information from kube-apiserver
 # this checking prevents the service account token jwt to be used outside the associated pod
-attestated_pod := pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name] {
-    jwt_kubernetes_claim.namespace == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.namespace
-    jwt_kubernetes_claim.pod.uid == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].metadata.uid
-    jwt_kubernetes_claim.serviceaccount.name == pods[jwt_kubernetes_claim.namespace][jwt_kubernetes_claim.pod.name].spec.serviceAccountName
-} else = null
+attestated_pod := pod {
+    namespace_pods := object.get(pods, jwt_kubernetes_claim.namespace, {})
+    pod := object.get(namespace_pods, jwt_kubernetes_claim.pod.name, {})
+    jwt_kubernetes_claim.namespace == pod.metadata.namespace
+    jwt_kubernetes_claim.pod.uid == pod.metadata.uid
+    jwt_kubernetes_claim.serviceaccount.name == pod.spec.serviceAccountName
+} else = {}
+
+cert_expiry_time := cert_expiry {
+    input.attributes.certExpiryTime <= cert_expiry_time_max
+    cert_expiry := input.attributes.certExpiryTime
+} else = cert_expiry {
+    input.attributes.certExpiryTime > cert_expiry_time_max
+    cert_expiry := cert_expiry_time_max
+} else = cert_expiry_time_default
 
 # finally, we are setting the zts response
 instance := response
@@ -107,7 +118,7 @@ response = {
         "clientIP": input.attributes.clientIP,
         "sanURI": input.attributes.sanURI,
         "sanDNS": input.attributes.sanDNS,
-        "certExpiryTime": cert_expiry_time_default,
+        "certExpiryTime": cert_expiry_time,
         "certRefresh": cert_refresh_default
     }
 

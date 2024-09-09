@@ -11,7 +11,7 @@ config:
     cert:
       expiry:
         defaultmins: 43200
-        maxmins: 43200
+        maxminutes: 43200
       refresh: true
     keys:
       jwks:

@@ -214,6 +214,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      -
+        name: Compare if Athenz version is above 11
+        id: compare-athenz-version-above-11
+        run: |
+          if [[ $(printf '%s\n' "1.12.0" "${{ env.VERSION }}" | sort -V | head -n1) = "1.12.0" ]]; then
+            echo "ATHENZ_VERSION_ABOVE_11=true" >> $GITHUB_ENV
+          fi
+
       # This action provides the following functionality for GitHub Actions runners:
       # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
       # - Extracting and caching custom version of Java from a local file.
@@ -229,13 +237,24 @@ jobs:
       # This action allows you to work with Java and Scala projects.
       # https://github.com/actions/setup-java
       -
-        name: Setup Java
-        id: setup-java
+        name: Setup Java 11
+        id: setup-java-11
+        if: env.ATHENZ_VERSION_ABOVE_11 != 'true'
         # uses: https://github.com/actions/setup-java/tags
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '11'
+          #cache: maven
+      -
+        name: Setup Java 17
+        id: setup-java-17
+        if: env.ATHENZ_VERSION_ABOVE_11 == 'true'
+        # uses: https://github.com/actions/setup-java/tags
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
           #cache: maven
 
       # Build and push Docker image with Buildx (don't push on PR)

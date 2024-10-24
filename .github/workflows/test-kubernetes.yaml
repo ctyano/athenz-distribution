@@ -151,7 +151,7 @@ jobs:
               | head -n1 \
           )"
           echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
-          if [[ $(printf '%s\n' "1.12.0" "${{ env.CURRENT_VERSION }}" | sort -V | head -n1) = "1.12.0" ]]; then
+          if [[ $(printf '%s\n' "1.12.0" "${CURRENT_VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
             echo "ATHENZ_VERSION_ABOVE_11=true" >> $GITHUB_ENV
           fi
 

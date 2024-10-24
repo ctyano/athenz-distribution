@@ -214,6 +214,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      # A GitHub Action to check Athenz version
       -
         name: Compare if Athenz version is above 11
         id: compare-athenz-version-above-11
@@ -266,12 +267,12 @@ jobs:
         # uses: https://github.com/docker/build-push-action/tags
         run: |
           if ${{ github.event_name != 'pull_request' }}; then \
-          DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
-          PUSH=${{ github.event_name != 'pull_request' }} \
-          make buildx; \
+            DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
+            PUSH=${{ github.event_name != 'pull_request' }} \
+            make buildx; \
           else \
-          DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
-          make build; \
+            DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
+            make build; \
           fi
         #uses: docker/build-push-action@v4
         #with:

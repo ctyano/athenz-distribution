@@ -131,20 +131,10 @@ jobs:
         run: |
           go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
 
-      # A GitHub Action for Kubernetes IN Docker
-      # https://github.com/helm/kind-action
+      # A GitHub Action to check Athenz version
       -
-        name: Create KinD Cluster
-        id: kind
-        # You may pin to the exact commit or the version.
-        # uses: https://github.com/helm/kind-action/tags
-        uses: helm/kind-action@v1
-        with:
-          cluster_name: kind
-
-      # A GitHub Action to build Docker container images
-      -
-        name: Build Docker container images
+        name: Compare if Athenz version is above 11
+        id: compare-athenz-version-above-11
         run: |
           # Get latest release tag with:
           #   curl -s https://api.github.com/repos/ctyano/athenz-distribution/releases \
@@ -160,8 +150,63 @@ jobs:
               | sort -ru \
               | head -n1 \
           )"
+          echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          if [[ $(printf '%s\n' "1.12.0" "${CURRENT_VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
+            echo "ATHENZ_VERSION_ABOVE_11=true" >> $GITHUB_ENV
+          fi
+
+      # This action provides the following functionality for GitHub Actions runners:
+      # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
+      # - Extracting and caching custom version of Java from a local file.
+      # - Configuring runner for publishing using Apache Maven.
+      # - Configuring runner for publishing using Gradle.
+      # - Configuring runner for using GPG private key.
+      # - Registering problem matchers for error output.
+      # - Caching dependencies managed by Apache Maven.
+      # - Caching dependencies managed by Gradle.
+      # - Caching dependencies managed by sbt.
+      # - [Maven Toolchains declaration](https://maven.apache.org/guides/mini/guide-using-toolchains.html) for specified JDK versions.
+      # 
+      # This action allows you to work with Java and Scala projects.
+      # https://github.com/actions/setup-java
+      -
+        name: Setup Java 11
+        id: setup-java-11
+        if: env.ATHENZ_VERSION_ABOVE_11 != 'true'
+        # uses: https://github.com/actions/setup-java/tags
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          #cache: maven
+      -
+        name: Setup Java 17
+        id: setup-java-17
+        if: env.ATHENZ_VERSION_ABOVE_11 == 'true'
+        # uses: https://github.com/actions/setup-java/tags
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          #cache: maven
+
+      # A GitHub Action for Kubernetes IN Docker
+      # https://github.com/helm/kind-action
+      -
+        name: Create KinD Cluster
+        id: kind
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/helm/kind-action/tags
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
+
+      # A GitHub Action to build Docker container images
+      -
+        name: Build Docker container images
+        run: |
           set -ex
-          VERSION=${CURRENT_VERSION} make build
+          VERSION=${VERSION} make build
 
       # A GitHub Action to pull container images
       -

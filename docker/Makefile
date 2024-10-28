@@ -53,7 +53,7 @@ done
 	@echo ""
 
 start-zms:
-	docker compose start athenz-auth-core ||:
+	docker compose start athenz-plugins ||:
 	docker compose start athenz-zms-server
 	SLEEP_SECONDS=10; \
 WAITING_THRESHOLD=60; \
@@ -76,7 +76,7 @@ done
 	@echo ""
 
 start-zts:
-	docker compose start athenz-auth-core ||:
+	docker compose start athenz-plugins ||:
 	docker compose start athenz-cli
 	docker compose exec -T athenz-cli \
 zms-cli \

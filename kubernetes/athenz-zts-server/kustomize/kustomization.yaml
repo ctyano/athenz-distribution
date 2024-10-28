@@ -39,8 +39,8 @@ configMapGenerator:
   - logback.xml=conf/logback.xml
   name: athenz-zts-conf
 images:
-- name: ghcr.io/ctyano/athenz-auth-core:latest
-  newName: ghcr.io/ctyano/athenz-auth-core
+- name: ghcr.io/ctyano/athenz-plugins:latest
+  newName: ghcr.io/ctyano/athenz-plugins
   newTag: latest
 - name: ghcr.io/ctyano/athenz-cli:latest
   newName: ghcr.io/ctyano/athenz-cli

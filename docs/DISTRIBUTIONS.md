@@ -19,7 +19,7 @@ Primary Docker(OCI) image distributions:
 
 External Docker(OCI) image distributions:
 
-  - [athenz-auth-core](https://github.com/users/ctyano/packages/container/package/athenz-auth-core)
+  - [athenz-plugins](https://github.com/users/ctyano/packages/container/package/athenz-plugins)
   - [k8s-athenz-sia](https://github.com/users/ctyano/packages/container/package/k8s-athenz-sia)
 
 ## Linux packages (Under development)

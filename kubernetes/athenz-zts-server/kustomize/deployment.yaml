@@ -176,8 +176,8 @@ spec:
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
               readOnly: true
-        - name: athenz-auth-core
-          image: ghcr.io/ctyano/athenz-auth-core:latest
+        - name: athenz-plugins
+          image: ghcr.io/ctyano/athenz-plugins:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: JAR_DESTINATION

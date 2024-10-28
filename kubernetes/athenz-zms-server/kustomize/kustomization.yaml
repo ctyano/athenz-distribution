@@ -35,8 +35,8 @@ configMapGenerator:
   - solution_templates.json=conf/solution_templates.json
   name: athenz-zms-conf
 images:
-- name: ghcr.io/ctyano/athenz-auth-core:latest
-  newName: ghcr.io/ctyano/athenz-auth-core
+- name: ghcr.io/ctyano/athenz-plugins:latest
+  newName: ghcr.io/ctyano/athenz-plugins
   newTag: latest
 - name: ghcr.io/ctyano/athenz-zms-server:latest
   newName: ghcr.io/ctyano/athenz-zms-server

@@ -210,9 +210,9 @@ services:
       MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
     restart: no
 
-  athenz-auth-core:
-    container_name: athenz-auth-core
-    image: ghcr.io/ctyano/athenz-auth-core:latest
+  athenz-plugins:
+    container_name: athenz-plugins
+    image: ghcr.io/ctyano/athenz-plugins:latest
     environment:
       JAR_DESTINATION: /athenz/plugins/
     volumes:

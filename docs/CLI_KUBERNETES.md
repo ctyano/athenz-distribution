@@ -29,6 +29,43 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         show-domain
 ```
 
+#### Creating an Athenz Sub Domain
+
+Currently the zms-cli is not working in this usage, so you will need to add it with your own http client(e.g. curl).
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zms-cli \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -key /var/run/athenz/athenz_admin.private.pem \
+        -cert /var/run/athenz/athenz_admin.cert.pem \
+        add-domain \
+        athenz.demo
+```
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    curl \
+        -sv \
+        -d"{\"name\":\"demo\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+        -H"Content-Type: application/json" \
+        --key /var/run/athenz/athenz_admin.private.pem \
+        --cert /var/run/athenz/athenz_admin.cert.pem \
+        "https://athenz-zms-server.athenz:4443/zms/v1/subdomain/athenz"
+```
+
+#### Creating an Athenz Personal Domain (a.k.a home domain)
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zms-cli \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -key /var/run/athenz/athenz_admin.private.pem \
+        -cert /var/run/athenz/athenz_admin.cert.pem \
+        add-domain \
+        home.athenz_admin
+```
+
 ### Retriving identity certificate
 
 ```

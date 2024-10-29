@@ -154,7 +154,7 @@ mirror-athenz-amd64-images:
 	IMAGE=athenz-ui; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-cli; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
-	IMAGE=athenz-auth-core; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
+	IMAGE=athenz-plugins; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 
 install-golang:
 	which go \
@@ -362,7 +362,7 @@ load-docker-images-internal:
 
 load-docker-images-external:
 	docker pull docker.io/ghostunnel/ghostunnel:latest
-	docker pull $(DOCKER_REGISTRY)athenz-auth-core:latest
+	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/ealen/echo-server:latest
 	docker pull docker.io/envoyproxy/envoy:v1.29-latest

@@ -44,7 +44,7 @@ kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
 		docker.io/ghostunnel/ghostunnel:latest \
-		$(DOCKER_REGISTRY)athenz-auth-core:latest
+		$(DOCKER_REGISTRY)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \
 		$(DOCKER_REGISTRY)athenz-zms-server:latest \
@@ -90,7 +90,7 @@ kustomize-edit-athenz-zms-server-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd athenz-zms-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-plugins:latest=$(DOCKER_REGISTRY)athenz-plugins:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
 	) \
 	fi
@@ -102,7 +102,7 @@ kustomize-edit-athenz-zts-server-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd athenz-zts-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-auth-core:latest=$(DOCKER_REGISTRY)athenz-auth-core:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-plugins:latest=$(DOCKER_REGISTRY)athenz-plugins:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
 	) \

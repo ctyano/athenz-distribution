@@ -10,6 +10,33 @@
 
 ### Athenz Domain Management 
 
+#### Creating an Athenz Top-Level Domain (TLD)
+
+Currently the zms-cli is not working in this usage, so you will need to add it with your own http client(e.g. curl).
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zms-cli \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -key /var/run/athenz/athenz_admin.private.pem \
+        -cert /var/run/athenz/athenz_admin.cert.pem \
+        add-domain \
+        athenz
+```
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    curl \
+        -sv \
+        -d"{\"name\":\"athenz\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+        -H"Content-Type: application/json" \
+        --key /var/run/athenz/athenz_admin.private.pem \
+        --cert /var/run/athenz/athenz_admin.cert.pem \
+        "https://athenz-zms-server.athenz:4443/zms/v1/domain"
+```
+
+#### Listing existing domains
+
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zms-cli \
@@ -18,6 +45,8 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -cert /var/run/athenz/athenz_admin.cert.pem \
         list-domain
 ```
+
+#### Showing an existing domain
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -70,14 +99,57 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
-    zms-svctoken \
-        -domain home.athenz_admin \
-        -service showcase \
-        -private-key /var/run/athenz/athenz_admin.private.pem \
-        -key-version 0 \
-    | tr -d '\n' \
-    | tee /tmp/.ntoken
+    zms-cli \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -key /var/run/athenz/athenz_admin.private.pem \
+        -cert /var/run/athenz/athenz_admin.cert.pem \
+        add-domain \
+        home.athenz_admin
 ```
+
+#### Creating an Athenz Personal Domain (a.k.a home domain)
+
+Currently the zms-cli is not working in this usage, so you will need to add it with your own http client(e.g. curl).
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zms-cli \
+        -z https://athenz-zms-server.athenz:4443/zms/v1 \
+        -key /var/run/athenz/athenz_admin.private.pem \
+        -cert /var/run/athenz/athenz_admin.cert.pem \
+        add-domain \
+        sys.test
+```
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    curl \
+        -sv \
+        -d"{\"name\":\"demo\",\"parent\":\"athenz\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+        -H"Content-Type: application/json" \
+        --key /var/run/athenz/athenz_admin.private.pem \
+        --cert /var/run/athenz/athenz_admin.cert.pem \
+        "https://athenz-zms-server.athenz:4443/zms/v1/domain"
+```
+
+### Retriving identity certificate
+
+First, you will need to generate a Athenz service token.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    /bin/sh -c " \
+        zms-svctoken \
+            -domain home.athenz_admin \
+            -service showcase \
+            -private-key /var/run/athenz/athenz_admin.private.pem \
+            -key-version 0 \
+        | tr -d '\n' \
+        | tee /tmp/.ntoken
+    "
+```
+
+Next, you can get an Athenz service X.509 certificate by sending the service token.
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -94,6 +166,8 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -cert-file /tmp/home.athenz_admin.showcase.cert.pem \
         -signer-cert-file /tmp/ca.cert.pem
 ```
+
+Alternatively, you can get an Athenz service X.509 certificate by sending an identity document that is issued by Athenz or other compatible identity providers.
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \

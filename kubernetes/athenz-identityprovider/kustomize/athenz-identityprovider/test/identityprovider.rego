@@ -5,6 +5,8 @@ import data.invalid.instance.input as invalid_input
 #import data.mock.pem.public as mock_public_key
 import data.mock.jwks_url as mock_jwks_url
 import data.mock.jwks as mock_jwks
+import data.mock.jwt_api_node as mock_jwt_api_node
+import data.mock.api_node_url as mock_api_node_url
 import data.mock.pods as mock_pods
 import data.invalid.pods as invalid_pods
 import data.config.constraints.cert.expiry.maxminutes as cert_expiry_time_max
@@ -35,7 +37,31 @@ test_instance1 {
 }
 
 # with empty athenz domain in config to associate kubernetes namespace as athenz domain
+# with retrieving jwks in each nodes from https://httpbin.org/base64/<base64 encoded jwks string>
 test_instance2 {
+    instance == {
+        "domain": mock_input.domain,
+        "service": mock_input.service,
+        "provider": mock_input.provider,
+        "attributes": {
+            "instanceId": mock_input.attributes.instanceId,
+            "sanIP": mock_input.attributes.sanIP,
+            "clientIP": mock_input.attributes.clientIP,
+            "sanURI": mock_input.attributes.sanURI,
+            "sanDNS": mock_input.attributes.sanDNS,
+            "certExpiryTime": cert_expiry_time_default,
+            "certRefresh": cert_refresh_default
+        }
+    }
+    with input as mock_input
+    with input.attestationData as mock_jwt_api_node
+    with data.config.constraints.keys.jwks.url as ""
+    with data.config.constraints.keys.jwks.apinodes.url as mock_api_node_url
+    with data.kubernetes.pods as mock_pods
+}
+
+# with empty athenz domain in config to associate kubernetes namespace as athenz domain
+test_instance3 {
     instance == {
         "domain": mock_input.domain,
         "service": mock_input.service,
@@ -56,7 +82,7 @@ test_instance2 {
 }
 
 # with specific athenz domain in config
-test_instance3 {
+test_instance4 {
     instance == {
         "domain": mock_input.domain,
         "service": mock_input.service,
@@ -78,7 +104,7 @@ test_instance3 {
 }
 
 # with specific constraints kubernetes namespaces in config
-test_instance4 {
+test_instance5 {
     instance == {
         "domain": mock_input.domain,
         "service": mock_input.service,
@@ -100,7 +126,7 @@ test_instance4 {
 }
 
 # with shortened input.attributes.certExpiryTime
-test_instance5 {
+test_instance6 {
     instance == {
         "domain": mock_input.domain,
         "service": mock_input.service,
@@ -122,7 +148,7 @@ test_instance5 {
 }
 
 # with empty input.attributes.certExpiryTime
-test_instance6 {
+test_instance7 {
     instance == {
         "domain": mock_input.domain,
         "service": mock_input.service,
@@ -144,7 +170,7 @@ test_instance6 {
 }
 
 # with empty input.attestationData
-test_instance7 {
+test_instance8 {
     instance == {
         "allow": false,
         "status": {
@@ -158,7 +184,7 @@ test_instance7 {
 }
 
 # with invalid input.attestationData
-test_instance8 {
+test_instance9 {
     instance == {
         "allow": false,
         "status": {
@@ -171,7 +197,7 @@ test_instance8 {
 }
 
 # with empty data.kubernetes.pods
-test_instance9 {
+test_instance10 {
     attestated_pod == {}
     with input as mock_input
     with data.config.constraints.keys.static as mock_jwks

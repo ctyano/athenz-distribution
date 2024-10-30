@@ -19,6 +19,8 @@ config:
         cacert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         force_cache: true
         force_cache_duration_seconds: 3600
+      apinodes:
+        url: http://127.0.0.1:8001/api/v1/nodes
       static: ""
     kubernetes:
       namespaces: []

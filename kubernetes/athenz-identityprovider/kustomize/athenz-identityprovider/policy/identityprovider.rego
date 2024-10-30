@@ -11,14 +11,15 @@ import data.config.constraints.keys.jwks.url as jwks_url
 import data.config.constraints.keys.jwks.cacert as jwks_cacert_file
 import data.config.constraints.keys.jwks.force_cache as jwks_force_cache
 import data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_force_cache_duration_seconds
-import data.config.constraints.keys.jwks.apinodes.url as api_node_api
-import data.config.constraints.keys.jwks.apinodes.domain as api_node_api_domain
+import data.config.constraints.keys.jwks.apinodes.url as api_node_url
 import data.config.constraints.keys.static as public_key
 import data.config.constraints.kubernetes.namespaces as expected_namespaces
 import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
 import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.debug
 import data.kubernetes.pods
+
+import future.keywords
 
 # we are preparing a logger function
 log(prefix, value) = true {
@@ -32,10 +33,12 @@ log(prefix, value) = true {
 jwt := object.get(input, "attestationData", "")
 
 # if we got the attestation data, then we are getting the public key for jwt verification
-# to get the public key, we are decoding the jwt from attestation data without public key verification, to extract the key id so that we can figure out which public key to use for the jwt verification
+# to get the public key, we are first decoding the jwt from attestation data without public key verification
 unverified_jwt := decoded_jwt {
     decoded_jwt := io.jwt.decode(jwt)
 } else = [{}, {}]
+
+# and then we are extracting the verification key id from the decoded jwt to figure out which public key to use for the jwt verification
 keys := jwks_cached {
     jwks_cached := http.send({
         "url": jwks_url,
@@ -45,6 +48,23 @@ keys := jwks_cached {
     }).raw_body
     json.unmarshal(jwks_cached).keys[_].kid == unverified_jwt[0].kid 
     log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK Set:%s", [unverified_jwt[0].kid, jwks_cached]))
+# if we fail to retrieve the jwk set from the api, we will still try to get them from the each host
+} else := jwks_each_node {
+    raw_node_list := http.send({
+        "url": api_node_url,
+        "method": "GET",
+    }).raw_body
+    node_list := json.unmarshal(raw_node_list)
+    node_list.items[i].status.addresses[j].type == "InternalIP"
+    node_jwks_url := sprintf("https://%s/openid/v1/jwks", [node_list.items[i].status.addresses[j].address])
+    jwks_each_node := http.send({
+        "url": node_jwks_url,
+        "method": "GET",
+        "tls_insecure_skip_verify": true,
+    }).raw_body
+    json.unmarshal(jwks_each_node).keys[_].kid == unverified_jwt[0].kid 
+    log("Key ID matched in JWKs", sprintf("Node:%s, JWT kid:%s, JWK Set:%s", [node_jwks_url, unverified_jwt[0].kid, jwks_each_node]))
+# if we fail to retrieve the jwk set with the key id even reaching to the each host, we will give up and use the pre-defined static key
 } else = public_key {
     log("Failed to retrieve JWKs. Using the default public_key", public_key)
 }

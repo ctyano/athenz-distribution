@@ -47,7 +47,7 @@ keys := jwks_cached {
         "force_cache_duration_seconds": jwks_force_cache_duration_seconds,
     }).raw_body
     json.unmarshal(jwks_cached).keys[_].kid == unverified_jwt[0].kid 
-    log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK Set:%s", [unverified_jwt[0].kid, jwks_cached]))
+    log("Key ID matched in JWKs", sprintf("JWT kid:%s, JWK Set:%s", [unverified_jwt[0].kid, json.marshal(jwks_cached)]))
 # if we fail to retrieve the jwk set from the api, we will still try to get them from the each host
 } else := jwks_each_node {
     raw_node_list := http.send({
@@ -63,10 +63,10 @@ keys := jwks_cached {
         "tls_insecure_skip_verify": true,
     }).raw_body
     json.unmarshal(jwks_each_node).keys[_].kid == unverified_jwt[0].kid 
-    log("Key ID matched in JWKs", sprintf("Node:%s, JWT kid:%s, JWK Set:%s", [node_jwks_url, unverified_jwt[0].kid, jwks_each_node]))
+    log("Key ID matched in JWKs", sprintf("Node:%s, JWT kid:%s, JWK Set:%s", [node_jwks_url, unverified_jwt[0].kid, json.marshal(jwks_each_node)]))
 # if we fail to retrieve the jwk set with the key id even reaching to the each host, we will give up and use the pre-defined static key
 } else = public_key {
-    log("Failed to retrieve JWKs. Using the default public_key", public_key)
+    log("Failed to retrieve JWKs. Using the default public_key:", json.marshal(public_key))
 }
 
 # if we got the public key, then we are preparing the constraints for the jwt verification

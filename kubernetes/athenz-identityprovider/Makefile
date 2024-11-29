@@ -34,7 +34,7 @@ register-athenz-identityprovider:
 			$$(cat kustomize/kustomization.yaml | yq .namespace) \
 			set-service-endpoint \
 			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
-			https://$$(cat kustomize/athenz-identityprovider/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_ENDPOINT_HOST | sed -e 's/IDENTITYPROVIDER_ENDPOINT_HOST=\(.*\)/\1/g')/v0/data/identityprovider
+			https://$$(cat kustomize/athenz-identityprovider-policy/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_ENDPOINT_HOST | sed -e 's/IDENTITYPROVIDER_ENDPOINT_HOST=\(.*\)/\1/g')/v0/data/identityprovider
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -158,7 +158,7 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 	| tee identitydocument.jwt
 	kubectl \
 		-n \
-		$$(cat kustomize/athenz-identityprovider/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_NAMESPACE | sed -e 's/IDENTITYPROVIDER_NAMESPACE=\(.*\)/\1/g') \
+		$$(cat kustomize/athenz-identityprovider-policy/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_NAMESPACE | sed -e 's/IDENTITYPROVIDER_NAMESPACE=\(.*\)/\1/g') \
 		create \
 		secret \
 		generic \
@@ -210,10 +210,10 @@ done
 	kubectl -n athenz rollout restart deployment/identityprovider-deployment
 
 test-athenz-identityprovider-openpolicyagent:
-	opa test -v kustomize/athenz-identityprovider/{policy,test}/*.rego kustomize/athenz-identityprovider/{policy,test}/*.yaml
+	opa test -v kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
 test-athenz-identityprovider-openpolicyagent-coverage:
-	opa test -cv kustomize/athenz-identityprovider/{policy,test}/*.rego kustomize/athenz-identityprovider/{policy,test}/*.yaml
+	opa test -cv kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
 test-athenz-identityprovider:
 	SLEEP_SECONDS=5; \

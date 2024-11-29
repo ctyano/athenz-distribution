@@ -4,7 +4,7 @@
 
 Files below must be configured for each use cases accordingly
 
-1. [athenz-identityprovider.env](kustomize/athenz-identityprovider/athenz-identityprovider.env)
+1. [athenz-identityprovider.env](kustomize/athenz-identityprovider.env)
 1. [athenz-sia.env](kustomize/athenz-sia/athenz-sia.env)
 1. [config.yaml](kustomize/athenz-identityprovider/policy/config.yaml)
 1. [secret.yaml](#creating-tls-server-certificate-secret)
@@ -72,7 +72,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         $(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
         set-service-endpoint \
         $(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\2/g') \
-        https://$(cat kustomize/athenz-identityprovider/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_ENDPOINT_HOST | sed -e 's/IDENTITYPROVIDER_ENDPOINT_HOST=\(.*\)/\1/g')/v0/data/identityprovider
+        https://$(cat kustomize/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_ENDPOINT_HOST | sed -e 's/IDENTITYPROVIDER_ENDPOINT_HOST=\(.*\)/\1/g')/v0/data/identityprovider
 ```
 
 ```
@@ -152,7 +152,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 ```
 kubectl \
     -n \
-    $(cat kustomize/athenz-identityprovider/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_NAMESPACE | sed -e 's/IDENTITYPROVIDER_NAMESPACE=\(.*\)/\1/g') \
+    $(cat kustomize/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_NAMESPACE | sed -e 's/IDENTITYPROVIDER_NAMESPACE=\(.*\)/\1/g') \
     create \
     secret \
     tls \

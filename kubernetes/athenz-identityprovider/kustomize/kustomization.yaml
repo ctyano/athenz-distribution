@@ -34,7 +34,7 @@ configMapGenerator:
       - identity_sds.yaml=envoy/identity_sds.yaml
   - name: athenz-identityprovider
     envs:
-      - athenz-identityprovider-policy/athenz-identityprovider.env
+      - athenz-identityprovider.env
   - name: identityprovider-config
     files:
       - config.yaml=athenz-identityprovider-policy/config.yaml

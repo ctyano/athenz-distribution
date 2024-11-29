@@ -15,7 +15,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/test-identityprovider.yaml
-      - kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/**
+      - kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/**
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -97,8 +97,8 @@ jobs:
           # Run tests for Open Policy Agent Rego files
           # Replace this with your test command
           opa test -v \
-            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.rego \
-            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.yaml
+            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.rego \
+            kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
       # A GitHub Action to attest the test coverage of the application
       -
@@ -107,8 +107,8 @@ jobs:
           # Run tests for Open Policy Agent Rego files and attest the test coverage
           # Replace this with your test command
           OPA_TEST_COVERAGE=$(opa test -cv \
-              kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.rego \
-              kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider/{policy,test}/*.yaml \
+              kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.rego \
+              kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml \
             | jq -r .coverage)
           echo "${EXPECTED_OPA_TEST_COVERAGE} < ${OPA_TEST_COVERAGE}" \
             | bc -l \

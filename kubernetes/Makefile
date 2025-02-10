@@ -59,7 +59,7 @@ kind-load-images:
 		docker.io/portainer/kubectl-shell:latest \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY)docker-vegeta:latest \
-		docker.io/athenz/authorization-proxy:latest
+		docker.io/tatyano/authorization-proxy:latest
 
 kind-shutdown:
 	kind delete cluster

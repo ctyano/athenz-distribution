@@ -129,6 +129,7 @@ kustomize-edit-athenz-authzproxy-image:
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=docker.io/tatyano/authorization-proxy:latest \
 	) \
 	fi
 

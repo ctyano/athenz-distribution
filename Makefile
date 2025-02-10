@@ -370,7 +370,7 @@ load-docker-images-external:
 	docker pull docker.io/openpolicyagent/opa:latest-static
 	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
-	docker pull docker.io/athenz/authorization-proxy:latest
+	docker pull docker.io/tatyano/authorization-proxy:latest
 
 load-kubernetes-images: version install-kustomize
 	@$(MAKE) -C kubernetes kind-load-images

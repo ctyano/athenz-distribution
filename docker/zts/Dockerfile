@@ -7,7 +7,7 @@ ARG VCS_REF
 ARG GID=1001
 ARG UID=10001
 
-FROM docker.io/library/openjdk:22-slim-bullseye AS builder
+FROM docker.io/library/openjdk:22-slim-bookworm AS builder
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'
@@ -28,7 +28,7 @@ RUN tar xvzf ./athenz-zts-${VERSION}-bin.tar.gz -C /tmp \
     && mv /tmp/athenz-zts-${VERSION}*/* /opt/athenz/zts/ \
     && rm -f ./athenz-zts-${VERSION}-bin.tar.gz
 
-FROM docker.io/library/openjdk:22-slim-bullseye
+FROM docker.io/library/openjdk:22-slim-bookworm
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'
@@ -56,8 +56,7 @@ LABEL org.opencontainers.image.source="https://github.com/ctyano/athenz-distribu
 
 #RUN apk add --no-cache bash
 RUN apt-get update
-#RUN apt-get -y install bash curl net-tools netcat openssl tree git jq tzdata wget ca-certificates-java
-RUN apt-get -y install tzdata
+RUN apt-get -y install bash curl net-tools netcat-openbsd openssl tree git jq tzdata wget ca-certificates-java
 RUN apt-get clean
 RUN apt-get autoremove
 

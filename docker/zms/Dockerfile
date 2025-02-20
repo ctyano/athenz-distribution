@@ -56,7 +56,8 @@ LABEL org.opencontainers.image.source="https://github.com/ctyano/athenz-distribu
 
 #RUN apk add --no-cache bash
 RUN apt-get update
-RUN apt-get -y install bash curl net-tools netcat openssl tree git jq tzdata wget ca-certificates-java
+#RUN apt-get -y install bash curl net-tools netcat openssl tree git jq tzdata wget ca-certificates-java
+RUN apt-get -y install tzdata
 RUN apt-get clean
 RUN apt-get autoremove
 

@@ -27,6 +27,13 @@ spec:
         - name: envoy
           configMap:
             name: identityprovider-envoy
+        - name: attestation-data
+          secret:
+            secretName: identityprovider-jwt
+            defaultMode: 0555
+            items:
+              - key: identitydocument.jwt
+                path: identitydocument.jwt
         - name: athenz-tls-certs
           emptyDir: {}
         - name: policy
@@ -45,7 +52,7 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          image: &sia-image docker.io/tatyano/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:
@@ -91,6 +98,9 @@ spec:
               cpu: 50m
               memory: 64Mi
           volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/athenz/attestation-data
+              readOnly: true
             - name: athenz-tls-certs
               mountPath: /var/run/athenz
             - name: athenz-cacert
@@ -103,6 +113,7 @@ spec:
           imagePullPolicy: *sia-imagePullPolicy
           args:
             - --mode=refresh
+            - --provider-service=sys.auth.zts
           envFrom: *sia-envFrom
           env: *sia-env
           ports:
@@ -260,113 +271,3 @@ spec:
             - name: PORT
               value: "3000"
           resources: *envoy-resources
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: identityprovider-sia
-  labels:
-    app: identityprovider-sia
-spec:
-  replicas: 1
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
-  selector:
-    matchLabels:
-      app: identityprovider-sia
-  template:
-    metadata:
-      labels:
-        app: identityprovider-sia
-    spec:
-      serviceAccountName: identityprovider
-      restartPolicy: Always
-      volumes:
-        - name: attestation-data
-          secret:
-            secretName: identityprovider-jwt
-            defaultMode: 0555
-            items:
-              - key: identitydocument.jwt
-                path: identitydocument.jwt
-        - name: athenz-tls-certs
-          emptyDir: {}
-        - name: athenz-cacert
-          secret:
-            secretName: athenz-cacert
-            defaultMode: 0555
-            items:
-              - key: ca.cert.pem
-                path: ca-certificates.crt
-      initContainers:
-        # TODO: sia-wait should be implemented in sia-init in future
-        - name: sia-wait
-          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
-          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
-          resources: &sia-resources
-            limits:
-              cpu: "50m"
-              memory: "64Mi"
-          command:
-            - sh
-            - -c
-          args:
-            - |
-              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && break; done
-        - name: sia-init
-          image: *sia-image
-          imagePullPolicy: *sia-imagePullPolicy
-          resources: *sia-resources
-          args: &sia-init-args
-            - --mode=init
-            - --delay-jitter-seconds=5
-          envFrom: &sia-envFrom
-            - configMapRef:
-                name: identityprovider-sia
-          env: &sia-env
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SERVICEACCOUNT
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: spec.serviceAccountName
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: status.podIP
-            - name: BACKUP
-              value: write
-            - name: TOKEN_SERVER_ADDR
-              value: ""
-            - name: METRICS_SERVER_ADDR
-              value: ""
-            - name: AUTHORIZATION_SERVER_ADDR
-              value: ""
-          volumeMounts: &sia-volumeMounts
-            - name: attestation-data
-              mountPath: /var/run/athenz/attestation-data
-              readOnly: true
-            - name: athenz-tls-certs
-              mountPath: /var/run/athenz
-            - name: athenz-cacert
-              mountPath: /etc/ssl/certs/ca-certificates.crt
-              subPath: ca-certificates.crt
-              readOnly: true
-      containers:
-        - name: sia
-          image: *sia-image
-          imagePullPolicy: *sia-imagePullPolicy
-          resources: *sia-resources
-          args: &sia-args
-            - --mode=refresh
-          envFrom: *sia-envFrom
-          env: *sia-env
-          volumeMounts: *sia-volumeMounts

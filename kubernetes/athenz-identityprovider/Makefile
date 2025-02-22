@@ -32,6 +32,17 @@ register-athenz-identityprovider:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-d \
 			$$(cat kustomize/kustomization.yaml | yq .namespace) \
+			add-public-key \
+			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
+			0 \
+			$$(cat kustomize/keys/identityprovider.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			$$(cat kustomize/kustomization.yaml | yq .namespace) \
 			set-service-endpoint \
 			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
 			https://$$(cat kustomize/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_ENDPOINT_HOST | sed -e 's/IDENTITYPROVIDER_ENDPOINT_HOST=\(.*\)/\1/g')/v0/data/identityprovider
@@ -168,6 +179,43 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 		-o \
 		yaml \
 	| tee kustomize/secret.yaml
+	printf "\n---\n" | tee -a kustomize/secret.yaml
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		sh \
+		-c \
+		" \
+		chmod a+rw /tmp/*.pem; \
+		zts-svccert \
+			-zts $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^ENDPOINT | sed -e 's/ENDPOINT=\(.*\)/\1/g') \
+			-domain $$(cat kustomize/kustomization.yaml | yq .namespace) \
+			-service $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
+			-provider $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g') \
+			-instance $$(cat kustomize/kustomization.yaml | yq .namespace).$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
+			-attestation-data /tmp/.identitydocument.jwt \
+			-dns-domain zts.athenz.cloud \
+			-private-key /var/run/athenz/athenz_admin.private.pem \
+			-cert-file /tmp/home.athenz_admin.showcase.cert.pem \
+			-signer-cert-file /tmp/ca.cert.pem \
+		"
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		cat /var/run/athenz/athenz_admin.private.pem \
+	| tee tls.key
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		cat /tmp/home.athenz_admin.showcase.cert.pem \
+	| tee tls.crt
+	kubectl \
+		-n \
+		$$(cat kustomize/athenz-identityprovider.env | grep -E ^IDENTITYPROVIDER_NAMESPACE | sed -e 's/IDENTITYPROVIDER_NAMESPACE=\(.*\)/\1/g') \
+		create \
+		secret \
+		tls \
+		identityprovider-tls \
+		--key=tls.key \
+		--cert=tls.crt \
+		--dry-run=client \
+		-o \
+		yaml \
+	| tee -a kustomize/secret.yaml
 
 kustomize-edit-athenz-identityprovider-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
@@ -186,9 +234,9 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-sia" | grep -Ev "Running" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment-" | grep -Ev "Running" | wc -l) )) -eq 0 \
 	&& \
-	kubectl -n athenz exec deployment/identityprovider-sia -it -c sia -- \
+	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \
 		-alF \
 		/var/run/athenz/tls.key \
@@ -207,7 +255,6 @@ while true; do \
 		exit 1; \
 	fi; \
 done
-	kubectl -n athenz rollout restart deployment/identityprovider-deployment
 
 test-athenz-identityprovider-openpolicyagent:
 	opa test -v kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml

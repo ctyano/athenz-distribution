@@ -68,11 +68,3 @@ replacements:
           - spec.template.spec.serviceAccountName
         options:
           create: true
-      - select:
-          version: v1
-          kind: Deployment
-          name: identityprovider-sia
-        fieldPaths:
-          - spec.template.spec.serviceAccountName
-        options:
-          create: true

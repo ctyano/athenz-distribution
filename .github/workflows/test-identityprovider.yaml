@@ -97,6 +97,7 @@ jobs:
           # Run tests for Open Policy Agent Rego files
           # Replace this with your test command
           opa test -v \
+            --v0-compatible \
             kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.rego \
             kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
@@ -107,6 +108,7 @@ jobs:
           # Run tests for Open Policy Agent Rego files and attest the test coverage
           # Replace this with your test command
           OPA_TEST_COVERAGE=$(opa test -cv \
+              --v0-compatible \
               kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.rego \
               kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml \
             | jq -r .coverage)

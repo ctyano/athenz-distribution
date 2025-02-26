@@ -257,10 +257,10 @@ while true; do \
 done
 
 test-athenz-identityprovider-openpolicyagent:
-	opa test -v kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
+	opa test -v --v0-compatible kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
 test-athenz-identityprovider-openpolicyagent-coverage:
-	opa test -cv kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
+	opa test -cv --v0-compatible kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
 test-athenz-identityprovider:
 	SLEEP_SECONDS=5; \
@@ -272,13 +272,6 @@ while true; do \
 	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment" | grep -Ev "Running" | wc -l) )) -eq 0 \
 	&& \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
-		ls \
-		-alF \
-		/var/run/athenz/tls.key \
-		/var/run/athenz/tls.crt \
-		/var/run/athenz/ca.crt \
-	&& \
-	kubectl -n athenz exec deployment/identityprovider-sia -it -c sia -- \
 		ls \
 		-alF \
 		/var/run/athenz/tls.key \

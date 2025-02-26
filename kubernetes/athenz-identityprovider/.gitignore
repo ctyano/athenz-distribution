@@ -7,3 +7,4 @@
 .ntoken
 athenz.conf
 admin
+tls.*

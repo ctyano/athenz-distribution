@@ -134,6 +134,8 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 
 ### Retriving identity certificate
 
+#### Retriving with an Athenz service token
+
 First, you will need to generate a Athenz service token.
 
 ```
@@ -169,6 +171,10 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 
 Alternatively, you can get an Athenz service X.509 certificate by sending an identity document that is issued by Athenz or other compatible identity providers.
 
+#### Retriving with an Athenz identity document
+
+First, you will need to retrieve a Athenz identity document jwt.
+
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-svccert \
@@ -181,10 +187,33 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         -attestation-data /tmp/.identitydocument.jwt \
         -dns-domain zts.athenz.cloud \
         -svc-key-file /var/run/athenz/athenz_admin.private.pem \
-        -svc-cert-file /tmp/home.athenz_admin.showcase.cert.pem
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem
 ```
 
-### Retriving tokens
+Next, you can get an Athenz service X.509 certificate by sending the identity document.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-svccert \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -domain home.athenz_admin \
+        -service showcase \
+        -provider sys.auth.zts \
+        -instance $(hostname) \
+        -attestation-data /tmp/.identitydocument.jwt \
+        -dns-domain zts.athenz.cloud \
+        -private-key /var/run/athenz/athenz_admin.private.pem \
+        -cert-file /tmp/home.athenz_admin.showcase.cert.pem \
+        -signer-cert-file /tmp/ca.cert.pem
+```
+
+### Retriving RBAC token
+
+There are two types of RBAC tokens in Athenz.
+
+The legacy Role Tokens, and the RFC 8705 standardized OAuth 2.0 based Access Tokens.
+
+#### Retriving Role Token
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -197,6 +226,8 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
     | rev | cut -d';' -f2- | rev \
     | tr ';' '\n'
 ```
+
+#### Retriving Access Token
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \

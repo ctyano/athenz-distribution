@@ -1,3 +1,6 @@
 [submodule "athenz"]
 	path = athenz
 	url = https://github.com/AthenZ/athenz.git
+[submodule "kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy"]
+	path = kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy
+	url = https://github.com/ctyano/athenz-identityprovider-policy.git

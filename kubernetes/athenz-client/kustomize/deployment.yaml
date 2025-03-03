@@ -50,7 +50,8 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          #image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          image: &sia-image docker.io/tatyano/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:
@@ -109,9 +110,8 @@ spec:
           imagePullPolicy: *sia-imagePullPolicy
           args:
             - --mode=refresh
+            - --use-token-server
             - --token-server-addr=:8180
-            - --authorization-server-addr=:8280
-            - --metrics-server-addr=:9999
           envFrom: *sia-envFrom
           env: *sia-env
           ports:
@@ -145,8 +145,13 @@ spec:
               cpu: 50m
           volumeMounts:
             - name: athenz-admin-keys
-              mountPath: /var/run/athenz
+              mountPath: /var/run/athenz/admin
               readOnly: true
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt

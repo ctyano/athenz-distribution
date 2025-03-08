@@ -21,6 +21,12 @@ External Docker(OCI) image distributions:
 
   - [athenz-plugins](https://github.com/users/ctyano/packages/container/package/athenz-plugins)
   - [k8s-athenz-sia](https://github.com/users/ctyano/packages/container/package/k8s-athenz-sia)
+  - [open-policy-agent](https://hub.docker.com/r/openpolicyagent/opa)
+  - [kube-mgmt](https://hub.docker.com/r/openpolicyagent/kube-mgmt)
+  - [envoy](https://hub.docker.com/r/envoyproxy/envoy)
+  - [ghostunnel](https://hub.docker.com/r/ghostunnel/ghostunnel)
+  - [oauth2-proxy](https://quay.io/repository/oauth2-proxy/oauth2-proxy)
+  - [dex](https://github.com/dexidp/dex/pkgs/container/dex)
 
 Third party Docker(OCI) images:
 

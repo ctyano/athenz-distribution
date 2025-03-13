@@ -40,6 +40,14 @@
                 { "name":"deletedomainrolemember" },
                 { "name":"deletependingmembership" }
             ]
+        },
+        "athenz.product.controller": {
+            "allowedOperations": [
+                { "name":"puttenant" },
+                { "name":"deletetenant" },
+                { "name":"puttenancy" },
+                { "name":"deletetenancy" }
+            ]
         }
     }
 }

@@ -5,6 +5,49 @@ endif
 clean-athenz-k8sclient:
 	kubectl delete -k kustomize
 
+register-athenz-k8sprovider:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			$$(cat ../athenz-identityprovider/kustomize/kustomization.yaml | yq .namespace) \
+			add-service \
+			k8s$$(cat ../athenz-identityprovider/kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g')
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			$$(cat ../athenz-identityprovider/kustomize/kustomization.yaml | yq .namespace) \
+			set-service-endpoint \
+			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g') \
+			class://com.yahoo.athenz.instance.provider.impl.InstanceK8SProvider
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			sys.auth \
+			set-domain-template \
+			instance_provider \
+			provider="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g')" \
+			dnssuffix="$$(cat ../athenz-identityprovider/kustomize/athenz-sia/athenz-sia.env | grep -E ^DNS_SUFFIX | sed -e 's/DNS_SUFFIX=\(.*\)/\1/g')"
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			sys.auth \
+			set-domain-template \
+			instance_provider \
+			provider="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g')" \
+			dnssuffix="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^DNS_SUFFIX | sed -e 's/DNS_SUFFIX=\(.*\)/\1/g')"
+
 register-athenz-k8sclient:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		curl \

@@ -142,7 +142,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
             -private-key /var/run/athenz/athenz_admin.private.pem \
             -key-version 0 \
         | tr -d '\n' \
-        | tee /tmp/.ntoken
+        | tee /tmp/.ntoken \
     "
 ```
 

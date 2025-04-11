@@ -13,6 +13,8 @@ on:
   workflow_call:
   workflow_dispatch:
   pull_request:
+    branches:
+      - main
     paths:
       - .github/workflows/test-identityprovider.yaml
       - kubernetes/athenz-identityprovider/kustomize/athenz-identityprovider-policy/**

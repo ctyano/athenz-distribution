@@ -16,7 +16,7 @@ In multi-cluster or multi-cloud environments, precise and frequently configurabl
 
 ## Getting Started with Athenz  
 
-Athenz is a powerful solution, but getting started shouldn’t be a challenge!  
+Athenz is a powerful solution, but getting started should be straightforward!
 Many new users find the initial setup complex, making experimentation difficult.  
 
 This repository is here to **simplify the process** and help you:  

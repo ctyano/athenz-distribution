@@ -13,17 +13,16 @@ Other required dependencies will be automatically installed.
 make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
-`clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.
+### Each steps in Makefile
 
-`load-docker-images` pulls container images from remote registry.
+- `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.
+- `load-docker-images` pulls container images from remote registry.
+- `load-kubernetes-images` loads container images to kind cluster.
+- `deploy-kubernetes-athenz` prepares the keys and the certs locally and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
+- `deploy-kubernetes-athenz-identityprovider` registers required informations to athenz and deploys copper argos identity provider.
+- `deploy-kubernetes-athenz-workloads` registers required informations to athenz for the each showcase and deploys miscellaneous workload applications for authentication/authorization showcases.
 
-`load-kubernetes-images` loads container images to kind cluster.
-
-`deploy-kubernetes-athenz` prepares the keys and the certs locally and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
-
-`deploy-kubernetes-athenz-identityprovider` registers required informations to athenz and deploys copper argos identity provider.
-
-`deploy-kubernetes-athenz-workloads` registers required informations to athenz for the each showcase and deploys miscellaneous workload applications for authentication/authorization showcases.
+## After completing the setup
 
 You may access Athenz UI at http://localhost:3000 by forwarding requests.
 

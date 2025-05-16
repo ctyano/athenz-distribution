@@ -6,6 +6,8 @@ This repository is currently privately owned and maintained by [ctyano](https://
 
 Stars ⭐️ and Pull Requests ❤️  are always welcome.
 
+To learn more about this repository, you may refer to [the documentation of this repository](docs).
+
 ## Minimum setup on a Kubernetes cluster ⎈
 
 ⚠️  Prerequisite: A Kubernetes Cluster must be set up before continuing to further steps.

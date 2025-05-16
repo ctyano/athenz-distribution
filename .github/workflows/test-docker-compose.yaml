@@ -15,9 +15,9 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '*.md'
-      - docs/**
+    paths:
+      - '!*.md'
+      - '!docs/**'
 
 env:
   # Use docker.io for Docker Hub if empty

@@ -152,3 +152,4 @@ jobs:
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             https://api.github.com/repos/${{ github.repository }}/actions/workflows/trigger-workflows.yaml/dispatches \
             -d "{\"ref\":\"${{ env.TAG_VERSION }}\",\"inputs\":{\"target_version\":\"${{ env.VERSION }}\",\"current_version\":\"${{ env.CURRENT_VERSION }}\"}}"
+

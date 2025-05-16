@@ -332,3 +332,4 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
+

@@ -1,6 +1,6 @@
 # About athenz-distribution repository
 
-The documents describe the varieties of use-cases to implement authorization between pods inside the cluster.
+The documents describe the varieties of use-cases to implement authorization between pods inside a cluster.
 
 # Introduction
 

@@ -98,7 +98,7 @@ jobs:
           Here is the diff:
           EOF
 
-          git diff origin/main >> ../prompt
+          git diff origin/main --cached --exit-code >> ../prompt
           echo "changed=$?" >> $GITHUB_OUTPUT
 
       # A GitHub Action to check documentation

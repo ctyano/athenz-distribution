@@ -14,8 +14,6 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - docs/**
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -204,3 +202,4 @@ jobs:
               --data-binary @$file \
               "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$release_id/assets?name=$(basename $file)"
           done
+

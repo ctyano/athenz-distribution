@@ -15,7 +15,8 @@ on:
     branches:
       - main
     paths-ignore:
-      - docs/**
+      - '*.md'
+      - 'docs/**'
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -285,3 +286,4 @@ jobs:
         #  platforms: ${{ env.DOCKER_TAEGET_PLATFORMS }}
         #  build-args: ${{ env.DOCKER_BUILD_ARGS }}
         #  cache-from: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/${{ env.DOCKER_REGISTRY_IMAGE }}
+

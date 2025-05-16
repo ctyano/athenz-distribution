@@ -16,7 +16,8 @@ on:
     branches:
       - main
     paths-ignore:
-      - docs/**
+      - '*.md'
+      - 'docs/**'
 
 env:
   # Use docker.io for Docker Hub if empty

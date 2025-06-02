@@ -158,6 +158,14 @@ jobs:
             echo "ATHENZ_VERSION_ABOVE_11=true" >> $GITHUB_ENV
           fi
 
+      # A GitHub Action to switch Athenz version
+      -
+        name: Switch Athenz version
+        id: switch-athenz-version
+        if: ${{ github.event_name != 'pull_request' && env.VERSION != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != env.VERSION }}
+        run: |
+          echo "VERSION=${{ github.event.inputs.target_version }}" >> $GITHUB_ENV
+
       # This action provides the following functionality for GitHub Actions runners:
       # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
       # - Extracting and caching custom version of Java from a local file.

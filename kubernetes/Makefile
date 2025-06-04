@@ -36,6 +36,7 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-authzwebhook/kustomize/
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/
 	cp -r ../keys ../certs athenz-client/kustomize/
+	cp -r ../keys ../certs crypki-softhsm/kustomize/
 
 kind-setup:
 	kind create cluster
@@ -270,6 +271,15 @@ test-athenz-identityprovider-openpolicyagent:
 
 test-athenz-identityprovider-openpolicyagent-coverage:
 	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider-openpolicyagent-coverage
+
+setup-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm register-crypki-softhsm
+
+deploy-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm deploy-crypki-softhsm
+
+test-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
 
 setup-athenz-authorizer: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer check-register-athenz-authorizer

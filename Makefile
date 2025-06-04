@@ -346,7 +346,14 @@ generate-identityprovider: generate-ca
 	openssl genrsa -out - 4096 | openssl pkey -out keys/identityprovider.private.pem
 	openssl rsa -pubout -in keys/identityprovider.private.pem -out keys/identityprovider.public.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider
+generate-crypki: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out - 4096 | openssl pkey -out keys/crypki.private.pem
+	openssl req -config openssl/crypki.openssl.config -new -key keys/crypki.private.pem -out certs/crypki.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/crypki.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/crypki.cert.pem -days 99999 -extfile openssl/crypki.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/crypki.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki
 
 clean-kubernetes-athenz: clean-certificates
 	@$(MAKE) -C kubernetes clean-athenz
@@ -359,6 +366,7 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
 	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
 
 load-docker-images-external:
 	docker pull docker.io/ghostunnel/ghostunnel:latest
@@ -389,6 +397,12 @@ test-kubernetes-athenz-identityprovider-openpolicyagent:
 
 test-kubernetes-athenz-identityprovider-openpolicyagent-coverage:
 	@$(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent-coverage
+
+deploy-kubernetes-crypki-softhsm: generate-certificates
+	@$(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm
+
+test-kubernetes-crypki-softhsm:
+	@$(MAKE) -C kubernetes test-crypki-softhsm
 
 deploy-kubernetes-athenz-authorizer:
 	@$(MAKE) -C kubernetes setup-athenz-authorizer deploy-athenz-authorizer

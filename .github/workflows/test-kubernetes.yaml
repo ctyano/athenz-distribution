@@ -251,6 +251,20 @@ jobs:
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
+        name: Deploy Applicationfor crypki-softhsm
+        run: |
+          make deploy-kubernetes-crypki-softhsm
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for crypki-softhsm
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-crypki-softhsm
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
         name: Deploy Applicationfor athenz-identityprovider
         run: |
           make deploy-kubernetes-athenz-identityprovider

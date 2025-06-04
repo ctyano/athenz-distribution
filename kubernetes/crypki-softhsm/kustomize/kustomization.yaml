@@ -1,0 +1,45 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: crypki
+
+resources:
+- deployment.yaml
+- namespace.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+- files:
+  - ca.key=keys/ca.private.pem
+  - server.key=keys/crypki.private.pem
+  - client.key=keys/crypki.private.pem
+  - ca.crt=certs/ca.cert.pem
+  - server.crt=certs/crypki.cert.pem
+  - client.crt=certs/crypki.cert.pem
+  name: crypki-keys
+  type: Opaque
+- files:
+  - athenz_admin.private.pem=keys/athenz_admin.private.pem
+  - athenz_admin.cert.pem=certs/athenz_admin.cert.pem
+  name: athenz-admin-keys
+  type: Opaque
+- files:
+  - ca.cert.pem=certs/ca.cert.pem
+  name: athenz-cacert
+  type: Opaque
+
+configMapGenerator:
+- files:
+  - slot_pwd.txt=conf/slot_pwd.txt
+  name: crypki-shm
+
+images:
+- name: ghcr.io/ctyano/crypki-softhsm:latest
+  newName: ghcr.io/ctyano/crypki-softhsm
+  newTag: latest
+- name: ghcr.io/ctyano/athenz-cli:latest
+  newName: ghcr.io/ctyano/athenz-cli
+  newTag: latest

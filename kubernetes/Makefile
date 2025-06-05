@@ -273,9 +273,9 @@ test-athenz-identityprovider-openpolicyagent-coverage:
 	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider-openpolicyagent-coverage
 
 setup-crypki-softhsm:
-	@$(MAKE) -C crypki-softhsm register-crypki-softhsm
+	@$(MAKE) -C crypki-softhsm setup-crypki-softhsm
 
-deploy-crypki-softhsm:
+deploy-crypki-softhsm: copy-to-kustomization setup-crypki-softhsm
 	@$(MAKE) -C crypki-softhsm deploy-crypki-softhsm
 
 test-crypki-softhsm:

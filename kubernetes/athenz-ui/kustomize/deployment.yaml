@@ -98,7 +98,7 @@ spec:
           livenessProbe:
             initialDelaySeconds: 20
             periodSeconds: 10
-            failureThreshold: 3
+            failureThreshold: 6
             exec:
               command:
                 - curl
@@ -113,8 +113,8 @@ spec:
                 - https://athenz-ui.athenz:4443/
           resources:
             limits:
-              memory: 128Mi
-              cpu: 100m
+              memory: 512Mi
+              cpu: 500m
             requests:
               memory: 64Mi
               cpu: 50m

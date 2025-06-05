@@ -5,7 +5,7 @@ endif
 clean-crypki-softhsm:
 	kubectl delete -k kustomize
 
-register-crypki-softhsm:
+setup-crypki-softhsm:
 
 check-register-crypki-softhsm:
 	@echo ""

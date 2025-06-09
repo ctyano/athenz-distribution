@@ -38,13 +38,25 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-client/kustomize/
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
 
+SED_INPLACE = sed -i
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SED_INPLACE = sed -i ''
+endif
+
 # Usage:
 # make replace KEY=old_string VALUE=new_string FILE=path/to/file
 replace-system-properties:
-	@$(if $(and $(KEY), $(VALUE), $(FILE)), \
-		grep -q "$(KEY)" $(FILE) && \
-		sed -i '' 's|$(KEY)|$(VALUE)|g' $(FILE), \
-		echo "Error: KEY, VALUE, and FILE must be provided")
+	@if [ -z "$(KEY)" ] || [ -z "$(VALUE)" ] || [ -z "$(FILE)" ]; then \
+		echo "Error: KEY, VALUE, and FILE must be provided"; \
+		exit 1; \
+	fi; \
+	if grep -q "$(KEY)" "$(FILE)"; then \
+		echo "Replacing '$(KEY)' with '$(VALUE)' in $(FILE)"; \
+		$(SED_INPLACE) 's|$(KEY)|$(VALUE)|g' "$(FILE)"; \
+	else \
+		echo "Key '$(KEY)' not found in $(FILE)"; \
+	fi
 
 switch-athenz-zts-cert-signer:
 	@$(MAKE) replace-system-properties \

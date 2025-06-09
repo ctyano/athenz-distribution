@@ -38,6 +38,20 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-client/kustomize/
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
 
+# Usage:
+# make replace KEY=old_string VALUE=new_string FILE=path/to/file
+replace-system-properties:
+	@$(if $(and $(KEY), $(VALUE), $(FILE)), \
+		grep -q "$(KEY)" $(FILE) && \
+		sed -i '' 's|$(KEY)|$(VALUE)|g' $(FILE), \
+		echo "Error: KEY, VALUE, and FILE must be provided")
+
+switch-athenz-zts-cert-signer:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
+		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+
 kind-setup:
 	kind create cluster
 

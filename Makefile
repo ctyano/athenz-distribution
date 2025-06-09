@@ -399,7 +399,7 @@ test-kubernetes-athenz-identityprovider-openpolicyagent-coverage:
 	@$(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent-coverage
 
 deploy-kubernetes-crypki-softhsm: generate-certificates
-	@$(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm
+	@$(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm switch-athenz-zts-cert-signer
 
 test-kubernetes-crypki-softhsm:
 	@$(MAKE) -C kubernetes test-crypki-softhsm

@@ -2,6 +2,12 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
 
+SED_INPLACE = sed -i
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SED_INPLACE = sed -i ''
+endif
+
 install-kustomize:
 	which kustomize \
 || (curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"| bash \
@@ -37,12 +43,6 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/
 	cp -r ../keys ../certs athenz-client/kustomize/
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
-
-SED_INPLACE = sed -i
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	SED_INPLACE = sed -i ''
-endif
 
 # Usage:
 # make replace KEY=old_string VALUE=new_string FILE=path/to/file
@@ -90,6 +90,15 @@ kind-load-images:
 
 kind-shutdown:
 	kind delete cluster
+
+setup-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm setup-crypki-softhsm
+
+deploy-crypki-softhsm: copy-to-kustomization setup-crypki-softhsm
+	@$(MAKE) -C crypki-softhsm deploy-crypki-softhsm
+
+test-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
 
 kustomize-edit-athenz-db-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
@@ -297,15 +306,6 @@ test-athenz-identityprovider-openpolicyagent:
 
 test-athenz-identityprovider-openpolicyagent-coverage:
 	@$(MAKE) -C athenz-identityprovider test-athenz-identityprovider-openpolicyagent-coverage
-
-setup-crypki-softhsm:
-	@$(MAKE) -C crypki-softhsm setup-crypki-softhsm
-
-deploy-crypki-softhsm: copy-to-kustomization setup-crypki-softhsm
-	@$(MAKE) -C crypki-softhsm deploy-crypki-softhsm
-
-test-crypki-softhsm:
-	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
 
 setup-athenz-authorizer: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer check-register-athenz-authorizer

@@ -33,6 +33,9 @@ secretGenerator:
 
 configMapGenerator:
 - files:
+  - crypki.config.template=conf/crypki.config.template
+  name: crypki-config-template
+- files:
   - slot_pwd.txt=conf/slot_pwd.txt
   name: crypki-shm
 

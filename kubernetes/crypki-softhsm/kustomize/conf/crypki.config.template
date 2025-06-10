@@ -35,17 +35,17 @@
             "UserPinPath": "/dev/shm/slot_pwd.txt"
         },
         {
-            "Country": "US",
+            "Country": "",
             "CreateCACertIfNotExist": true,
             "Identifier": "x509-key",
             "KeyLabel": "host_x509",
             "KeyType": 3,
             "SignatureAlgo": 11,
-            "Locality": "Example",
-            "Organization": "Example! Inc.",
-            "OrganizationalUnit": "Example",
+            "Locality": "",
+            "Organization": "",
+            "OrganizationalUnit": "Athenz",
             "SlotNumber": SLOTNUM_HOST_X509,
-            "State": "Some-State",
+            "State": "Tokyo",
             "UserPinPath": "/dev/shm/slot_pwd.txt",
             "X509CACertLocation": "/opt/crypki/x509_ca.crt"
         },

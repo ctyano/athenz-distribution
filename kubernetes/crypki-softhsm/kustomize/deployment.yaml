@@ -59,6 +59,9 @@ spec:
             items:
               - key: ca.cert.pem
                 path: ca-certificates.crt
+        - name: crypki-config-template
+          configMap:
+            name: crypki-config-template
         - name: crypki-shm
           configMap:
             name: crypki-shm
@@ -73,6 +76,8 @@ spec:
               value: "true"
             - name: TZ
               value: Asia/Tokyo
+            - name: CRYPKI_CONFIG_TEMPLATE
+              value: /opt/crypki/crypki.config.template
             - name: CRYPKI_CONFIG
               value: /opt/crypki/crypki-softhsm.json
             - name: CRYPKI_PID_DIR
@@ -130,6 +135,8 @@ spec:
             - name: crypki-keys
               mountPath: /opt/crypki/tls-crt
               readOnly: true
+            - name: crypki-config-template
+              mountPath: /opt/crypki
             - name: crypki-shm
               mountPath: /dev/shm
             - name: crypki-logs

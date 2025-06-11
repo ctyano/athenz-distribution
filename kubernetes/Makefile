@@ -15,11 +15,13 @@ clean-certificates:
 	rm -rf athenz-authzwebhook/kustomize/{keys,certs}
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
+	rm -rf crypki-softhsm/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
+	kubectl delete namespace crypki ||:
 
-clean-athenz: clean-namespace clean-certificates
+clean: clean-namespace clean-certificates
 
 copy-to-kustomization:
 	cp -r ../keys ../certs athenz-cli/kustomize/

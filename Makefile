@@ -362,7 +362,7 @@ generate-crypki: generate-ca
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki
 
 clean-kubernetes-athenz: clean-certificates
-	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean
 
 load-docker-images: load-docker-images-internal load-docker-images-external
 

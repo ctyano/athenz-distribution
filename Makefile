@@ -374,8 +374,8 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
 
 load-docker-images-external:
-	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
 	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
 	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/ealen/echo-server:latest

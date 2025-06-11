@@ -63,6 +63,7 @@ kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
 		docker.io/ghostunnel/ghostunnel:latest \
+		$(DOCKER_REGISTRY)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \

@@ -362,7 +362,7 @@ generate-crypki: generate-ca
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki
 
 clean-kubernetes-athenz: clean-certificates
-	@$(MAKE) -C kubernetes clean-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean-athenz
 
 load-docker-images: load-docker-images-internal load-docker-images-external
 
@@ -387,97 +387,97 @@ load-docker-images-external:
 	docker pull docker.io/tatyano/authorization-proxy:latest
 
 load-kubernetes-images: version install-kustomize
-	@$(MAKE) -C kubernetes kind-load-images
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images
 
 deploy-kubernetes-athenz: generate-certificates
-	@$(MAKE) -C kubernetes deploy-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz
 
 deploy-kubernetes-athenz-identityprovider: install-parsers
-	@$(MAKE) -C kubernetes setup-athenz-identityprovider deploy-athenz-identityprovider
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-identityprovider deploy-athenz-identityprovider
 
 test-kubernetes-athenz-identityprovider:
-	@$(MAKE) -C kubernetes test-athenz-identityprovider
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-identityprovider
 
 test-kubernetes-athenz-identityprovider-openpolicyagent:
-	@$(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent
 
 test-kubernetes-athenz-identityprovider-openpolicyagent-coverage:
-	@$(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent-coverage
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent-coverage
 
 deploy-kubernetes-crypki-softhsm: generate-certificates
-	@$(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm switch-athenz-zts-cert-signer
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm switch-athenz-zts-cert-signer
 
 test-kubernetes-crypki-softhsm:
-	@$(MAKE) -C kubernetes test-crypki-softhsm
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-crypki-softhsm
 
 deploy-kubernetes-athenz-authorizer:
-	@$(MAKE) -C kubernetes setup-athenz-authorizer deploy-athenz-authorizer
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-authorizer deploy-athenz-authorizer
 
 test-kubernetes-athenz-authorizer:
-	@$(MAKE) -C kubernetes test-athenz-authorizer
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-authorizer
 
 deploy-kubernetes-athenz-authzenvoy:
-	@$(MAKE) -C kubernetes setup-athenz-authzenvoy deploy-athenz-authzenvoy
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-authzenvoy deploy-athenz-authzenvoy
 
 test-kubernetes-athenz-authzenvoy:
-	@$(MAKE) -C kubernetes test-athenz-authzenvoy
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-authzenvoy
 
 deploy-kubernetes-athenz-authzwebhook:
-	@$(MAKE) -C kubernetes setup-athenz-authzwebhook deploy-athenz-authzwebhook
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-authzwebhook deploy-athenz-authzwebhook
 
 test-kubernetes-athenz-authzwebhook:
-	@$(MAKE) -C kubernetes test-athenz-authzwebhook
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-authzwebhook
 
 deploy-kubernetes-athenz-authzproxy:
-	@$(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-authzproxy deploy-athenz-authzproxy
 
 test-kubernetes-athenz-authzproxy:
-	@$(MAKE) -C kubernetes test-athenz-authzproxy
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-authzproxy
 
 deploy-kubernetes-athenz-client:
-	@$(MAKE) -C kubernetes setup-athenz-client deploy-athenz-client
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-client deploy-athenz-client
 
 test-kubernetes-athenz-client:
-	@$(MAKE) -C kubernetes test-athenz-client
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-client
 
 deploy-kubernetes-athenz-workloads:
-	@$(MAKE) -C kubernetes setup-athenz-workloads deploy-athenz-workloads
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-workloads deploy-athenz-workloads
 
 test-kubernetes-athenz-workloads:
-	@$(MAKE) -C kubernetes test-athenz-workloads
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-workloads
 
 deploy-kubernetes-athenz-loadtest:
-	@$(MAKE) -C kubernetes deploy-athenz-loadtest
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz-loadtest
 
 test-kubernetes-athenz-envoy-loadtest:
-	@$(MAKE) -C kubernetes test-athenz-envoy-loadtest
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-envoy-loadtest
 
 test-kubernetes-athenz-loadtest:
-	@$(MAKE) -C kubernetes test-athenz-loadtest
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-loadtest
 
 report-kubernetes-athenz-loadtest:
-	@$(MAKE) -C kubernetes report-athenz-loadtest
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes report-athenz-loadtest
 
 test-kubernetes-athenz-envoy2envoyextauthz:
-	@$(MAKE) -C kubernetes test-athenz-envoy2envoyextauthz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-envoy2envoyextauthz
 
 test-kubernetes-athenz-envoy2envoyfilter:
-	@$(MAKE) -C kubernetes test-athenz-envoy2envoyfilter
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-envoy2envoyfilter
 
 test-kubernetes-athenz-envoy2envoywebhook:
-	@$(MAKE) -C kubernetes test-athenz-envoy2envoywebhook
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-envoy2envoywebhook
 
 test-kubernetes-athenz-envoy2authzproxy:
-	@$(MAKE) -C kubernetes test-athenz-envoy2authzproxy
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-envoy2authzproxy
 
 test-kubernetes-athenz-showcases:
-	@$(MAKE) -C kubernetes test-athenz-showcases
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-showcases
 
 check-kubernetes-athenz: install-parsers
-	@$(MAKE) -C kubernetes check-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes check-athenz
 
 test-kubernetes-athenz: install-parsers
-	@$(MAKE) -C kubernetes test-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz
 
 clean-docker-athenz: clean-certificates
 	@VERSION=$(VERSION) $(MAKE) -C docker clean-athenz

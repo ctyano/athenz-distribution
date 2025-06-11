@@ -84,6 +84,8 @@ spec:
               value: /opt/crypki/pid
             - name: CRYPKI_LOG_DIR
               value: /opt/crypki/logs
+            - name: IMPORT_HOST_X509_KEY
+              value: /opt/crypki/tls-crt/ca.key
           ports:
             - name: https
               containerPort: 4443

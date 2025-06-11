@@ -1,13 +1,3 @@
-ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
-endif
-
-SED_INPLACE = sed -i
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	SED_INPLACE = sed -i ''
-endif
-
 install-kustomize:
 	which kustomize \
 || (curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"| bash \

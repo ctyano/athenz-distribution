@@ -74,6 +74,12 @@ GOCACHE=$(shell go env GOCACHE | sed -e "s/'//g")
 export GOCACHE
 endif
 
+SED_INPLACE = sed -i
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SED_INPLACE = sed -i ''
+endif
+
 .PHONY: buildx
 
 .SILENT: version

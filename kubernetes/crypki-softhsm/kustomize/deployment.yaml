@@ -136,7 +136,8 @@ spec:
               mountPath: /opt/crypki/tls-crt
               readOnly: true
             - name: crypki-config-template
-              mountPath: /opt/crypki
+              mountPath: /opt/crypki/crypki.config.template
+              subPath: crypki.config.template
             - name: crypki-shm
               mountPath: /dev/shm
             - name: crypki-logs

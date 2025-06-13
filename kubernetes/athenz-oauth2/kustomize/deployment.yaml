@@ -1,0 +1,203 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-deployment
+  labels:
+    app: oauth2-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-deployment
+  template:
+    metadata:
+      labels:
+        app: oauth2-deployment
+    spec:
+      serviceAccountName: athenz-sia
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
+        - name: athenz-tls-certs
+          emptyDir: {}
+        - name: envoy
+          configMap:
+            name: oauth2-envoy
+        - name: policy
+          configMap:
+            name: oauth2-policy
+        - name: config
+          configMap:
+            name: oauth2-config
+        - name: athenz-cacert
+          configMap:
+            name: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+        - name: athenz-admin-keys
+          secret:
+            secretName: athenz-admin-keys
+            defaultMode: 0555
+            items:
+              - key: athenz_admin.cert.pem
+                path: athenz_admin.cert.pem
+              - key: athenz_admin.private.pem
+                path: athenz_admin.private.pem
+      initContainers:
+        # TODO: sia-wait should be implemented in sia-init in future
+        - name: sia-wait
+          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
+          resources: &sia-resources
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
+        - name: sia-init
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
+          resources: *sia-resources
+          args: &sia-args
+            - --mode=init
+            - --delay-jitter-seconds=5
+          envFrom: &sia-envFrom
+            - configMapRef:
+                name: oauth2-sia
+          env: &sia-env
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SERVICEACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
+      containers:
+        - name: sia
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
+          args:
+            - --mode=refresh
+            - --token-server-addr=:8180
+            - --authorization-server-addr=:8280
+            - --metrics-server-addr=:9999
+          envFrom: *sia-envFrom
+          env: *sia-env
+          ports:
+            - name: token-sidecar
+              containerPort: 8180
+              protocol: TCP
+            - name: authorization
+              containerPort: 8280
+              protocol: TCP
+            - name: exporter
+              containerPort: 9999
+              protocol: TCP
+          resources: *sia-resources
+          volumeMounts: *sia-volumeMounts
+        - name: athenz-cli
+          image: ghcr.io/ctyano/athenz-cli:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: ZTS
+              value: https://athenz-zts-server.athenz:4443/zts/v1
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 256Mi
+              cpu: 50m
+          volumeMounts:
+            - name: athenz-admin-keys
+              mountPath: /var/run/athenz
+              readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
+        - name: envoy
+          image: docker.io/envoyproxy/envoy:v1.29-latest
+          # Envoy crashes in Raspberry Pi 4
+          #image: docker.io/thegrandpkizzle/envoy:1.26.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: mtls
+              containerPort: 4443
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          command: 
+            - /usr/local/bin/envoy
+          args:
+            - -c
+            - /etc/envoy/config.yaml
+            - -l
+            - debug
+          resources: &envoy-resources
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: envoy
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+              readOnly: true
+        - name: echoserver
+          image: docker.io/ealen/echo-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: echoserver
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "3000"
+          resources: *envoy-resources

@@ -35,6 +35,7 @@
             "UserPinPath": "/dev/shm/slot_pwd.txt"
         },
         {
+            "CommonName": "Crypki Root CA",
             "Country": "",
             "CreateCACertIfNotExist": true,
             "Identifier": "x509-key",
@@ -45,7 +46,7 @@
             "Organization": "",
             "OrganizationalUnit": "Athenz",
             "SlotNumber": SLOTNUM_HOST_X509,
-            "State": "Tokyo",
+            "State": "",
             "UserPinPath": "/dev/shm/slot_pwd.txt",
             "X509CACertLocation": "/opt/crypki/x509_ca.crt"
         },

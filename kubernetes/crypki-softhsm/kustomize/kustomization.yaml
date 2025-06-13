@@ -14,6 +14,7 @@ generatorOptions:
 secretGenerator:
 - files:
   - ca.key=keys/ca.private.pem
+  - ca.public.key=keys/ca.public.pem
   - server.key=keys/crypki.private.pem
   - client.key=keys/crypki.private.pem
   - ca.crt=certs/ca.cert.pem
@@ -28,7 +29,7 @@ secretGenerator:
   type: Opaque
 - files:
   - ca.cert.pem=certs/ca.cert.pem
-  name: athenz-cacert
+  name: athenz-crypki-cacert
   type: Opaque
 
 configMapGenerator:

@@ -16,10 +16,12 @@ secretGenerator:
   - zts.private.pem=keys/zts.private.pem
   - zts.public.pem=keys/zts.public.pem
   - ca.private.pem=keys/ca.private.pem
+  - crypki.private.pem=keys/crypki.private.pem
   name: athenz-zts-keys
   type: Opaque
 - files:
   - zts.cert.pem=certs/zts.cert.pem
+  - crypki.cert.pem=certs/crypki.cert.pem
   name: athenz-zts-certs
   type: Opaque
 - files:

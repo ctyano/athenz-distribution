@@ -389,6 +389,15 @@ load-docker-images-external:
 load-kubernetes-images: version install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images
 
+deploy-kubernetes-crypki-softhsm: generate-certificates
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm
+
+test-kubernetes-crypki-softhsm:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-crypki-softhsm
+
+use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer
+
 deploy-kubernetes-athenz: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz
 
@@ -403,12 +412,6 @@ test-kubernetes-athenz-identityprovider-openpolicyagent:
 
 test-kubernetes-athenz-identityprovider-openpolicyagent-coverage:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-identityprovider-openpolicyagent-coverage
-
-deploy-kubernetes-crypki-softhsm: generate-certificates
-	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm switch-athenz-zts-cert-signer
-
-test-kubernetes-crypki-softhsm:
-	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-crypki-softhsm
 
 deploy-kubernetes-athenz-authorizer:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-authorizer deploy-athenz-authorizer

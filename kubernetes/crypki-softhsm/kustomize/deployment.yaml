@@ -30,19 +30,6 @@ spec:
           secret:
             secretName: crypki-keys
             defaultMode: 0555
-            items:
-              - key: ca.key
-                path: ca.key
-              - key: server.key
-                path: server.key
-              - key: client.key
-                path: client.key
-              - key: ca.crt
-                path: ca.crt
-              - key: server.crt
-                path: server.crt
-              - key: client.crt
-                path: client.crt
         - name: athenz-admin-keys
           secret:
             secretName: athenz-admin-keys
@@ -52,9 +39,9 @@ spec:
                 path: athenz_admin.cert.pem
               - key: athenz_admin.private.pem
                 path: athenz_admin.private.pem
-        - name: athenz-cacert
+        - name: athenz-crypki-cacert
           secret:
-            secretName: athenz-cacert
+            secretName: athenz-crypki-cacert
             defaultMode: 0555
             items:
               - key: ca.cert.pem
@@ -78,14 +65,30 @@ spec:
               value: Asia/Tokyo
             - name: CRYPKI_CONFIG_TEMPLATE
               value: /opt/crypki/crypki.config.template
-            - name: CRYPKI_CONFIG
+            - name: CRYPKI_CONFIG_FILE
               value: /opt/crypki/crypki-softhsm.json
             - name: CRYPKI_PID_DIR
               value: /opt/crypki/pid
             - name: CRYPKI_LOG_DIR
               value: /opt/crypki/logs
-            - name: IMPORT_HOST_X509_KEY
-              value: /opt/crypki/tls-crt/ca.key
+            - name: USER_SSH_PRIVATE_KEY
+              value: ""
+            - name: USER_SSH_PUBLIC_KEY
+              value: ""
+            - name: HOST_X509_PRIVATE_KEY
+              #value: /opt/crypki/tls-crt/ca.key
+              value: ""
+            - name: HOST_X509_PUBLIC_KEY
+              #value: /opt/crypki/tls-crt/ca.public.key
+              value: ""
+            - name: HOST_SSH_PRIVATE_KEY
+              value: ""
+            - name: HOST_SSH_PUBLIC_KEY
+              value: ""
+            - name: SIGN_BLOB_PRIVATE_KEY
+              value: ""
+            - name: SIGN_BLOB_PUBLIC_KEY
+              value: ""
           ports:
             - name: https
               containerPort: 4443
@@ -165,7 +168,7 @@ spec:
             - name: athenz-admin-keys
               mountPath: /var/run/athenz
               readOnly: true
-            - name: athenz-cacert
+            - name: athenz-crypki-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt
               subPath: ca-certificates.crt
               readOnly: true

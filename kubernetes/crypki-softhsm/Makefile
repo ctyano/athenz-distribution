@@ -2,6 +2,138 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
 
+clean-certificates:
+	rm -rf kustomize/keys kustomize/certs
+
+generate-ca:
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-s \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/ca.cert.pem
+
+generate-zms: generate-ca
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"csr\": \"$$(echo $$(cat -e kustomize/certs/zms.csr.pem)| sed -e 's/\$$ /\\n/g' | sed 's/\$$$$//')\", \
+				\"key_meta\": { \
+					\"identifier\": \"athenz\" \
+				}, \
+				\"validity\": $$(( 30 * 24 * 60 * 60 )) \
+			}" \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/zms.cert.pem
+	cat kustomize/certs/zms.cert.pem | openssl x509 -noout -text
+	cat kustomize/certs/zms.cert.pem | step certificate inspect --bundle --short
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/zms.cert.pem
+
+generate-zts: generate-zms
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"csr\": \"$$(echo $$(cat -e kustomize/certs/zts.csr.pem)| sed -e 's/\$$ /\\n/g' | sed 's/\$$$$//')\", \
+				\"key_meta\": { \
+					\"identifier\": \"athenz\" \
+				}, \
+				\"validity\": $$(( 30 * 24 * 60 * 60 )) \
+			}" \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/zts.cert.pem
+	cat kustomize/certs/zts.cert.pem | openssl x509 -noout -text
+	cat kustomize/certs/zts.cert.pem | step certificate inspect --bundle --short
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/zts.cert.pem
+
+generate-admin: generate-ca
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"csr\": \"$$(echo $$(cat -e kustomize/certs/athenz_admin.csr.pem)| sed -e 's/\$$ /\\n/g' | sed 's/\$$$$//')\", \
+				\"key_meta\": { \
+					\"identifier\": \"athenz\" \
+				}, \
+				\"validity\": $$(( 30 * 24 * 60 * 60 )) \
+			}" \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/athenz_admin.cert.pem
+	cat kustomize/certs/athenz_admin.cert.pem | openssl x509 -noout -text
+	cat kustomize/certs/athenz_admin.cert.pem | step certificate inspect --bundle --short
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/athenz_admin.cert.pem
+
+generate-ui: generate-ca
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"csr\": \"$$(echo $$(cat -e kustomize/certs/ui.csr.pem)| sed -e 's/\$$ /\\n/g' | sed 's/\$$$$//')\", \
+				\"key_meta\": { \
+					\"identifier\": \"athenz\" \
+				}, \
+				\"validity\": $$(( 30 * 24 * 60 * 60 )) \
+			}" \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/ui.cert.pem
+	cat kustomize/certs/ui.cert.pem | openssl x509 -noout -text
+	cat kustomize/certs/ui.cert.pem | step certificate inspect --bundle --short
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ui.cert.pem
+
+generate-crypki: generate-ca
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"csr\": \"$$(echo $$(cat -e kustomize/certs/crypki.csr.pem)| sed -e 's/\$$ /\\n/g' | sed 's/\$$$$//')\", \
+				\"key_meta\": { \
+					\"identifier\": \"athenz\" \
+				}, \
+				\"validity\": $$(( 30 * 24 * 60 * 60 )) \
+			}" \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/crypki.cert.pem
+	cat kustomize/certs/crypki.cert.pem | openssl x509 -noout -text
+	cat kustomize/certs/crypki.cert.pem | step certificate inspect --bundle --short
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/crypki.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-crypki
+
 clean-crypki-softhsm:
 	kubectl delete -k kustomize
 

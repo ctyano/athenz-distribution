@@ -1,3 +1,9 @@
+SED_INPLACE = sed -i
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SED_INPLACE = sed -i ''
+endif
+
 install-kustomize:
 	which kustomize \
 || (curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"| bash \
@@ -44,7 +50,6 @@ copy-certificates-to-kustomization:
 	)
 
 overwrite-certificates-with-crypki:
-	cat ../certs/ca.cert.pem | tee -a crypki-softhsm/kustomize/certs/crypki.cert.pem
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-cli/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-zms-server/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-zts-server/kustomize/
@@ -79,7 +84,7 @@ patch-athenz-zts:
 		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
-	patch -f athenz-zts-server/kustomize/deployment.yaml < crypki-softhsm/athenz-zts-server.deployment.yaml.patch
+	#patch -f athenz-zts-server/kustomize/deployment.yaml < crypki-softhsm/athenz-zts-server.deployment.yaml.patch
 
 switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) -C crypki-softhsm generate-certificates

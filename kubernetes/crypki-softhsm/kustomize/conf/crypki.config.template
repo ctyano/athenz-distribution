@@ -65,7 +65,7 @@
     ],
     "ModulePath": "/usr/lib/softhsm/libsofthsm2.so",
     "TLSCACertPath": "/opt/crypki/tls-crt/ca.crt",
-    "TLSClientAuthMode": 4,
+    "TLSClientAuthMode": 3,
     "TLSServerCertPath": "/opt/crypki/tls-crt/server.crt",
     "TLSServerKeyPath": "/opt/crypki/tls-crt/server.key"
 }

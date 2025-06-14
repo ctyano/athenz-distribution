@@ -74,12 +74,6 @@ GOCACHE=$(shell go env GOCACHE | sed -e "s/'//g")
 export GOCACHE
 endif
 
-SED_INPLACE = sed -i
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	SED_INPLACE = sed -i ''
-endif
-
 .PHONY: buildx
 
 .SILENT: version
@@ -305,6 +299,7 @@ generate-ca:
 	openssl genrsa -out keys/ca.private.pem 4096
 	openssl rsa -pubout -in keys/ca.private.pem -out keys/ca.public.pem
 	openssl req -new -x509 -days 99999 -config openssl/ca.openssl.config -extensions ext_req -key keys/ca.private.pem -out certs/ca.cert.pem
+	cp certs/ca.cert.pem certs/selfsign.ca.cert.pem
 
 generate-zms: generate-ca
 	mkdir keys certs ||:

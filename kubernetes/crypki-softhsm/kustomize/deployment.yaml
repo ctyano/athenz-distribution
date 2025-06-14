@@ -175,3 +175,37 @@ spec:
             - name: crypki-keys
               mountPath: /opt/crypki/tls-crt
               readOnly: true
+        # https://github.com/ghostunnel/ghostunnel
+        - name: ghostunnel
+          image: docker.io/ghostunnel/ghostunnel:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          args:
+            - client
+            - --listen
+            - localhost:3000
+            - --target
+            - localhost:4443
+            - --override-server-name
+            - crypki-softhsm.crypki
+            - --cacert
+            - /etc/ssl/certs/ca-certificates.crt
+            - --disable-authentication
+          resources:
+            limits:
+              memory: 64Mi
+              cpu: 50m
+            requests:
+              memory: 16Mi
+              cpu: 5m
+          volumeMounts:
+            - name: athenz-crypki-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
+            - name: crypki-keys
+              mountPath: /opt/crypki/tls-crt
+              readOnly: true

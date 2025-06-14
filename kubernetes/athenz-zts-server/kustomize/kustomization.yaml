@@ -21,7 +21,7 @@ secretGenerator:
   type: Opaque
 - files:
   - zts.cert.pem=certs/zts.cert.pem
-  - crypki.cert.pem=certs/crypki.cert.pem
+  - selfsign.ca.cert.pem=certs/selfsign.ca.cert.pem
   name: athenz-zts-certs
   type: Opaque
 - files:

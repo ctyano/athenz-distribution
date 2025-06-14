@@ -16,6 +16,9 @@ generate-ca:
 			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
 			| jq -r .cert \
 			| tee kustomize/certs/ca.cert.pem
+	cat kustomize/certs/ca.cert.pem | openssl x509 -noout -text
+	cat kustomize/certs/ca.cert.pem | step certificate inspect --bundle --short
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ca.cert.pem
 
 generate-zms: generate-ca
 	mkdir kustomize/keys kustomize/certs ||:
@@ -132,7 +135,7 @@ generate-crypki: generate-ca
 	cat kustomize/certs/crypki.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/crypki.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-crypki
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui #generate-crypki
 
 clean-crypki-softhsm:
 	kubectl delete -k kustomize

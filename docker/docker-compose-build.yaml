@@ -178,6 +178,7 @@ services:
       ZTS_PRIVATE_KEY: /opt/athenz/zts/var/keys/zts.private.pem
       ZTS_PRIVATE_KEY_ID: "0"
       ZTS_SELF_SIGNER_PRIVATE_KEY: /opt/athenz/zts/var/keys/zts.private.pem
+      ZTS_TRUSTSTORE_PEM_PATH: /opt/athenz/zts/var/certs/ca.cert.pem
       ZTS_SIGNER_TRUSTSTORE_PEM_PATH: /opt/athenz/zts/var/certs/ca.cert.pem
       ZMS_CLIENT_TRUSTSTORE_PEM_PATH: /opt/athenz/zts/var/certs/ca.cert.pem
       ZTS_KEYSTORE_CERT_PEM_PATH: /opt/athenz/zts/var/certs/zts.cert.pem

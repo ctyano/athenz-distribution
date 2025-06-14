@@ -233,6 +233,8 @@ spec:
                   fieldPath: metadata.name
             - name: ZTS_SELF_SIGNER_PRIVATE_KEY
               value: /opt/athenz/zts/var/keys/zts.private.pem
+            - name: ZTS_TRUSTSTORE_PEM_PATH
+              value: /etc/ssl/certs/ca-certificates.crt
             - name: ZTS_SIGNER_TRUSTSTORE_PEM_PATH
               value: /etc/ssl/certs/ca-certificates.crt
             - name: ZMS_CLIENT_TRUSTSTORE_PEM_PATH

@@ -1,0 +1,275 @@
+name: Test Crypki with Athenz on Kubernetes Cluster
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  # If any commit message in your push or the HEAD commit of your PR contains the strings
+  # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+  # workflows triggered on the push or pull_request events will be skipped.
+  # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+env:
+  # Use docker.io for Docker Hub if empty
+  DOCKER_REGISTRY_URL: ghcr.io
+  # DOCKER_REGISTRY_OWNER: ${{ env.CI_REPOSITORY_OWNER }}
+  # DOCKER_REGISTRY_IMAGE: ${{ env.CI_REPOSITORY_NAME }}
+  # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
+  # DOCKER_BUILD_ARGS: |
+  GITHUB_REPOSITORY: AthenZ/athenz
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: write
+      deployments: none
+      issues: none
+      discussions: none
+      packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      # A GitHub Action to expose useful environment variables.
+      # https://github.com/FranzDiebold/github-env-vars-action
+      -
+        name: GitHub Environment Variables Action
+        id: env
+        # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
+        uses: FranzDiebold/github-env-vars-action@v2
+
+      # A GitHub Action to prepare default environment variables.
+      -
+        name: Set Default Environment Variables
+        id: default_env
+        run: |
+          # Use docker.io for Docker Hub if empty
+          [[ "${{ env.DOCKER_REGISTRY_URL}}" = "" ]] && echo "DOCKER_REGISTRY_URL=docker.io" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_OWNER }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_IMAGE }}" = "" ]] && echo "DOCKER_REGISTRY_IMAGE=${{ env.CI_REPOSITORY_NAME }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
+
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # GitHub Action to login against a Docker registry.
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      -
+        name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
+        id: login
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/docker/login-action/tags
+        uses: docker/login-action@v3
+        with:
+          # Server address of Docker registry. If not set then will default to Docker Hub
+          registry: ${{ env.DOCKER_REGISTRY_URL }} # optional
+          # Username used to log against the Docker registry
+          username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
+          # Password or personal access token used to log against the Docker registry
+          password: ${{ env.DOCKER_REGISTRY_TOKEN }} # optional
+          # Log out from the Docker registry at the end of a job
+          logout: true # optional, default is true
+
+      # This action sets up a go environment for use in actions by:
+      # - Optionally downloading and caching a version of Go by version and adding to PATH.
+      # - Registering problem matchers for error output.
+      # https://github.com/actions/setup-go
+      -
+        name: Setup Golang
+        id: setup-go
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/setup-go/tags
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          check-latest: true
+
+      # A GitHub Action to set environment variables for Go
+      -
+        name: Set Golang env
+        id: go-env
+        run: |
+          go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
+
+      # A GitHub Action for Kubernetes IN Docker
+      # https://github.com/helm/kind-action
+      -
+        name: Create KinD Cluster
+        id: kind
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/helm/kind-action/tags
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
+
+      # A GitHub Action to pull container images
+      -
+        name: Pull container images
+        run: |
+          set -ex
+          make load-docker-images
+
+      # A GitHub Action to load container images to KinD cluster
+      -
+        name: Load container images to KinD cluster
+        run: |
+          set -ex
+          df -h
+          make load-kubernetes-images
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor crypki-softhsm
+        run: |
+          make deploy-kubernetes-crypki-softhsm
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for crypki-softhsm
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-crypki-softhsm
+
+      # A GitHub Action to use crypki
+      -
+        name: Switch configuration to use crypki-softhsm
+        run: |
+          make use-kubernetes-crypki-softhsm
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application
+        run: |
+          set -ex
+          make deploy-kubernetes-athenz
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make check-kubernetes-athenz test-kubernetes-athenz
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-identityprovider
+        run: |
+          make deploy-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-identityprovider
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for athenz-workloads
+        run: |
+          make deploy-kubernetes-athenz-workloads
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authorizer
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authorizer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzenvoy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzenvoy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzwebhook
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzwebhook
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzproxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzproxy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-client
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-client
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with ExtAuthz filter
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoyextauthz
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoyfilter
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoywebhook
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2authzproxy
+

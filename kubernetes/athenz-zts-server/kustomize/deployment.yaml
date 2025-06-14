@@ -37,6 +37,8 @@ spec:
                 path: zts.public.pem
               - key: ca.private.pem
                 path: ca.private.pem
+              - key: crypki.private.pem
+                path: crypki.private.pem
         - name: athenz-zts-certs
           secret:
             secretName: athenz-zts-certs
@@ -44,6 +46,8 @@ spec:
             items:
               - key: zts.cert.pem
                 path: zts.cert.pem
+              - key: selfsign.ca.cert.pem
+                path: selfsign.ca.cert.pem
         - name: athenz-cacert
           secret:
             secretName: athenz-cacert
@@ -236,7 +240,7 @@ spec:
             - name: ZTS_TRUSTSTORE_PEM_PATH
               value: /etc/ssl/certs/ca-certificates.crt
             - name: ZTS_SIGNER_TRUSTSTORE_PEM_PATH
-              value: /etc/ssl/certs/ca-certificates.crt
+              value: /opt/athenz/zts/var/certs/selfsign.ca.cert.pem
             - name: ZMS_CLIENT_TRUSTSTORE_PEM_PATH
               value: /etc/ssl/certs/ca-certificates.crt
             - name: ZTS_KEYSTORE_CERT_PEM_PATH
@@ -248,7 +252,7 @@ spec:
             - name: ZMS_CLIENT_KEYSTORE_KEY_PEM_PATH
               value: /opt/athenz/zts/var/keys/zts.private.pem
             - name: ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH
-              value: /etc/ssl/certs/ca-certificates.crt
+              value: /opt/athenz/zts/var/certs/selfsign.ca.cert.pem
             - name: ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH
               value: /opt/athenz/zts/var/keys/ca.private.pem
           ports:

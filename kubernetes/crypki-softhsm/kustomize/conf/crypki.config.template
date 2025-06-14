@@ -1,0 +1,71 @@
+{
+    "KeyUsages": [
+        {
+            "Endpoint": "/sig/ssh-user-cert",
+            "Identifiers": [
+                "ssh-user-key"
+            ]
+        },
+        {
+            "Endpoint": "/sig/x509-cert",
+            "Identifiers": [
+                "x509-key"
+            ]
+        },
+        {
+            "Endpoint": "/sig/ssh-host-cert",
+            "Identifiers": [
+                "ssh-host-key"
+            ]
+        },
+        {
+            "Endpoint": "/sig/blob",
+            "Identifiers": [
+                "sign-blob-key"
+            ]
+        }
+    ],
+    "Keys": [
+        {
+            "Identifier": "ssh-user-key",
+            "KeyLabel": "user_ssh",
+            "KeyType": 3,
+            "SignatureAlgo": 11,
+            "SlotNumber": SLOTNUM_USER_SSH,
+            "UserPinPath": "/dev/shm/slot_pwd.txt"
+        },
+        {
+            "CommonName": "Crypki Root CA",
+            "Country": "",
+            "CreateCACertIfNotExist": true,
+            "Identifier": "x509-key",
+            "KeyLabel": "host_x509",
+            "KeyType": 3,
+            "SignatureAlgo": 11,
+            "Locality": "",
+            "Organization": "",
+            "OrganizationalUnit": "Athenz",
+            "SlotNumber": SLOTNUM_HOST_X509,
+            "State": "",
+            "UserPinPath": "/dev/shm/slot_pwd.txt",
+            "X509CACertLocation": "/opt/crypki/x509_ca.crt"
+        },
+        {
+            "Identifier": "ssh-host-key",
+            "KeyLabel": "host_ssh",
+            "SlotNumber": SLOTNUM_HOST_SSH,
+            "UserPinPath": "/dev/shm/slot_pwd.txt"
+        },
+        {
+            "Identifier": "sign-blob-key",
+            "KeyLabel": "sign_blob",
+            "SlotNumber": SLOTNUM_SIGN_BLOB,
+            "UserPinPath": "/dev/shm/slot_pwd.txt"
+        }
+    ],
+    "ModulePath": "/usr/lib/softhsm/libsofthsm2.so",
+    "TLSCACertPath": "/opt/crypki/tls-crt/ca.crt",
+    "TLSClientAuthMode": 3,
+    "TLSServerCertPath": "/opt/crypki/tls-crt/server.crt",
+    "TLSServerKeyPath": "/opt/crypki/tls-crt/server.key"
+}

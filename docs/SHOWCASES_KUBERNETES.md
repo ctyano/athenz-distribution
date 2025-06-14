@@ -13,6 +13,12 @@ Other required dependencies will be automatically installed.
 make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
+With crypki:
+
+```
+make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+```
+
 ### Each steps in Makefile
 
 - `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.

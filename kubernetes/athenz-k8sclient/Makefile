@@ -2,10 +2,53 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
 
-clean-athenz-client:
+clean-athenz-k8sclient:
 	kubectl delete -k kustomize
 
-register-athenz-client:
+register-athenz-k8sprovider:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			$$(cat ../athenz-identityprovider/kustomize/kustomization.yaml | yq .namespace) \
+			add-service \
+			k8s$$(cat ../athenz-identityprovider/kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g')
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			$$(cat ../athenz-identityprovider/kustomize/kustomization.yaml | yq .namespace) \
+			set-service-endpoint \
+			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g') \
+			class://com.yahoo.athenz.instance.provider.impl.InstanceK8SProvider
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			sys.auth \
+			set-domain-template \
+			instance_provider \
+			provider="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g')" \
+			dnssuffix="$$(cat ../athenz-identityprovider/kustomize/athenz-sia/athenz-sia.env | grep -E ^DNS_SUFFIX | sed -e 's/DNS_SUFFIX=\(.*\)/\1/g')"
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-d \
+			sys.auth \
+			set-domain-template \
+			instance_provider \
+			provider="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g')" \
+			dnssuffix="$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^DNS_SUFFIX | sed -e 's/DNS_SUFFIX=\(.*\)/\1/g')"
+
+register-athenz-k8sclient:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		curl \
 		-sv \
@@ -35,7 +78,7 @@ register-athenz-client:
 			add-service \
 			$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g') \
 			0 \
-			$$(cat kustomize/keys/client.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
+			$$(cat kustomize/keys/k8sclient.public.pem | base64 | tr -d '\r\n' | tr '\+\=\/' '\.\-\_') ||:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -93,7 +136,7 @@ register-athenz-client:
 			-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
 			show-domain
 
-check-register-athenz-client:
+check-register-athenz-k8sclient:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
@@ -124,7 +167,7 @@ done
 	@echo "**************************************"
 	@echo ""
 
-kustomize-edit-athenz-client-image:
+kustomize-edit-athenz-k8sclient-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
@@ -133,19 +176,19 @@ kustomize-edit-athenz-client-image:
 	) \
 	fi
 
-deploy-athenz-client: kustomize-edit-athenz-client-image
+deploy-athenz-k8sclient: kustomize-edit-athenz-k8sclient-image
 	kubectl apply -k kustomize
 
-test-athenz-client:
+test-athenz-k8sclient:
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep pod/client- | grep -E "0/1" | wc -l) )) -eq 0 \
+	test $$(( $$(kubectl -n athenz get all | grep pod/k8sclient- | grep -E "0/1" | wc -l) )) -eq 0 \
 	&& \
-	kubectl -n athenz exec deployment/client-deployment -it -c sia -- \
+	kubectl -n athenz exec deployment/k8sclient-deployment -it -c sia -- \
 		ls \
 		-alF \
 		/var/run/athenz/tls.key \
@@ -161,8 +204,8 @@ while true; do \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
 		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n athenz get all | grep -E "pod/client-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
-		kubectl -n athenz get all | grep -E "pod/client-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
+		kubectl -n athenz get all | grep -E "pod/k8sclient-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
+		kubectl -n athenz get all | grep -E "pod/k8sclient-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
 		kubectl -n athenz get all | grep -E "pod/identityprovider-deployment-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% -c opa | grep "Identity Provider OPA Rego" ||:; \
 		kubectl -n athenz get all; \
 		exit 1; \

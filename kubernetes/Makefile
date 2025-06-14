@@ -19,6 +19,7 @@ clean-certificates:
 	rm -rf athenz-authzwebhook/kustomize/{keys,certs}
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
+	rm -rf athenz-k8sclient/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -36,6 +37,7 @@ copy-to-kustomization:
 	cp -r ../keys ../certs athenz-authzwebhook/kustomize/
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/
 	cp -r ../keys ../certs athenz-client/kustomize/
+	cp -r ../keys ../certs athenz-k8sclient/kustomize/
 
 kind-setup:
 	kind create cluster
@@ -316,17 +318,28 @@ deploy-athenz-client: test-athenz-identityprovider
 test-athenz-client:
 	@$(MAKE) -C athenz-client test-athenz-client
 
+setup-athenz-k8sclient: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C athenz-k8sclient register-athenz-k8sclient check-register-athenz-k8sclient
+
+deploy-athenz-k8sclient: test-athenz-identityprovider
+	@$(MAKE) -C athenz-k8sclient deploy-athenz-k8sclient
+
+test-athenz-k8sclient:
+	@$(MAKE) -C athenz-k8sclient test-athenz-k8sclient
+
 setup-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer register-athenz-authorizer
 	@$(MAKE) -C athenz-authzenvoy register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzwebhook register-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy register-athenz-authzproxy
 	@$(MAKE) -C athenz-client register-athenz-client
+	@$(MAKE) -C athenz-k8sclient register-athenz-k8sclient
 	@$(MAKE) -C athenz-authorizer check-register-athenz-authorizer
 	@$(MAKE) -C athenz-authzenvoy check-register-athenz-authzenvoy
 	@$(MAKE) -C athenz-authzwebhook check-register-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy check-register-athenz-authzproxy
 	@$(MAKE) -C athenz-client check-register-athenz-client
+	@$(MAKE) -C athenz-k8sclient check-register-athenz-k8sclient
 
 deploy-athenz-workloads: test-athenz-identityprovider
 	@$(MAKE) -C athenz-authorizer deploy-athenz-authorizer
@@ -334,6 +347,7 @@ deploy-athenz-workloads: test-athenz-identityprovider
 	@$(MAKE) -C athenz-authzwebhook deploy-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy deploy-athenz-authzproxy
 	@$(MAKE) -C athenz-client deploy-athenz-client
+	@$(MAKE) -C athenz-k8sclient deploy-athenz-k8sclient
 
 test-athenz-workloads:
 	@$(MAKE) -C athenz-authorizer test-athenz-authorizer
@@ -341,6 +355,7 @@ test-athenz-workloads:
 	@$(MAKE) -C athenz-authzwebhook test-athenz-authzwebhook
 	@$(MAKE) -C athenz-authzproxy test-athenz-authzproxy
 	@$(MAKE) -C athenz-client test-athenz-client
+	@$(MAKE) -C athenz-k8sclient test-athenz-k8sclient
 
 test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo ""
@@ -351,6 +366,7 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 
 test-athenz-envoy2echoserver:
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2echoserver" | jq -r .request || (kubectl -n athenz logs deployment/client-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2echoserver" | jq -r .request || (kubectl -n athenz logs deployment/k8sclient-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -360,6 +376,8 @@ test-athenz-envoy2echoserver:
 test-athenz-envoy2envoyextauthz:
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2extauthz" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2extauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2extauthz" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2extauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authorizer-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -370,11 +388,17 @@ test-athenz-envoy2envoyfilter:
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2filterauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2filterauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2filterauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzenvoy-deployment --all-containers=true && false)
 
 test-athenz-envoy2envoywebhook:
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2webhookauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2webhookauthzmtls" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2webhookauthzjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2webhookauthzmtlsjwt" | jq -r .request || (kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"
@@ -383,6 +407,7 @@ test-athenz-envoy2envoywebhook:
 
 test-athenz-envoy2authzproxy:
 	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://client.athenz.svc.cluster.local/client2authzproxy" | jq -r .request || (kubectl -n athenz logs deployment/authzproxy-deployment --all-containers=true && false)
+	kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -s https://k8sclient.athenz.svc.cluster.local/k8sclient2authzproxy" | jq -r .request || (kubectl -n athenz logs deployment/authzproxy-deployment --all-containers=true && false)
 	@echo ""
 	@echo "**************************************"
 	@echo "**** Envoy Showcase is functioning ***"

@@ -27,7 +27,7 @@ copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
 
 copy-certificates-to-kustomization:
-	CRYPKI=$$(grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties")
+	CRYPKI=$$(grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && true || false)
 	$$CRYPKI || cp -r ../keys ../certs athenz-cli/kustomize/
 	$$CRYPKI || cp -r ../keys ../certs athenz-zms-server/kustomize/
 	$$CRYPKI || cp -r ../keys ../certs athenz-zts-server/kustomize/

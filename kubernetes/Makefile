@@ -27,18 +27,21 @@ copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
 
 copy-certificates-to-kustomization:
-	CRYPKI=$$(grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && true || false)
-	$$CRYPKI || cp -r ../keys ../certs athenz-cli/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-zms-server/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-zts-server/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-ui/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-identityprovider/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-authorizer/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-authzenvoy/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-authzwebhook/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-authzproxy/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs athenz-client/kustomize/
-	$$CRYPKI || cp -r ../keys ../certs crypki-softhsm/kustomize/
+	grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && echo SKIPPED || \
+	( \
+	cp -r ../keys ../certs athenz-cli/kustomize/ && \
+	cp -r ../keys ../certs athenz-zms-server/kustomize/ && \
+	cp -r ../keys ../certs athenz-zts-server/kustomize/ && \
+	cp -r ../keys ../certs athenz-ui/kustomize/ && \
+	cp -r ../keys ../certs athenz-identityprovider/kustomize/ && \
+	cp -r ../keys ../certs athenz-authorizer/kustomize/ && \
+	cp -r ../keys ../certs athenz-authzenvoy/kustomize/ && \
+	cp -r ../keys ../certs athenz-authzwebhook/kustomize/ && \
+	cp -r ../keys ../certs athenz-authzproxy/kustomize/ && \
+	cp -r ../keys ../certs athenz-client/kustomize/ && \
+	cp -r ../keys ../certs crypki-softhsm/kustomize/ && \
+	echo "APPLIED copy-certificates-to-kustomization" \
+	)
 
 overwrite-certificates-with-crypki:
 	cat ../certs/ca.cert.pem | tee -a crypki-softhsm/kustomize/certs/crypki.cert.pem

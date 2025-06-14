@@ -84,7 +84,6 @@ patch-athenz-zts:
 		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
-	#patch -f athenz-zts-server/kustomize/deployment.yaml < crypki-softhsm/athenz-zts-server.deployment.yaml.patch
 
 switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) -C crypki-softhsm generate-certificates

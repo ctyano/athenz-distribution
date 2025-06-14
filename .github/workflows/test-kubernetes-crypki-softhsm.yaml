@@ -160,6 +160,12 @@ jobs:
           # Replace this with your test command
           make test-kubernetes-crypki-softhsm
 
+      # A GitHub Action to use crypki
+      -
+        name: Switch configuration to use crypki-softhsm
+        run: |
+          make use-kubernetes-crypki-softhsm
+
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application

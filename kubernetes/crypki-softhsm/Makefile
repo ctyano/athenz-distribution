@@ -17,7 +17,6 @@ generate-ca:
 			| jq -r .cert \
 			| tee kustomize/certs/ca.cert.pem
 	cat kustomize/certs/ca.cert.pem | openssl x509 -noout -text
-	cat kustomize/certs/ca.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ca.cert.pem
 
 generate-zms: generate-ca
@@ -40,7 +39,6 @@ generate-zms: generate-ca
 			| jq -r .cert \
 			| tee kustomize/certs/zms.cert.pem
 	cat kustomize/certs/zms.cert.pem | openssl x509 -noout -text
-	cat kustomize/certs/zms.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/zms.cert.pem
 
 generate-zts: generate-zms
@@ -63,7 +61,6 @@ generate-zts: generate-zms
 			| jq -r .cert \
 			| tee kustomize/certs/zts.cert.pem
 	cat kustomize/certs/zts.cert.pem | openssl x509 -noout -text
-	cat kustomize/certs/zts.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/zts.cert.pem
 
 generate-admin: generate-ca
@@ -86,7 +83,6 @@ generate-admin: generate-ca
 			| jq -r .cert \
 			| tee kustomize/certs/athenz_admin.cert.pem
 	cat kustomize/certs/athenz_admin.cert.pem | openssl x509 -noout -text
-	cat kustomize/certs/athenz_admin.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/athenz_admin.cert.pem
 
 generate-ui: generate-ca
@@ -109,7 +105,6 @@ generate-ui: generate-ca
 			| jq -r .cert \
 			| tee kustomize/certs/ui.cert.pem
 	cat kustomize/certs/ui.cert.pem | openssl x509 -noout -text
-	cat kustomize/certs/ui.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ui.cert.pem
 
 generate-crypki: generate-ca
@@ -132,7 +127,6 @@ generate-crypki: generate-ca
 			| jq -r .cert \
 			| tee kustomize/certs/crypki.cert.pem
 	cat kustomize/certs/crypki.cert.pem | openssl x509 -noout -text
-	cat kustomize/certs/crypki.cert.pem | step certificate inspect --bundle --short
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/crypki.cert.pem
 
 generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui #generate-crypki

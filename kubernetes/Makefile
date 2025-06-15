@@ -76,8 +76,10 @@ replace-system-properties:
 	fi
 
 clean-patch-athenz-zts:
-	git checkout athenz-zts-server/kustomize/conf/zts.properties
-	git checkout athenz-zts-server/kustomize/deployment.yaml
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
+		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 
 patch-athenz-zts:
 	@$(MAKE) replace-system-properties \

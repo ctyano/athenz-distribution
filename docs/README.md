@@ -28,7 +28,7 @@ Start exploring today and take full control of your cloud access management with
 
 # Athenz packages
   
-- [List of Athenz package distribution](docs/DISTRIBUTIONS.md)
+- [List of Athenz package distribution](DISTRIBUTIONS.md)
 
 # Learn More
 
@@ -38,11 +38,11 @@ Visit the official Athenz website: [www.athenz.io](http://www.athenz.io)
 
 - [How to generate keys and certificates](CERTIFICATES.md)
  
-- [CLI instruction](docs/CLI.md)
+- [CLI instruction](CLI.md)
  
-- [How to generate keys and retrieve certificates (**Identity Provisioning**)](docs/IDENTITYPROVISIONING.md)
+- [How to generate keys and retrieve certificates (**Identity Provisioning**)](IDENTITYPROVISIONING.md)
 
-- [Envoy Ambassador Instruction for Kubernetes](docs/ENVOY.md)
+- [Envoy Ambassador Instruction for Kubernetes](ENVOY.md)
  
-- [Showcases for Kubernetes](docs/SHOWCASES_KUBERNETES.md)
+- [Showcases for Kubernetes](SHOWCASES_KUBERNETES.md)
 

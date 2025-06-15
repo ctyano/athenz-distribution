@@ -1,5 +1,7 @@
-ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+SED_INPLACE = sed -i
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+	SED_INPLACE = sed -i ''
 endif
 
 install-kustomize:
@@ -19,23 +21,75 @@ clean-certificates:
 	rm -rf athenz-authzwebhook/kustomize/{keys,certs}
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
+	rm -rf crypki-softhsm/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
+	kubectl delete namespace crypki ||:
 
-clean-athenz: clean-namespace clean-certificates
+clean: clean-namespace clean-certificates clean-patch-athenz-zts
 
-copy-to-kustomization:
-	cp -r ../keys ../certs athenz-cli/kustomize/
-	cp -r ../keys ../certs athenz-zms-server/kustomize/
-	cp -r ../keys ../certs athenz-zts-server/kustomize/
-	cp -r ../keys ../certs athenz-ui/kustomize/
-	cp -r ../keys ../certs athenz-identityprovider/kustomize/
-	cp -r ../keys ../certs athenz-authorizer/kustomize/
-	cp -r ../keys ../certs athenz-authzenvoy/kustomize/
-	cp -r ../keys ../certs athenz-authzwebhook/kustomize/
-	cp -r ../keys ../certs athenz-authzproxy/kustomize/
-	cp -r ../keys ../certs athenz-client/kustomize/
+copy-crypki-certificates-to-kustomization:
+	cp -r ../keys ../certs crypki-softhsm/kustomize/
+
+copy-certificates-to-kustomization:
+	grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && echo SKIPPED || \
+	( \
+	cp -r ../keys ../certs athenz-cli/kustomize/ && \
+	cp -r ../keys ../certs athenz-zms-server/kustomize/ && \
+	cp -r ../keys ../certs athenz-zts-server/kustomize/ && \
+	cp -r ../keys ../certs athenz-ui/kustomize/ && \
+	cp -r ../keys ../certs athenz-identityprovider/kustomize/ && \
+	cp -r ../keys ../certs athenz-authorizer/kustomize/ && \
+	cp -r ../keys ../certs athenz-authzenvoy/kustomize/ && \
+	cp -r ../keys ../certs athenz-authzwebhook/kustomize/ && \
+	cp -r ../keys ../certs athenz-authzproxy/kustomize/ && \
+	cp -r ../keys ../certs athenz-client/kustomize/ && \
+	cp -r ../keys ../certs crypki-softhsm/kustomize/ && \
+	echo "APPLIED copy-certificates-to-kustomization" \
+	)
+
+overwrite-certificates-with-crypki:
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-cli/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-zms-server/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-zts-server/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-ui/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-identityprovider/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authorizer/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzenvoy/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzwebhook/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzproxy/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-client/kustomize/
+
+# Usage:
+# make replace KEY=old_string VALUE=new_string FILE=path/to/file
+replace-system-properties:
+	@if [ -z "$(KEY)" ] || [ -z "$(VALUE)" ] || [ -z "$(FILE)" ]; then \
+		echo "Error: KEY, VALUE, and FILE must be provided"; \
+		exit 1; \
+	fi; \
+	if grep -q "$(KEY)" "$(FILE)"; then \
+		echo "Replacing '$(KEY)' with '$(VALUE)' in $(FILE)"; \
+		$(SED_INPLACE) 's|$(KEY)|$(VALUE)|g' "$(FILE)"; \
+	else \
+		echo "Key '$(KEY)' not found in $(FILE)"; \
+	fi
+
+clean-patch-athenz-zts:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
+		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+
+patch-athenz-zts:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
+		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+
+switch-athenz-zts-cert-signer: patch-athenz-zts
+	@$(MAKE) -C crypki-softhsm generate-certificates
+	@$(MAKE) overwrite-certificates-with-crypki
 
 kind-setup:
 	kind create cluster
@@ -44,6 +98,7 @@ kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
 		docker.io/ghostunnel/ghostunnel:latest \
+		$(DOCKER_REGISTRY)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \
@@ -63,6 +118,15 @@ kind-load-images:
 
 kind-shutdown:
 	kind delete cluster
+
+setup-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm setup-crypki-softhsm
+
+deploy-crypki-softhsm: copy-crypki-certificates-to-kustomization setup-crypki-softhsm
+	@$(MAKE) -C crypki-softhsm deploy-crypki-softhsm
+
+test-crypki-softhsm:
+	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
 
 kustomize-edit-athenz-db-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
@@ -124,7 +188,7 @@ setup-athenz-ui: setup-athenz-zms-server kustomize-edit-athenz-ui-image
 
 setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-athenz-zts-server setup-athenz-ui
 
-deploy-athenz: copy-to-kustomization setup-athenz
+deploy-athenz: copy-certificates-to-kustomization setup-athenz
 
 check-athenz:
 	SLEEP_SECONDS=5; \

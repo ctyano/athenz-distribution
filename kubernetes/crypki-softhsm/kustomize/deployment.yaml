@@ -76,10 +76,8 @@ spec:
             - name: USER_SSH_PUBLIC_KEY
               value: ""
             - name: HOST_X509_PRIVATE_KEY
-              #value: /opt/crypki/tls-crt/ca.key
               value: ""
             - name: HOST_X509_PUBLIC_KEY
-              #value: /opt/crypki/tls-crt/ca.public.key
               value: ""
             - name: HOST_SSH_PRIVATE_KEY
               value: ""

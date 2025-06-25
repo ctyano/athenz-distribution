@@ -16,3 +16,6 @@ spec:
     - name: mtls
       port: 4443
       targetPort: mtls
+    - name: dex
+      port: 5556
+      targetPort: dex

@@ -27,7 +27,9 @@ clean-namespace:
 	kubectl delete namespace athenz ||:
 	kubectl delete namespace crypki ||:
 
-clean: clean-namespace clean-certificates clean-patch-athenz-zts
+clean: clean-namespace clean-certificates
+	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
+		$(MAKE) clean-patch-athenz-zts ||:
 
 copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/

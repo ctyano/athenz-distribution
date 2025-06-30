@@ -77,11 +77,9 @@ static_resources:
                             auto_host_rewrite: true
                           typed_per_filter_config: *filters_disabled
                         - match:
-                            path_separated_prefix: "/oauth2"
+                            prefix: "/echoserver"
                           route:
                             cluster: echoserver
-                            prefix_rewrite: "/echoserver"
-                            auto_host_rewrite: true
                           request_headers_to_add: &request_headers_to_add
                             - header:
                                 key: x-athenz-sni
@@ -107,10 +105,11 @@ static_resources:
                             - header:
                                 key: x-athenz-proxy
                                 value: "ingress envoy with extauthz filter"
+                          typed_per_filter_config: *filters_disabled
                         - match:
-                            prefix: "/echoserver"
+                            prefix: "/dex"
                           route:
-                            cluster: echoserver
+                            cluster: dex
                           request_headers_to_add: *request_headers_to_add
                           typed_per_filter_config: *filters_disabled
                         - match:
@@ -119,32 +118,6 @@ static_resources:
                             cluster: envoy_admin
                           typed_per_filter_config: *filters_disabled
                 http_filters: &localhost_http_filters
-                  # Oauth2 External Authorization
-                  - name: envoy.filters.http.ext_authz.oauth2
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
-                      # https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/ext_authz/v3/ext_authz.proto.html#extensions-filters-http-ext-authz-v3-httpservice
-                      http_service:
-                        server_uri:
-                          uri: 127.0.0.1:4180
-                          cluster: oauth2-proxy
-                          timeout: 5s
-                        authorization_request:
-                          headers_to_add:
-                            - key: x-auth-request-redirect
-                              value: https://dexidp/dex/auth
-                          allowed_headers:
-                            patterns:
-                              - safe_regex:
-                                  google_re2: {}
-                                  regex: ".*"
-                        authorization_response:
-                          allowed_upstream_headers:
-                            patterns:
-                              - prefix: "x-"
-                      with_request_body:
-                        max_request_bytes: 1024
-                      transport_api_version: V3
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -280,3 +253,16 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 3000
+    - name: dex
+      connect_timeout: 0.25s
+      type: STATIC # LOGICAL_DNS or STATIC
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: dex
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 5556

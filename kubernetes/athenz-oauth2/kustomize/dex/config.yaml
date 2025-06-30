@@ -1,4 +1,4 @@
-issuer: http://localhost:5556/dex
+issuer: https://oauth2.athenz.svc.cluster.local:5556/dex
 storage:
   type: memory
 web:
@@ -14,7 +14,7 @@ staticClients:
   - id: athenz-user-cert
     name: Athenz User Certificate CLI
     redirectURIs:
-      - http://localhost:8080/callback
+      - http://127.0.0.1:8080
     secret: athenz-user-cert
 staticPasswords:
   - email: "athenz_admin@athenz.io"

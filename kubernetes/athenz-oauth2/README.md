@@ -35,5 +35,5 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
 ## Debugging
 
 ```
-kubectl -n athenz exec -it deployment/oauth2-deployment -c athenz-cli -- /bin/sh -c "curl -sv --resolve oauth2.athenz.svc.cluster.local:443:127.0.0.1 https://oauth2.athenz.svc.cluster.local/echoserver | jq -r .request"
+~/go/bin/athenz-user-cert -csr http://localhost:10000/v3/sig/x509-cert/keys/x509-key -cn athenz_admin | step certificate inspect --bundle
 ```

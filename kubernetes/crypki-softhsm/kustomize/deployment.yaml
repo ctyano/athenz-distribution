@@ -184,7 +184,7 @@ spec:
           args:
             - client
             - --listen
-            - localhost:3000
+            - :3000
             - --target
             - localhost:4443
             - --override-server-name
@@ -192,6 +192,7 @@ spec:
             - --cacert
             - /etc/ssl/certs/ca-certificates.crt
             - --disable-authentication
+            - --unsafe-listen
           resources:
             limits:
               memory: 64Mi

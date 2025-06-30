@@ -19,30 +19,25 @@ spec:
       securityContext:
         fsGroup: 1000
       volumes:
-#        - name: attestation-data
-#          projected:
-#            sources:
-#              - serviceAccountToken:
-#                  audience: https://kubernetes.default.svc
-#                  expirationSeconds: 3600
-#                  path: token
-#        - name: athenz-tls-certs
-#          emptyDir: {}
-#        - name: envoy
-#          configMap:
-#            name: oauth2-envoy
-#        - name: policy
-#          configMap:
-#            name: oauth2-policy
-#        - name: config
-#          configMap:
-#            name: oauth2-config
-#        - name: athenz-cacert
-#          configMap:
-#            name: athenz-cacert
-#            items:
-#              - key: ca.cert.pem
-#                path: ca-certificates.crt
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
+        - name: athenz-tls-certs
+          emptyDir: {}
+        - name: envoy
+          configMap:
+            name: oauth2-envoy
+        - name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            defaultMode: 0555
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
         - name: athenz-admin-keys
           secret:
             secretName: athenz-admin-keys
@@ -55,60 +50,60 @@ spec:
         - name: dex-config
           configMap:
             name: dex-config
-#      initContainers:
-#        # TODO: sia-wait should be implemented in sia-init in future
-#        - name: sia-wait
-#          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
-#          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
-#          resources: &sia-resources
-#            limits:
-#              cpu: 50m
-#              memory: 64Mi
-#          command:
-#            - sh
-#            - -c
-#          args:
-#            - |
-#              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
-#        - name: sia-init
-#          image: *sia-image
-#          imagePullPolicy: *sia-imagePullPolicy
-#          resources: *sia-resources
-#          args: &sia-args
-#            - --mode=init
-#            - --delay-jitter-seconds=5
-#          envFrom: &sia-envFrom
-#            - configMapRef:
-#                name: oauth2-sia
-#          env: &sia-env
-#            - name: NAMESPACE
-#              valueFrom:
-#                fieldRef:
-#                  apiVersion: v1
-#                  fieldPath: metadata.namespace
-#            - name: SERVICEACCOUNT
-#              valueFrom:
-#                fieldRef:
-#                  apiVersion: v1
-#                  fieldPath: spec.serviceAccountName
-#            - name: POD_UID
-#              valueFrom:
-#                fieldRef:
-#                  apiVersion: v1
-#                  fieldPath: metadata.uid
-#            - name: POD_IP
-#              valueFrom:
-#                fieldRef:
-#                  apiVersion: v1
-#                  fieldPath: status.podIP
-#          volumeMounts: &sia-volumeMounts
-#            - name: attestation-data
-#              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
-#              readOnly: true
-#            - name: athenz-tls-certs
-#              mountPath: /var/run/athenz
-#            - name: athenz-cacert
-#              mountPath: /etc/ssl/certs
+      initContainers:
+        # TODO: sia-wait should be implemented in sia-init in future
+        - name: sia-wait
+          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          imagePullPolicy: &sia-imagePullPolicy IfNotPresent
+          resources: &sia-resources
+            limits:
+              cpu: 50m
+              memory: 64Mi
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443 && nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
+        - name: sia-init
+          image: *sia-image
+          imagePullPolicy: *sia-imagePullPolicy
+          resources: *sia-resources
+          args: &sia-args
+            - --mode=init
+            - --delay-jitter-seconds=5
+          envFrom: &sia-envFrom
+            - configMapRef:
+                name: oauth2-sia
+          env: &sia-env
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SERVICEACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          volumeMounts: &sia-volumeMounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs
       containers:
         - name: athenz-cli
           image: ghcr.io/ctyano/athenz-cli:latest
@@ -140,8 +135,6 @@ spec:
           imagePullPolicy: *sia-imagePullPolicy
           args:
             - --mode=refresh
-            - --token-server-addr=:8180
-            - --authorization-server-addr=:8280
             - --metrics-server-addr=:9999
           envFrom: *sia-envFrom
           env: *sia-env

@@ -39,6 +39,9 @@ configMapGenerator:
 - files:
   - slot_pwd.txt=conf/slot_pwd.txt
   name: crypki-shm
+- files:
+    - envoy.yaml=envoy/config.yaml
+  name: envoy-config
 
 images:
 - name: ghcr.io/ctyano/crypki-softhsm:latest

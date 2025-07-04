@@ -35,7 +35,7 @@
             "UserPinPath": "/dev/shm/slot_pwd.txt"
         },
         {
-            "CommonName": "Crypki Root CA",
+            "CommonName": "Crypki SoftHSM Root CA",
             "Country": "",
             "CreateCACertIfNotExist": true,
             "Identifier": "x509-key",
@@ -43,7 +43,7 @@
             "KeyType": 3,
             "SignatureAlgo": 11,
             "Locality": "",
-            "Organization": "",
+            "Organization": "Athenz User Organization",
             "OrganizationalUnit": "Athenz",
             "SlotNumber": SLOTNUM_HOST_X509,
             "State": "",

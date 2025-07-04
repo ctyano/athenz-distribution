@@ -68,7 +68,7 @@ spec:
             initialDelaySeconds: 0
             periodSeconds: 10
         - name: envoy
-          image: docker.io/envoyproxy/envoy:v1.29-latest
+          image: docker.io/envoyproxy/envoy:v1.34-latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: https

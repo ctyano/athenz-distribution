@@ -5,7 +5,7 @@ endif
 clean-athenz-oauth2:
 	kubectl delete -k kustomize
 
-register-athenz-oauth2:
+setup-athenz-oauth2:
 
 check-register-athenz-oauth2:
 	@echo ""

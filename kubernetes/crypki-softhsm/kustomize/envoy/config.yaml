@@ -1,0 +1,105 @@
+---
+static_resources:
+  listeners:
+    - name: listener_0
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 10000 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: backend
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: crypki }
+                http_filters:
+                  # Authentication with Dex Access Token
+                  - name: envoy.filters.http.jwt_authentication.accesstoken.authentication
+                    typed_config:
+                      # https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/jwt_authn_filter
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+                      providers:
+                        dex_accesstoken:
+                          remote_jwks:
+                            http_uri:
+                              cluster: dex
+                              timeout: 5s
+                              uri: "https://oauth2.athenz.svc.cluster.local:5556/dex/keys"
+                          # Accept JWT issued by only certtain issuer and for only certain audiences
+                          issuer: https://oauth2.athenz.svc.cluster.local:5556/dex
+                          audiences:
+                            - athenz-user-cert
+                          from_headers:
+                            - name: "Authorization"
+                              value_prefix: "Bearer "
+                            - name: "authorization"
+                              value_prefix: "bearer "
+                          forward: true
+                          claim_to_headers:
+                            - header_name: x-athenz-principal
+                              claim_name: sub
+                            - header_name: x-athenz-domain
+                              claim_name: aud
+                            - header_name: x-athenz-role
+                              claim_name: scope
+                            - header_name: x-athenz-issued-at
+                              claim_name: iat
+                            - header_name: x-athenz-expires-at
+                              claim_name: exp
+                            - header_name: x-athenz-jwt-sub
+                              claim_name: sub
+                            - header_name: x-athenz-jwt-aud
+                              claim_name: aud
+                            - header_name: x-athenz-jwt-scope
+                              claim_name: scope
+                            - header_name: x-athenz-jwt-iss
+                              claim_name: iss
+                            - header_name: x-athenz-jwt-iat
+                              claim_name: iat
+                            - header_name: x-athenz-jwt-exp
+                              claim_name: exp
+                      requirement_map:
+                        accesstoken:
+                          provider_name: dex_accesstoken
+                  - name: envoy.filters.http.wasm
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+                      config:
+                        configuration:
+                          "@type": type.googleapis.com/google.protobuf.StringValue
+                          value: |
+                            {
+                              "user_prefix": "user.",
+                              "claim": "name"
+                            }
+                        name: csr_filter
+                        root_id: csr_filter
+                        vm_config:
+                          vm_id: csr_filter_vm
+                          runtime: envoy.wasm.runtime.v8
+                          code:
+                            local:
+                              filename: /etc/envoy/certsigner-envoy.wasm
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+  clusters:
+    - name: crypki
+      connect_timeout: 0.5s
+      type: LOGICAL_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: crypki
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: crypki-softhsm.crypki
+                      port_value: 80

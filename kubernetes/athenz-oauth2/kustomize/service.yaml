@@ -10,12 +10,6 @@ spec:
   selector:
     app: oauth2-deployment
   ports:
-    - name: https
-      port: 443
-      targetPort: https
-    - name: mtls
-      port: 4443
-      targetPort: mtls
     - name: dex
       port: 5556
       targetPort: dex

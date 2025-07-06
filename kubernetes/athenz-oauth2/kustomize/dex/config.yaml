@@ -1,0 +1,25 @@
+issuer: http://127.0.0.1:5556/dex
+storage:
+  type: memory
+web:
+  http: 0.0.0.0:5556
+oauth2:
+  passwordConnector: local
+  responseTypes:
+    - code
+  skipApprovalScreen: true
+  alwaysShowLoginScreen: false
+enablePasswordDB: true
+staticClients:
+  - id: athenz-user-cert
+    name: Athenz User Certificate CLI
+    redirectURIs:
+      - http://127.0.0.1:8080
+      - urn:ietf:wg:oauth:2.0:oob
+    secret: athenz-user-cert
+staticPasswords:
+  - email: "athenz_admin@athenz.io"
+    # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo
+    hash: "$2y$12$JB0ulvDqDFxoK8BeaIYeo.pU87MFSgCV/fFqQJ0xzgIlXdm9ZNJs."
+    username: "athenz_admin"
+    userID: "athenz_admin"

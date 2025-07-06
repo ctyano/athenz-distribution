@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-deployment
+  labels:
+    app: oauth2-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-deployment
+  template:
+    metadata:
+      labels:
+        app: oauth2-deployment
+    spec:
+      volumes:
+        - name: dex-config
+          configMap:
+            name: dex-config
+      containers:
+        - name: dex
+          image: ghcr.io/dexidp/dex:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: dex
+              containerPort: 5556
+              protocol: TCP
+          volumeMounts:
+            - name: dex-config
+              mountPath: /etc/dex/config.docker.yaml
+              subPath: config.docker.yaml
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+            requests:
+              memory: 64Mi
+              cpu: 50m

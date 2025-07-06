@@ -371,14 +371,16 @@ load-docker-images-internal:
 
 load-docker-images-external:
 	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull docker.io/dexidp/dex:latest
 	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
 	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/ealen/echo-server:latest
-	docker pull docker.io/envoyproxy/envoy:v1.29-latest
+	docker pull docker.io/envoyproxy/envoy:v1.34-latest
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
 	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
 	docker pull docker.io/tatyano/authorization-proxy:latest
 
@@ -391,8 +393,15 @@ deploy-kubernetes-crypki-softhsm: generate-certificates
 test-kubernetes-crypki-softhsm:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-crypki-softhsm
 
-use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm
+use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm deploy-kubernetes-athenz-oauth2
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
+
+deploy-kubernetes-athenz-oauth2:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+
+test-kubernetes-athenz-oauth2:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
 
 deploy-kubernetes-athenz: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz

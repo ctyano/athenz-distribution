@@ -158,8 +158,8 @@ spec:
               subPath: ca-certificates.crt
               readOnly: true
         - name: envoy
-          image: docker.io/envoyproxy/envoy:v1.29-latest
           # Envoy crashes in Raspberry Pi 4
+          image: docker.io/envoyproxy/envoy:v1.34-latest
           #image: docker.io/thegrandpkizzle/envoy:1.26.1
           imagePullPolicy: IfNotPresent
           ports:

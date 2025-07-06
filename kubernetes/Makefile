@@ -110,10 +110,12 @@ kind-load-images:
 		$(DOCKER_REGISTRY)athenz-ui:latest
 	kind load docker-image \
 		docker.io/ealen/echo-server:latest \
-		docker.io/envoyproxy/envoy:v1.29-latest \
+		docker.io/dexidp/dex:latest \
+		docker.io/envoyproxy/envoy:v1.34-latest \
 		docker.io/openpolicyagent/kube-mgmt:latest \
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/portainer/kubectl-shell:latest \
+		$(DOCKER_REGISTRY)certsigner-envoy:latest \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY)docker-vegeta:latest \
 		docker.io/tatyano/authorization-proxy:latest
@@ -129,6 +131,15 @@ deploy-crypki-softhsm: copy-crypki-certificates-to-kustomization setup-crypki-so
 
 test-crypki-softhsm:
 	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
+
+setup-athenz-oauth2:
+	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2
+
+deploy-athenz-oauth2: setup-athenz-oauth2
+	@$(MAKE) -C athenz-oauth2 deploy-athenz-oauth2
+
+test-athenz-oauth2:
+	@$(MAKE) -C athenz-oauth2 test-athenz-oauth2
 
 kustomize-edit-athenz-db-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \

@@ -32,7 +32,7 @@ install-brew:
 
 check-setup-athenz-oauth2:
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which athenz_user_cert \
+		which athenz_user_cert; \
 	fi
 	@echo ""
 	@echo "**************************************"

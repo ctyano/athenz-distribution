@@ -24,6 +24,11 @@ uninstall-athenz_user_cert:
 install-brew:
 	which brew \
 || /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+	if [ "$$(uname -s)" = "Darwin" ]; then \
+	  eval "$$(/opt/homebrew/bin/brew shellenv)" \
+	elif [ "$$(uname -s)" = "Linux" ]; then \
+	  eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" \
+	fi
 
 check-setup-athenz-oauth2:
 	which athenz_user_cert

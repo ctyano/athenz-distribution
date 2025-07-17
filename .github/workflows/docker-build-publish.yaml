@@ -84,7 +84,7 @@ jobs:
         name: Set dynamic docker build arguments
         id: dynamic_docker_build_args
         run: |
-          set -ex
+          set -exuo pipefail
 
           if [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} ]]; then
             if [[ "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
@@ -96,7 +96,7 @@ jobs:
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
             PACKAGE_VERSION="$( \
-              curl -sf https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
+              curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
                 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
@@ -104,7 +104,7 @@ jobs:
                 | head -n1
               )"
             TAG_VERSION="$( \
-              curl -sf https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
+              curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
                 | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \

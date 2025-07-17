@@ -95,22 +95,17 @@ jobs:
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            PACKAGE_VERSION="$( \
-              curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1
-              )"
-            TAG_VERSION="$( \
-              curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1
-              )"
+            LATEST_TAG_JSON=$(curl -sf https://api.github.com/repos/${TRACKING_REPO}/releases)
+            LATEST_TAG=$(echo "$LATEST_TAG_JSON" | jq -r '.[].tag_name' \
+              | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
+              | sort -ruV \
+              | head -n1)
+            if [[ -n "$LATEST_TAG" ]]; then
+              PACKAGE_VERSION=$(echo "$LATEST_TAG" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+              TAG_VERSION="v${PACKAGE_VERSION}"
+            else
+              echo "⚠️ Warning: No valid version tag found in releases for ${TRACKING_REPO}" >&2
+            fi
           fi
 
           # here we can place the command that will generate multi-line text

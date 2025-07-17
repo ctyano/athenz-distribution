@@ -95,7 +95,7 @@ jobs:
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            LATEST_TAG=$(curl -sf https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
+            LATEST_TAG=$(curl -s https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
               | jq -r '.[].tag_name' \
               | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
               | sort -ruV \

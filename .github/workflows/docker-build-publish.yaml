@@ -122,7 +122,6 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
           echo "VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
-          echo "DOCKER_TAG=:${TAG_VERSION}" >> $GITHUB_ENV
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action

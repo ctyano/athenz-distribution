@@ -88,14 +88,14 @@ jobs:
 
           if [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} ]]; then
             if [[ "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
-              PACKAGE_VERSION="$(echo ${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
-              TAG_VERSION="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g'))"
+              export PACKAGE_VERSION="$(echo ${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
+              export TAG_VERSION="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g'))"
             fi
           elif [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
-            PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
-            TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            export PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            export TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            PACKAGE_VERSION="$( \
+            export PACKAGE_VERSION="$( \
               curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
@@ -103,7 +103,7 @@ jobs:
                 | sort -ruV \
                 | head -n1
               )"
-            TAG_VERSION="$( \
+            export TAG_VERSION="$( \
               curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
@@ -116,12 +116,12 @@ jobs:
           # here we can place the command that will generate multi-line text
           echo "DOCKER_BUILD_ARGS<<EOF" >> $GITHUB_ENV
           printf "${{ env.DOCKER_BUILD_ARGS }}" >> $GITHUB_ENV
-          printf "VERSION=$PACKAGE_VERSION\n" >> $GITHUB_ENV
-          printf "TAG_VERSION=$TAG_VERSION\n" >> $GITHUB_ENV
-          printf "VCS_REF=$TAG_VERSION\n" >> $GITHUB_ENV
+          printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
+          printf "TAG_VERSION=${TAG_VERSION}\n" >> $GITHUB_ENV
+          printf "VCS_REF=${TAG_VERSION}\n" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-          echo "VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
+          echo "VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action

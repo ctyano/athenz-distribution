@@ -27,6 +27,7 @@ env:
   NFPM_TARGET_PACKAGER: apk,deb,rpm
   NFPM_TARGET_COMPONENTS: zms,zts,cli
   GITHUB_REPOSITORY: ctyano/athenz-distribution
+  TRACKING_GIT_REPO: AthenZ/athenz
 
 jobs:
   build:
@@ -101,10 +102,10 @@ jobs:
       -
         name: Extract files from Docker image
         id: extract
-        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         run: |
           set -x
-          tag=$(basename ${{ env.CI_REF }})
+          tag=v${{ github.event.inputs.target_version }}
           for image in $(echo ${{ env.NFPM_SOURCE_IMAGES }} | tr "," "\n"); do
             for platform in $(echo ${{ env.DOCKER_TAEGET_PLATFORMS }} | tr "," "\n"); do
               # Download docker image to a tarball
@@ -144,7 +145,7 @@ jobs:
       -
         name: Create packages with nFPM
         id: nfpm
-        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         run: |
           set -x
           go install github.com/goreleaser/nfpm/v2/cmd/nfpm@latest
@@ -152,7 +153,7 @@ jobs:
             GOARCH=$(echo $platform | sed -e 's/\([^/]*\)\/\([^/]*\).*/\2/g')
             for packager in $(echo ${{ env.NFPM_TARGET_PACKAGER }} | tr "," "\n"); do
               for component in $(echo ${{ env.NFPM_TARGET_COMPONENTS }} | tr "," "\n"); do
-                SEMVER=${{ env.CI_REF_NAME }} nfpm pkg -f nfpm/linux/$GOARCH/$component.yaml -p $packager -t .
+                SEMVER=${{ github.event.inputs.target_version }} nfpm pkg -f nfpm/linux/${GOARCH}/$component.yaml -p $packager -t .
               done
             done
           done
@@ -162,31 +163,42 @@ jobs:
       -
         name: Create GitHub Release
         id: create_release
-        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -x
-          tag=$(git tag --points-at HEAD)
-          body=$(curl -s https://api.github.com/repos/athenz/athenz/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\"")
+          set -ex
+
+          if [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} \
+          && "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
+            tag="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
+          else
+            tag=$(git tag --points-at HEAD)
+          fi
+          body=$(curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\"")
           curl \
             -XPOST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
-            -d "{\"tag_name\":\"$tag\",\"name\":\"Release $tag\",\"body\":\"$body\",\"draft\":false,\"prerelease\":false}"
+            -d "{\"tag_name\":\"$tag\",\"name\":\"$tag Release\",\"body\":\"$body\",\"draft\":false,\"prerelease\":false}"
 
       # A GitHub Action to upload release assets
       # https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28#upload-a-release-asset
       -
         name: Upload GitHub Release Assets
         id: upload_release_assets
-        if: ${{ github.event_name != 'pull_request' && github.event.inputs.current_version != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
+        if: ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
-          tag=$(git tag --points-at HEAD)
+          if [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} \
+          && "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
+            tag="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
+          else
+            tag=$(git tag --points-at HEAD)
+          fi
           release_id=$(curl \
             -XGET \
             -H "Accept: application/vnd.github+json" \

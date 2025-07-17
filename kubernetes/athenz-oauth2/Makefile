@@ -13,7 +13,7 @@ install-athenz_user_cert: install-brew
 		|| ( \
 		brew tap ctyano/athenz_user_cert https://github.com/ctyano/athenz_user_cert \
 		&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz_user_cert/athenz_user_cert \
-		)
+		) \
 	fi
 
 uninstall-athenz_user_cert:

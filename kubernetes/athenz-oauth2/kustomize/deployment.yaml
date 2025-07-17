@@ -58,3 +58,9 @@ spec:
             - name: envoy-config
               mountPath: /etc/envoy/envoy.yaml
               subPath: envoy.yaml
+        - name: athenz-user-cert
+          image: ghcr.io/ctyano/athenz_user_cert:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - tail
+            - -f

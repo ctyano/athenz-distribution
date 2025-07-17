@@ -8,11 +8,13 @@ clean-athenz-oauth2:
 setup-athenz-oauth2: install-athenz_user_cert
 
 install-athenz_user_cert: install-brew
-	which athenz_user_cert \
-	|| ( \
-	brew tap ctyano/athenz_user_cert https://github.com/ctyano/athenz_user_cert \
-	&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz_user_cert/athenz_user_cert \
-	)
+	if [ "$$(uname -s)" = "Darwin" ]; then \
+		which athenz_user_cert \
+		|| ( \
+		brew tap ctyano/athenz_user_cert https://github.com/ctyano/athenz_user_cert \
+		&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz_user_cert/athenz_user_cert \
+		)
+	fi
 
 uninstall-athenz_user_cert:
 	which athenz_user_cert \
@@ -22,10 +24,11 @@ uninstall-athenz_user_cert:
 	)
 
 install-brew:
-	which brew \
-|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-	test "$$(uname -s)" = "Darwin" && eval "$$(/opt/homebrew/bin/brew shellenv)" ||:
-	test "$$(uname -s)" = "Linux" && eval "$$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" ||:
+	if [ "$$(uname -s)" = "Darwin" ]; then \
+		which brew \
+			|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
+		eval "$$(/opt/homebrew/bin/brew shellenv)" ||:; \
+	fi
 
 check-setup-athenz-oauth2:
 	which athenz_user_cert
@@ -57,7 +60,8 @@ while true; do \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c dex -- \
 	    nc -vz 127.0.0.1 10000 \
 	&& \
-	athenz_user_cert \
+	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert  -- \
+		athenz_user_cert version \
 	) \
 	&& break \
 	|| echo "Waiting for Dex Identity Provider and Envoy CertSigner Proxy..."; \

@@ -31,7 +31,9 @@ install-brew:
 	fi
 
 check-setup-athenz-oauth2:
-	which athenz_user_cert
+	if [ "$$(uname -s)" = "Darwin" ]; then \
+		which athenz_user_cert \
+	fi
 	@echo ""
 	@echo "**************************************"
 	@echo "** Oauth2 deployment is functioning **"

@@ -88,14 +88,14 @@ jobs:
 
           if [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} ]]; then
             if [[ "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
-              export PACKAGE_VERSION="$(echo ${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
-              export TAG_VERSION="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g'))"
+              PACKAGE_VERSION="$(echo ${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
+              TAG_VERSION="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g'))"
             fi
           elif [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
-            export PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
-            export TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
+            TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            export PACKAGE_VERSION="$( \
+            PACKAGE_VERSION="$( \
               curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
@@ -103,7 +103,7 @@ jobs:
                 | sort -ruV \
                 | head -n1
               )"
-            export TAG_VERSION="$( \
+            TAG_VERSION="$( \
               curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
                 | jq -r .[].tag_name \
                 | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \

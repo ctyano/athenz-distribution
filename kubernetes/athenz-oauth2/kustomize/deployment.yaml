@@ -19,6 +19,9 @@ spec:
         - name: dex-config
           configMap:
             name: dex-config
+        - name: envoy-config
+          configMap:
+            name: envoy-config
       containers:
         - name: dex
           image: ghcr.io/dexidp/dex:latest
@@ -38,3 +41,20 @@ spec:
             requests:
               memory: 64Mi
               cpu: 50m
+        - name: envoy
+          image: ghcr.io/ctyano/certsigner-envoy:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - envoy
+            - -c
+            - /etc/envoy/envoy.yaml
+            - -l
+            - debug
+          ports:
+            - name: envoy
+              containerPort: 10000
+              protocol: TCP
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy/envoy.yaml
+              subPath: envoy.yaml

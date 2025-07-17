@@ -116,12 +116,12 @@ jobs:
           # here we can place the command that will generate multi-line text
           echo "DOCKER_BUILD_ARGS<<EOF" >> $GITHUB_ENV
           printf "${{ env.DOCKER_BUILD_ARGS }}" >> $GITHUB_ENV
-          printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
-          printf "TAG_VERSION=${TAG_VERSION}\n" >> $GITHUB_ENV
-          printf "VCS_REF=${TAG_VERSION}\n" >> $GITHUB_ENV
+          printf "VERSION=$PACKAGE_VERSION\n" >> $GITHUB_ENV
+          printf "TAG_VERSION=$TAG_VERSION\n" >> $GITHUB_ENV
+          printf "VCS_REF=$TAG_VERSION\n" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-          echo "VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
+          echo "VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action

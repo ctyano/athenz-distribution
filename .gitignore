@@ -11,3 +11,4 @@ cookie-session
 .npm
 athenz
 plugins
+.DS_Store

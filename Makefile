@@ -1,14 +1,14 @@
 ifeq ($(wildcard athenz),)
 SUBMODULE := $(shell git submodule add --force https://github.com/AthenZ/athenz.git athenz)
+else
+SUBMODULE := $(shell git submodule update --recursive)
 endif
 
 ifeq ($(DOCKER_TAG),)
 ifeq ($(VERSION),)
 VERSION := $(shell cat athenz/pom.xml | grep -E "<version>[0-9]+.[0-9]+.[0-9]+</version>" | head -n1 | sed -e 's/.*>\([0-9]*\.[0-9]*\.[0-9]*\)<.*/\1/g')
-endif
 DOCKER_TAG := :latest
 else
-ifneq ($(VERSION),)
 DOCKER_TAG := :v$(VERSION)
 endif
 endif

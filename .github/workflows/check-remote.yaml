@@ -64,22 +64,17 @@ jobs:
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            PACKAGE_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1 \
-            )"
-            TAG_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1 \
-            )"
+            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
+              | jq -r '.[].tag_name' \
+              | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
+              | sort -ruV \
+              | head -n1)
+            if [[ -n "$LATEST_TAG" ]]; then
+              PACKAGE_VERSION=$(echo "$LATEST_TAG" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+              TAG_VERSION="v${PACKAGE_VERSION}"
+            else
+              echo "No valid version tag found in releases for ${TRACKING_GIT_REPO}" >&2
+            fi
           fi
           CURRENT_VERSION="$( \
             curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \

@@ -13,3 +13,6 @@ spec:
     - name: dex
       port: 5556
       targetPort: dex
+    - name: envoy
+      port: 10000
+      targetPort: envoy

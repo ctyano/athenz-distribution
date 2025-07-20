@@ -101,6 +101,8 @@ kind-load-images:
 	kind load docker-image \
 		docker.io/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY)crypki-softhsm:latest \
+		$(DOCKER_REGISTRY)certsigner-envoy:latest \
+		$(DOCKER_REGISTRY)athenz_user_cert:latest \
 		$(DOCKER_REGISTRY)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \
@@ -115,7 +117,6 @@ kind-load-images:
 		docker.io/openpolicyagent/kube-mgmt:latest \
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/portainer/kubectl-shell:latest \
-		$(DOCKER_REGISTRY)certsigner-envoy:latest \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY)docker-vegeta:latest \
 		docker.io/tatyano/authorization-proxy:latest

@@ -1,13 +1,12 @@
 ifeq ($(wildcard athenz),)
 SUBMODULE := $(shell git submodule add --force https://github.com/AthenZ/athenz.git athenz)
+else
+SUBMODULE := $(shell git submodule update --recursive)
 endif
 
 ifeq ($(DOCKER_TAG),)
 ifeq ($(VERSION),)
-VERSION := $(shell git submodule status | sed 's/^.* athenz .*v\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/g')
-ifeq ($(VERSION),)
 VERSION := $(shell cat athenz/pom.xml | grep -E "<version>[0-9]+.[0-9]+.[0-9]+</version>" | head -n1 | sed -e 's/.*>\([0-9]*\.[0-9]*\.[0-9]*\)<.*/\1/g')
-endif
 DOCKER_TAG := :latest
 else
 DOCKER_TAG := :v$(VERSION)
@@ -156,6 +155,8 @@ mirror-athenz-amd64-images:
 	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-plugins; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=crypki-softhsm; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
+	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
+	IMAGE=athenz_user_cert; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 
 install-golang:
 	which go \
@@ -373,6 +374,8 @@ load-docker-images-external:
 	docker pull docker.io/ghostunnel/ghostunnel:latest
 	docker pull docker.io/dexidp/dex:latest
 	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
+	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
+	docker pull $(DOCKER_REGISTRY)athenz_user_cert:latest
 	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/ealen/echo-server:latest
@@ -380,7 +383,6 @@ load-docker-images-external:
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
 	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
-	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
 	docker pull docker.io/tatyano/authorization-proxy:latest
 

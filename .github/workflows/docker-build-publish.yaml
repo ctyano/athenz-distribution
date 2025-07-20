@@ -26,7 +26,7 @@ env:
   # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
   DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   #DOCKER_BUILD_ARGS: |
-  GITHUB_REPOSITORY: AthenZ/athenz
+  TRACKING_GIT_REPO: AthenZ/athenz
 
 jobs:
   build:
@@ -84,26 +84,28 @@ jobs:
         name: Set dynamic docker build arguments
         id: dynamic_docker_build_args
         run: |
-          if [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
+          set -exuo pipefail
+
+          if [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} = true ]]; then
+            if [[ "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
+              PACKAGE_VERSION="$(echo ${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g')"
+              TAG_VERSION="$(echo v${{ github.event.inputs.target_version }} | sed -e 's/.*\([0-9]+.[0-9]+.[0-9]+\).*/\1/g'))"
+            fi
+          elif [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            PACKAGE_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1
-              )"
-            TAG_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1
-              )"
+            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
+              | jq -r '.[].tag_name' \
+              | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
+              | sort -ruV \
+              | head -n1)
+            if [[ -n "$LATEST_TAG" ]]; then
+              PACKAGE_VERSION=$(echo "$LATEST_TAG" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+              TAG_VERSION="v${PACKAGE_VERSION}"
+            else
+              echo "No valid version tag found in releases for ${TRACKING_GIT_REPO}" >&2
+            fi
           fi
 
           # here we can place the command that will generate multi-line text
@@ -114,8 +116,7 @@ jobs:
           printf "VCS_REF=${TAG_VERSION}\n" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-          echo "VERSION=${PACKAGE_VERSION}" >> $GITHUB_ENV
-          echo "DOCKER_TAG=:${TAG_VERSION}" >> $GITHUB_ENV
+          printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action

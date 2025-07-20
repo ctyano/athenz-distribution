@@ -11,13 +11,13 @@ on:
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   schedule:
-    - cron: '0 21 * * *' # Friday 21:00 UTC, Saturday 06:00 JST
+    - cron: '0 21 * * *' # Everyay 21:00 UTC, Everyday 06:00 JST
   workflow_dispatch:
 
 env:
   DOCKER_REGISTRY_URL: ghcr.io
   TARGET_TAG: ""
-  GITHUB_REPOSITORY: AthenZ/athenz
+  TRACKING_GIT_REPO: AthenZ/athenz
   GIT_SUBMODULE_URL: https://github.com/AthenZ/athenz.git
   GIT_SUBMODULE_PATH: athenz
 
@@ -64,22 +64,17 @@ jobs:
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            PACKAGE_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1 \
-            )"
-            TAG_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.GITHUB_REPOSITORY }}/releases \
-                | jq -r .[].tag_name \
-                | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-                | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-                | sort -ruV \
-                | head -n1 \
-            )"
+            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
+              | jq -r '.[].tag_name' \
+              | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
+              | sort -ruV \
+              | head -n1)
+            if [[ -n "$LATEST_TAG" ]]; then
+              PACKAGE_VERSION=$(echo "$LATEST_TAG" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+              TAG_VERSION="v${PACKAGE_VERSION}"
+            else
+              echo "No valid version tag found in releases for ${TRACKING_GIT_REPO}" >&2
+            fi
           fi
           CURRENT_VERSION="$( \
             curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \

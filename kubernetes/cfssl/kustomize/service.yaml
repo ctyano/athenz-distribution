@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cfssl
+  labels:
+    app.kubernetes.io/name: cfssl
+    app.kubernetes.io/instance: cfssl
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: cfssl
+    app.kubernetes.io/instance: cfssl
+  ports:
+    - name: http
+      port: 10000
+      targetPort: http
+      protocol: TCP

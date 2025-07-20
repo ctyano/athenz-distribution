@@ -47,6 +47,9 @@ images:
 - name: ghcr.io/ctyano/crypki-softhsm:latest
   newName: ghcr.io/ctyano/crypki-softhsm
   newTag: latest
+- name: ghcr.io/ctyano/certsigner-envoy:latest
+  newName: ghcr.io/ctyano/certsigner-envoy
+  newTag: latest
 - name: ghcr.io/ctyano/athenz-cli:latest
   newName: ghcr.io/ctyano/athenz-cli
   newTag: latest

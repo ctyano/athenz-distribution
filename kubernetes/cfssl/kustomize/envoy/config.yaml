@@ -17,7 +17,7 @@ static_resources:
                       domains: ["*"]
                       routes:
                         - match: { prefix: "/" }
-                          route: { cluster: crypki }
+                          route: { cluster: cfssl }
                 http_filters:
                   # Authentication with Dex Access Token
                   - name: envoy.filters.http.jwt_authentication.accesstoken.authentication
@@ -76,7 +76,8 @@ static_resources:
                           value: |
                             {
                               "user_prefix": "user.",
-                              "claim": "name"
+                              "claim": "name",
+                              "signer": "cfssl"
                             }
                         name: csr_filter
                         root_id: csr_filter
@@ -90,16 +91,16 @@ static_resources:
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
-    - name: crypki
+    - name: cfssl
       connect_timeout: 0.5s
       type: LOGICAL_DNS
       lb_policy: ROUND_ROBIN
       load_assignment:
-        cluster_name: crypki
+        cluster_name: cfssl
         endpoints:
           - lb_endpoints:
               - endpoint:
                   address:
                     socket_address:
-                      address: crypki-softhsm.crypki
-                      port_value: 80
+                      address: 127.0.0.1
+                      port_value: 8888

@@ -1,0 +1,120 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cfssl
+  labels:
+    app.kubernetes.io/name: cfssl
+    app.kubernetes.io/instance: cfssl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cfssl
+      app.kubernetes.io/instance: cfssl
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cfssl
+        app.kubernetes.io/instance: cfssl
+    spec:
+      restartPolicy: Always
+      dnsPolicy: "ClusterFirst"
+      volumes:
+        - name: cfssl-keys
+          secret:
+            secretName: cfssl-keys
+            defaultMode: 0555
+        - name: envoy-config
+          configMap:
+            name: envoy-config
+      containers:
+        - name: cfssl
+          image: docker.io/cfssl/cfssl:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - cfssl
+            - serve
+            - -address
+            - 0.0.0.0
+            - -port
+            - "8888"
+            - -loglevel
+            - "0" # DEBUG
+            - -ca 
+            - /opt/cfssl/tls/ca.cert.pem
+            - -ca-key
+            - /opt/cfssl/tls/ca.private.pem
+          env:
+            - name: DEBUG
+              value: "true"
+            - name: TZ
+              value: Asia/Tokyo
+          ports:
+            - name: cfssl
+              containerPort: 8888
+              protocol: TCP
+          readinessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+            httpGet:
+              path: /api/v1/cfssl/health
+              port: 8888
+          livenessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+            httpGet:
+              path: /api/v1/cfssl/health
+              port: 8888
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 100Mi
+              cpu: 200m
+          volumeMounts:
+            - name: cfssl-keys
+              mountPath: /opt/cfssl/tls
+              readOnly: true
+        - name: athenz-cli
+          image: ghcr.io/ctyano/athenz-cli:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: ZTS
+              value: https://athenz-zts-server.athenz:4443/zts/v1
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 256Mi
+              cpu: 50m
+        - name: envoy
+          image: ghcr.io/ctyano/certsigner-envoy:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - envoy
+            - -c
+            - /etc/envoy/envoy.yaml
+            - -l
+            - debug
+          ports:
+            - name: http
+              containerPort: 10000
+              protocol: TCP
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy/envoy.yaml
+              subPath: envoy.yaml

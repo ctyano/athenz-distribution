@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cfssl
+
+resources:
+- deployment.yaml
+- namespace.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+secretGenerator:
+- files:
+  - ca.private.pem=keys/ca.private.pem
+  - ca.cert.pem=certs/ca.cert.pem
+  name: cfssl-keys
+  type: Opaque
+
+configMapGenerator:
+- files:
+    - envoy.yaml=envoy/config.yaml
+  name: envoy-config
+
+images:
+- name: ghcr.io/ctyano/certsigner-envoy:latest
+  newName: ghcr.io/ctyano/certsigner-envoy
+  newTag: latest
+- name: ghcr.io/ctyano/athenz-cli:latest
+  newName: ghcr.io/ctyano/athenz-cli
+  newTag: latest

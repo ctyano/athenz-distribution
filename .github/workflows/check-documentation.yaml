@@ -12,7 +12,7 @@ on:
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
 # This action is currently disabled because actions/ai-inference action requires an OpenAI key.
 #  workflow_call:
-#  workflow_dispatch:
+  workflow_dispatch:
 #  pull_request:
 #    branches:
 #      - main

@@ -76,7 +76,8 @@ static_resources:
                           value: |
                             {
                               "user_prefix": "user.",
-                              "claim": "name"
+                              "claim": "name",
+                              "signer": "crypki"
                             }
                         name: csr_filter
                         root_id: csr_filter

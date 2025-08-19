@@ -21,7 +21,7 @@ spec:
             name: dex-config
         - name: envoy-config
           configMap:
-            name: envoy-config
+            name: oauth2-envoy-config
       containers:
         - name: dex
           image: ghcr.io/dexidp/dex:latest

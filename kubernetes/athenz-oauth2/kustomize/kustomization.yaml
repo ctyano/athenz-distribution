@@ -16,6 +16,6 @@ configMapGenerator:
   - name: dex-config
     files:
       - config.docker.yaml=dex/config.yaml
-  - name: envoy-config
+  - name: oauth2-envoy-config
     files:
       - envoy.yaml=envoy/config.yaml

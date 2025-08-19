@@ -148,6 +148,7 @@ kustomize-edit-crypki-softhsm-image:
 	( \
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/crypki-softhsm:latest=$(DOCKER_REGISTRY)crypki-softhsm:latest \
+	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY)certsigner-envoy:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	) \
 	fi

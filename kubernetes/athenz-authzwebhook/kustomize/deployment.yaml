@@ -198,3 +198,13 @@ spec:
             - name: PORT
               value: "3000"
           resources: *envoy-resources
+        - name: httpecho
+          image: docker.io/hashicorp/http-echo:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: httpecho
+              containerPort: 5678
+              protocol: TCP
+          args:
+            - -text="🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉Happy 10th Birthday! CNCF!🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉"
+          resources: *envoy-resources

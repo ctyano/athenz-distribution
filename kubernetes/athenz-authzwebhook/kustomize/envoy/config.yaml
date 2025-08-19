@@ -113,7 +113,7 @@ static_resources:
                         - match:
                             prefix: "/jwtauthn"
                           route:
-                            cluster: echoserver
+                            cluster: httpecho
                             prefix_rewrite: "/echoserver"
                             auto_host_rewrite: true
                           request_headers_to_add: *request_headers_to_add
@@ -388,3 +388,16 @@ static_resources:
                     socket_address:
                       address: 127.0.0.1
                       port_value: 3000
+    - name: httpecho
+      connect_timeout: 0.25s
+      type: STATIC # LOGICAL_DNS or STATIC
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: httpecho
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 5678

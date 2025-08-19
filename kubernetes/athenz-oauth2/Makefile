@@ -63,7 +63,7 @@ while true; do \
 	    nc -vz 127.0.0.1 10000 \
 	&& \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert  -- \
-		athenz_user_cert version \
+		athenz_user_cert test \
 	) \
 	&& break \
 	|| echo "Waiting for Dex Identity Provider and Envoy CertSigner Proxy..."; \

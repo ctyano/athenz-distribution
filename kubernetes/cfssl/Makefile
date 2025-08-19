@@ -42,6 +42,21 @@ generate-ca:
 	cat kustomize/certs/ca.cert.pem | openssl x509 -noout -text
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ca.cert.pem
 
+retrieve-ca:
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n cfssl exec deployment/cfssl -it -c athenz-cli -- \
+		curl \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"label\": \"primary\" \
+			}" \
+			"http://127.0.0.1:8888/api/v1/cfssl/info" \
+		| jq -r .result.certificate \
+		> kustomize/certs/ca.cert.pem
+	cat kustomize/certs/ca.cert.pem | openssl x509 -noout -text
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ca.cert.pem
+
 generate-zms: generate-ca
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n cfssl exec deployment/cfssl -it -c athenz-cli -- \

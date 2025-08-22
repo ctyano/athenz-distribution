@@ -8,7 +8,7 @@ Primary Docker(OCI) image distributions:
     - This image includes ddls to reduce database setup efforts.
   - [athenz-zms-server](https://github.com/users/ctyano/packages/container/package/athenz-zms-server)
     - This image includes additional capabilities that read pem certificates to convert into jks/pkcs12 keystores to reduce deployer environment dependencies.
-    - includes various solution templates for useful showcases.
+    - This image includes various solution templates for useful showcases.
   - [athenz-zts-server](https://github.com/users/ctyano/packages/container/package/athenz-zts-server)
     - This image includes additional capabilities that read pem certificates to convert into jks/pkcs12 keystores to reduce deployer environment dependencies.
   - [athenz-cli](https://github.com/users/ctyano/packages/container/package/athenz-cli)
@@ -19,8 +19,17 @@ Primary Docker(OCI) image distributions:
 
 External Docker(OCI) image distributions:
 
+  - [crypki-softhsm](https://github.com/users/ctyano/packages/container/package/crypki-softhsm)
+    - This image includes softhsm and [crypki](https://github.com/theparanoids/crypki) server.
+  - [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy)
+    - This image includes envoyproxy and the wasm plugin to provide user authentication mechanism to controll access to the certsigner.
+    - This image is a wrapper of [envoyproxy](https://hub.docker.com/r/envoyproxy/envoy).
   - [athenz-plugins](https://github.com/users/ctyano/packages/container/package/athenz-plugins)
   - [k8s-athenz-sia](https://github.com/users/ctyano/packages/container/package/k8s-athenz-sia)
+  - [authorization-envoy](https://github.com/users/ctyano/packages/container/package/authorization-envoy)
+    - This image is a wrapper of [envoyproxy](https://hub.docker.com/r/envoyproxy/envoy).
+  - [athenz_user_cert](https://github.com/users/ctyano/packages/container/package/athenz_user_cert)
+    - This image includes CLI to intract with [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy) to retrieve certificate for Athenz user authentication.
 
 Third party Docker(OCI) images:
 
@@ -30,6 +39,7 @@ Third party Docker(OCI) images:
   - [ghostunnel](https://hub.docker.com/r/ghostunnel/ghostunnel)
   - [oauth2-proxy](https://quay.io/repository/oauth2-proxy/oauth2-proxy)
   - [dex](https://github.com/dexidp/dex/pkgs/container/dex)
+  - [cfssl](https://hub.docker.com/r/cfssl/cfssl)
 
 ## Linux packages (Under development)
 

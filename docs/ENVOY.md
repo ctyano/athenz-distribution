@@ -295,7 +295,7 @@ A(curl) -->|https/tls| B(egress server proxy envoy) -->|http + headers| C(echose
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://authorizer.athenz.svc.cluster.local/echoserver | jq -r .request"
 ```
 
-### zms
+### zms(authorization management service)
 
 [Load Test Result](https://ctyano.github.io/athenz-distribution/zms.html)
 
@@ -308,7 +308,7 @@ A(curl) -->|https/tls| B(egress client proxy envoy) -->|https/mutual tls| C(athe
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service | jq -r ."
 ```
 
-### zts
+### zts(authorization token service)
 
 [Load Test Result](https://ctyano.github.io/athenz-distribution/zts.html)
 

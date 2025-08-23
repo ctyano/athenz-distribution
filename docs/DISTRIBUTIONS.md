@@ -17,7 +17,7 @@ Primary Docker(OCI) image distributions:
     - This image includes various CLIs for debugging/demonstrating perposes.
   - [athenz-ui](https://github.com/users/ctyano/packages/container/package/athenz-ui)
     - This image includes functional Athenz Web UI.
-    - This image includes additional compatibiliry with OIDC auth proxy (e.g. [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)).
+    - This image includes additional compatibility with OIDC auth proxy (e.g. [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)).
 
 External Docker(OCI) image distributions:
 
@@ -25,7 +25,7 @@ External Docker(OCI) image distributions:
     - This image provides SoftHSM and [crypki](https://github.com/theparanoids/crypki) server.
     - This image includes Crypki that can dynamically configure the signing options.
   - [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy)
-    - This image includes Envoy proxy and the Wasm plugin to provide user authentication mechanism to control access to the CertSigner server.
+    - This image includes Envoy proxy and the Wasm plugin to provide user authentication mechanism to control access to the CertSigner server as [crypki](https://github.com/theparanoids/crypki) or [cfssl](https://github.com/cfssl/cfssl).
     - This image is a wrapper of [envoyproxy](https://hub.docker.com/r/envoyproxy/envoy).
   - [athenz-plugins](https://github.com/users/ctyano/packages/container/package/athenz-plugins)
     - This image includes various jar files that include plugins for Athenz ZMS and Athenz ZTS.

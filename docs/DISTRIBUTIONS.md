@@ -23,12 +23,12 @@ External Docker(OCI) image distributions:
 
   - [athenz_user_cert](https://github.com/users/ctyano/packages/container/package/athenz_user_cert)
     - This image includes CLI to intract with [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy) to retrieve certificate for Athenz user authentication.
-  - [crypki-softhsm](https://github.com/users/ctyano/packages/container/package/crypki-softhsm)
-    - This image provides SoftHSM and [crypki](https://github.com/theparanoids/crypki) server.
-    - This image includes Crypki that can dynamically configure the signing options.
   - [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy)
     - This image includes Envoy proxy and the Wasm plugin to provide user authentication mechanism to control access to the CertSigner server as [crypki](https://github.com/theparanoids/crypki) or [cfssl](https://github.com/cfssl/cfssl).
     - This image is a wrapper of [envoyproxy](https://hub.docker.com/r/envoyproxy/envoy).
+  - [crypki-softhsm](https://github.com/users/ctyano/packages/container/package/crypki-softhsm)
+    - This image provides SoftHSM and [crypki](https://github.com/theparanoids/crypki) server.
+    - This image includes Crypki that can dynamically configure the signing options.
   - [athenz-plugins](https://github.com/users/ctyano/packages/container/package/athenz-plugins)
     - This image includes various jar files that include plugins for Athenz ZMS and Athenz ZTS.
     - This image copies the jar files to specified locations when running as a container runtime.

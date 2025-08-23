@@ -21,6 +21,8 @@ Primary Docker(OCI) image distributions:
 
 External Docker(OCI) image distributions:
 
+  - [athenz_user_cert](https://github.com/users/ctyano/packages/container/package/athenz_user_cert)
+    - This image includes CLI to intract with [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy) to retrieve certificate for Athenz user authentication.
   - [crypki-softhsm](https://github.com/users/ctyano/packages/container/package/crypki-softhsm)
     - This image provides SoftHSM and [crypki](https://github.com/theparanoids/crypki) server.
     - This image includes Crypki that can dynamically configure the signing options.
@@ -36,8 +38,6 @@ External Docker(OCI) image distributions:
   - [authorization-envoy](https://github.com/users/ctyano/packages/container/package/authorization-envoy)
     - This image includes Envoy proxy and the Wasm plugin to provide Athenz authentication and Athenz RBAC mechanism to control access to the upstream cluster.
     - This image is a wrapper of [envoyproxy](https://hub.docker.com/r/envoyproxy/envoy).
-  - [athenz_user_cert](https://github.com/users/ctyano/packages/container/package/athenz_user_cert)
-    - This image includes CLI to intract with [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy) to retrieve certificate for Athenz user authentication.
 
 Third party Docker(OCI) images:
 

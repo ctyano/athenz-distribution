@@ -300,9 +300,6 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 [Load Test Result](https://ctyano.github.io/athenz-distribution/zms.html)
 
 [![](https://img.plantuml.biz/plantuml/svg/JOux3eD030Lxd-A97gLF4V4voGeSMCdi8jkB0gT7K4HqJ_EccCOyg9T5IFZhy0oDq-mOe_BWCIUYQuGq2QCQYag5O6YVb2TbCmmIEJbMpRyTdBQytshtL8FFd0uSYy5ODzPRwObQrFK77TwOtLTxkHXrD-l_R2bUWk2wgE4qNjKd)](https://editor.plantuml.com/uml/JOux3eD030Lxd-A97gLF4V4voGeSMCdi8jkB0gT7K4HqJ_EccCOyg9T5IFZhy0oDq-mOe_BWCIUYQuGq2QCQYag5O6YVb2TbCmmIEJbMpRyTdBQytshtL8FFd0uSYy5ODzPRwObQrFK77TwOtLTxkHXrD-l_R2bUWk2wgE4qNjKd)
-<!--
-https://editor.plantuml.com/uml/JOux3eD030Lxd-A97gLF4V4voGeSMCdi8jkB0gT7K4HqJ_EccCOyg9T5IFZhy0oDq-mOe_BWCIUYQuGq2QCQYag5O6YVb2TbCmmIEJbMpRyTdBQytshtL8FFd0uSYy5ODzPRwObQrFK77TwOtLTxkHXrD-l_R2bUWk2wgE4qNjKd
--->
 
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zms/v1/domain/sys.auth/service | jq -r ."
@@ -312,10 +309,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 [Load Test Result](https://ctyano.github.io/athenz-distribution/zts.html)
 
-[![](https://img.plantuml.biz/plantuml/svg/FOun3eCm40JxUyL-0ALt4O5v1afXmGKi6HlTdL7WzIGKQMUcc5OjYDKrKUAtmGeapejXYiAZnPA9XivXh99U28gE1k_0ix0gnXGv6pOfdmESztBSZQUXTmYsS3vnca9PTfRRzKGTckO93uV5RDE79IL_i_xFrcer9FmKjPodx-05)](https://editor.plantuml.com/uml/FOun3eCm40JxUyL-0ALt4O5v1afXmGKi6HlTdL7WzIGKQMUcc5OjYDKrKUAtmGeapejXYiAZnPA9XivXh99U28gE1k_0ix0gnXGv6pOfdmESztBSZQUXTmYsS3vnca9PTfRRzKGTckO93uV5RDE79IL_i_xFrcer9FmKjPodx-05)
-<!--
-https://editor.plantuml.com/uml/FOun3eCm40JxUyL-0ALt4O5v1afXmGKi6HlTdL7WzIGKQMUcc5OjYDKrKUAtmGeapejXYiAZnPA9XivXh99U28gE1k_0ix0gnXGv6pOfdmESztBSZQUXTmYsS3vnca9PTfRRzKGTckO93uV5RDE79IL_i_xFrcer9FmKjPodx-05
--->
+[![](https://img.plantuml.biz/plantuml/svg/JOux3eD030Lxd-A97gLF4V4voGeSMCdi8jkB0gT7K4HqJ_EccCOyg9T5IFZhy0oDq-mOe_BWCIUYQuGq2QCQYag5O6YVb2TbCmmIEJbMpRyTdBQytshtL8FFd0uSRZ3MZVLMUg8MTVr1XpTczzLUBaRTpVe_MugN8BWkQZYDL_K9)](https://editor.plantuml.com/uml/JOux3eD030Lxd-A97gLF4V4voGeSMCdi8jkB0gT7K4HqJ_EccCOyg9T5IFZhy0oDq-mOe_BWCIUYQuGq2QCQYag5O6YVb2TbCmmIEJbMpRyTdBQytshtL8FFd0uSRZ3MZVLMUg8MTVr1XpTczzLUBaRTpVe_MugN8BWkQZYDL_K9)
 
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/zts/v1/domain/sys.auth/service | jq -r ."
@@ -325,10 +319,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 prometheus metrics
 
-```mermaid
-flowchart LR
-A(curl) -->|https/tls| B(egress client proxy envoy\n/stats/prometheus)
-```
+[![](https://img.plantuml.biz/plantuml/svg/JOun2iCm40JxUyNYtgXF4Mo_8usGBv90FXdTASI_jvqgtJ0moqvglbdV2XL-6woYvPWCQsuSB5SXki5BB8mXz5O6UCNyRpasLaKecSMmj_ezmFAfnqlSDM_gBhUn9UxwgnUY6UFun887ajckpeeIJIphVUK4)](https://editor.plantuml.com/uml/JOun2iCm40JxUyNYtgXF4Mo_8usGBv90FXdTASI_jvqgtJ0moqvglbdV2XL-6woYvPWCQsuSB5SXki5BB8mXz5O6UCNyRpasLaKecSMmj_ezmFAfnqlSDM_gBhUn9UxwgnUY6UFun887ajckpeeIJIphVUK4)
 
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://client.athenz.svc.cluster.local/stats/prometheus"
@@ -338,10 +329,7 @@ kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "cu
 
 prometheus metrics
 
-```mermaid
-flowchart LR
-A(curl) -->|https/tls| B(ingress server proxy envoy\n/stats/prometheus)
-```
+[![](https://img.plantuml.biz/plantuml/svg/JOun3eCm40JxUyMA7hbF4G7lI6F11LioPtHtHk7tWLJfHYFDQWVpgDwsGeNV3g_Gl2R7afLdprM8ReYo5aOtDoqTec7yjrbMPJCOwy6ANUld1CjHpvU4QzyjN6vZJzpibqz48_h-YGaF9FVTWXSZ6bYM-yiN)](https://editor.plantuml.com/uml/JOun3eCm40JxUyMA7hbF4G7lI6F11LioPtHtHk7tWLJfHYFDQWVpgDwsGeNV3g_Gl2R7afLdprM8ReYo5aOtDoqTec7yjrbMPJCOwy6ANUld1CjHpvU4QzyjN6vZJzpibqz48_h-YGaF9FVTWXSZ6bYM-yiN)
 
 ```
 kubectl -n athenz exec -it deployment/athenz-cli -c athenz-cli -- /bin/sh -c "curl -sv https://authorizer.athenz.svc.cluster.local/stats/prometheus"

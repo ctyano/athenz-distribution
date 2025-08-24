@@ -2,7 +2,7 @@
 
 ## Prerequisite
 
-- A Kubernetes Cluster
+- A running Kubernetes cluster
 - kubectl
 
 Other required dependencies will be automatically installed.
@@ -13,7 +13,9 @@ Other required dependencies will be automatically installed.
 make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
-With crypki:
+Running Athenz together with [crypki](https://github.com/theparanoids/crypki), every certificates will be signed by [softhsm](https://github.com/ctyano/crypki-softhsm).
+
+To use crypki:
 
 ```
 make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
@@ -40,6 +42,8 @@ kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
 
 ## How to try them out
 
+After deploying workload components, you can run some test to see how Athenz authorization processes work.
+
 To try the authorization checks in various showcases:
 
 ```
@@ -47,6 +51,8 @@ make test-kubernetes-athenz-showcases
 ```
 
 ## How to try load testing
+
+This showcase includes some senarios to benchmark the performance of Athenz authorization process.
 
 To deploy applications to try load testing:
 

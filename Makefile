@@ -248,9 +248,10 @@ version:
 	@echo "Tag Version: v$(VERSION)"
 
 install-pathman:
-	test -e ~/.local/bin/pathman \
-|| curl -sf https://webi.sh/pathman | sh \
-|| [[ ! "$$PATH" =~ ^.*($$HOME/.local/bin).*$$ ]] && PATH=$$PATH:$$HOME/.local/bin
+	test -x "$$HOME/.local/bin/pathman" \
+|| curl -fsSL https://webi.sh/pathman | sh ; \
+printf '%s\n' ":$$PATH:" | grep -q "$$HOME/.local/bin" \
+|| export PATH="$$PATH:$$HOME/.local/bin"
 
 install-golang: install-pathman
 	which go \

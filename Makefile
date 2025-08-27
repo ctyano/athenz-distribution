@@ -256,24 +256,28 @@ printf '%s\n' ":$$PATH:" | grep -q "$$HOME/.local/bin" \
 install-golang: install-pathman
 	which go \
 || (curl -sf https://webi.sh/golang | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-jq: install-pathman
 	which jq \
 || (curl -sf https://webi.sh/jq | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-yq: install-pathman
 	which yq \
 || (curl -sf https://webi.sh/yq | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-step: install-pathman
 	which step \
 || (STEP_VERSION=$$(curl -sf https://api.github.com/repos/smallstep/cli/releases | jq -r .[].tag_name | grep -E '^v[0-9]*.[0-9]*.[0-9]*$$' | head -n1 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g') \
 ; curl -fL "https://github.com/smallstep/cli/releases/download/v$${STEP_VERSION}/step_$(GOOS)_$${STEP_VERSION}_$(GOARCH).tar.gz" | tar -xz -C ~/.local/bin/ \
 && ln -sf ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-parsers: install-jq install-yq install-step
 
@@ -281,7 +285,8 @@ install-kustomize: install-pathman
 	which kustomize \
 || (cd ~/.local/bin \
 && curl "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-rdl-tools: install-golang
 	go install github.com/ardielle/ardielle-go/...@master && \

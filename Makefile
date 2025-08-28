@@ -158,23 +158,6 @@ mirror-athenz-amd64-images:
 	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz_user_cert; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 
-install-golang:
-	which go \
-|| (curl -sf https://webi.sh/golang | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
-
-install-rdl-tools: install-golang
-	go install github.com/ardielle/ardielle-go/...@master && \
-	go install github.com/ardielle/ardielle-tools/...@master && \
-	export PATH=$$PATH:$$GOPATH/bin
-	mkdir -p athenz/clients/go/zms/bin && \
-	cp $$GOPATH/bin/rdl* athenz/clients/go/zms/bin/ && \
-	mkdir -p athenz/clients/go/zts/bin && \
-	cp $$GOPATH/bin/rdl* athenz/clients/go/zts/bin/ && \
-	mkdir -p athenz/clients/go/msd/bin && \
-	cp $$GOPATH/bin/rdl* athenz/clients/go/msd/bin/ && \
-	chmod a+x athenz/clients/go/*/bin/*
-
 patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
 
@@ -265,33 +248,57 @@ version:
 	@echo "Tag Version: v$(VERSION)"
 
 install-pathman:
-	test -e ~/.local/bin/pathman \
-|| curl -sf https://webi.sh/pathman | sh
+	test -x "$$HOME/.local/bin/pathman" \
+|| curl -fsSL https://webi.sh/pathman | sh ; \
+printf '%s\n' ":$$PATH:" | grep -q "$$HOME/.local/bin" \
+|| export PATH="$$PATH:$$HOME/.local/bin"
+
+install-golang: install-pathman
+	which go \
+|| (curl -sf https://webi.sh/golang | sh \
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-jq: install-pathman
 	which jq \
 || (curl -sf https://webi.sh/jq | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-yq: install-pathman
 	which yq \
 || (curl -sf https://webi.sh/yq | sh \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
 install-step: install-pathman
 	which step \
 || (STEP_VERSION=$$(curl -sf https://api.github.com/repos/smallstep/cli/releases | jq -r .[].tag_name | grep -E '^v[0-9]*.[0-9]*.[0-9]*$$' | head -n1 | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g') \
 ; curl -fL "https://github.com/smallstep/cli/releases/download/v$${STEP_VERSION}/step_$(GOOS)_$${STEP_VERSION}_$(GOARCH).tar.gz" | tar -xz -C ~/.local/bin/ \
 && ln -sf ~/.local/bin/step_$${STEP_VERSION}/bin/step ~/.local/bin/step \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
+
+install-parsers: install-jq install-yq install-step
 
 install-kustomize: install-pathman
 	which kustomize \
 || (cd ~/.local/bin \
 && curl "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
-&& ~/.local/bin/pathman add ~/.local/bin)
+&& ~/.local/bin/pathman add ~/.local/bin \
+|| export PATH="$$PATH:$$HOME/.local/bin")
 
-install-parsers: install-jq install-yq install-step
+install-rdl-tools: install-golang
+	go install github.com/ardielle/ardielle-go/...@master && \
+	go install github.com/ardielle/ardielle-tools/...@master && \
+	export PATH=$$PATH:$$GOPATH/bin
+	mkdir -p athenz/clients/go/zms/bin && \
+	cp $$GOPATH/bin/rdl* athenz/clients/go/zms/bin/ && \
+	mkdir -p athenz/clients/go/zts/bin && \
+	cp $$GOPATH/bin/rdl* athenz/clients/go/zts/bin/ && \
+	mkdir -p athenz/clients/go/msd/bin && \
+	cp $$GOPATH/bin/rdl* athenz/clients/go/msd/bin/ && \
+	chmod a+x athenz/clients/go/*/bin/*
 
 clean-certificates:
 	rm -rf keys certs

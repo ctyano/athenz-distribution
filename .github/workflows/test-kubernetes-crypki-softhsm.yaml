@@ -16,6 +16,7 @@ on:
     branches:
       - main
     paths-ignore:
+      - '.gemini/**'
       - '*.md'
       - 'docs/**'
 

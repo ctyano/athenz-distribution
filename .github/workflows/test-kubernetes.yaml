@@ -215,6 +215,7 @@ jobs:
       # A GitHub Action to build Docker container images
       -
         name: Build Docker container images
+        id: build
         run: |
           set -ex
           VERSION=${VERSION} make build
@@ -222,6 +223,7 @@ jobs:
       # A GitHub Action to pull container images
       -
         name: Pull container images
+        id: pull
         run: |
           set -ex
           make load-docker-images-external
@@ -229,6 +231,7 @@ jobs:
       # A GitHub Action to load container images to KinD cluster
       -
         name: Load container images to KinD cluster
+        id: load
         run: |
           set -ex
           df -h
@@ -237,6 +240,7 @@ jobs:
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application
+        id: deploy
         run: |
           set -ex
           make deploy-kubernetes-athenz
@@ -244,6 +248,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests
+        id: test
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -252,12 +257,14 @@ jobs:
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Applicationfor athenz-identityprovider
+        id: deploy-identityprovider
         run: |
           make deploy-kubernetes-athenz-identityprovider
 
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-identityprovider
+        id: test-identityprovider
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -266,12 +273,14 @@ jobs:
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application for athenz-workloads
+        id: deploy-workloads
         run: |
           make deploy-kubernetes-athenz-workloads
 
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-authorizer
+        id: test-authorizer
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -280,6 +289,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-authzenvoy
+        id: test-authzenvoy
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -288,6 +298,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-authzwebhook
+        id: test-authzwebhook
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -296,6 +307,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-authzproxy
+        id: test-authzproxy
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -304,6 +316,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for athenz-client
+        id: test-client
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -312,6 +325,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with ExtAuthz filter
+        id: test-extauthzfilter
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -320,6 +334,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
+        id: test-luafilterwebhook
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -328,6 +343,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter
+        id: test-jwtfilter
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
@@ -336,6 +352,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
+        id: test-authzproxy
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command

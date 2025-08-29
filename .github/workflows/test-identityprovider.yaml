@@ -95,6 +95,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests
+        id: test
         run: |
           # Run tests for Open Policy Agent Rego files
           # Replace this with your test command
@@ -106,6 +107,7 @@ jobs:
       # A GitHub Action to attest the test coverage of the application
       -
         name: Run Tests
+        id: test-coverage
         run: |
           # Run tests for Open Policy Agent Rego files and attest the test coverage
           # Replace this with your test command

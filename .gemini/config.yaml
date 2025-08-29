@@ -1,0 +1,18 @@
+# Enables fun features such as a poem in the initial pull request summary. Default: false.
+have_fun: false
+# Configuration for code reviews. All fields are optional and have default values.
+code_review:
+  # Disables Gemini from acting on pull requests. Default: false.
+  disable: false
+  # The minimum severity of review comments to consider. Default: MEDIUM.
+  comment_severity_threshold: MEDIUM
+  # The maximum number of review comments to consider. Use -1 for unlimited. Default: -1.
+  max_review_comments: -1
+  # Configuration for pull request opened events. All fields are optional and have default values.
+  pull_request_opened:
+    help: false
+    summary: true
+    code_review: true
+# A list of glob patterns for files and directories that Gemini Code Assist should ignore. Files matching any pattern in this list will be skipped during interactions. Default: [].
+ignore_patterns: []
+

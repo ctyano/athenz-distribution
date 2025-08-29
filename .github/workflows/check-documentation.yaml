@@ -1,4 +1,4 @@
-name: Check Documentation with Generative AI
+name: Review Pull Request with Generative AI
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -10,25 +10,9 @@ on:
   # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
-# This action is currently disabled because actions/ai-inference action requires an OpenAI key.
-#  workflow_call:
-  workflow_dispatch:
-#  pull_request:
-#    branches:
-#      - main
-#    paths:
-#      - '*.md'
-#      - 'docs/**'
-
-env:
-  # Use docker.io for Docker Hub if empty
-  DOCKER_REGISTRY_URL: ghcr.io
-  # DOCKER_REGISTRY_OWNER: ${{ env.CI_REPOSITORY_OWNER }}
-  # DOCKER_REGISTRY_IMAGE: ${{ env.CI_REPOSITORY_NAME }}
-  # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
-  # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
-  # DOCKER_BUILD_ARGS: |
-  GITHUB_REPOSITORY: AthenZ/athenz
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -51,75 +35,17 @@ jobs:
 
     steps:
 
-      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
-      # https://github.com/actions/checkout
-      -
-        name: Checkout repository
-        id: checkout
-        # You may pin to the exact commit or the version.
-        # uses: https://github.com/actions/checkout/tags
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - 
-        name: Generate prompt
-        id: prompt
-        shell: /usr/bin/bash {0}
-        run: |
-          cat << EOF > ../prompt
-          Your job is technical writer. And your task is review the documents in the pull requests.
-          Generate a comment to the changes in the following git diff.
-
-          ## Instructions
-          ### Format
-          - Write the comment in GitHub Markdown format.
-          ### Target
-          - Review target is document files.
-          - Do not give comments for program code and configuration files. Only document file is subject to review.
-          ### Review policy
-          - Do not give positive comments or compliments.
-          - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
-          - Of particular importance in the review are the following points.
-            - Be clear: Be clear and precise in your writing. Avoid using ambiguous pronouns, words, or phrases which may be misunderstood by your readers.
-            - Be concise: Keep your writing as short as possible. Don't use long and unnecessary words or complex sentences.
-            - Be consistent: Always use the same word or term to mean the same thing.
-            - Use active voice: Use active voice wherever possible to keep your writing clear and concise.
-            - Use present tense: Write in the simple present tense as much as possible.
-            - Use second person: Write in the second person ("you") and speak directly to your readers. This helps to keep your writing concise and easy to understand.
-            - Use parallelism: Always try to keep a parallel structure for similar elements, such as items listed within a sentence, items in ordered or unordered lists, or headings on the same level.
-            - Be inclusive: Don't use gender-specific pronouns such as "he", "him", "his", "she", or "her" except when referring to a specific person of known gender.
-          - When commenting, please include which of the above points could be improved and how.
-          ### Context and content
-          Review the following pull request title and description into account when writing the response.
-          Pull request title: ${{ github.event.pull_request.title }}
-          Pull request body: ${{ github.event.pull_request.body }}
-
-          Here is the diff:
-          EOF
-
-          git diff origin/main --cached --exit-code >> ../prompt
-          echo "changed=$?" >> $GITHUB_OUTPUT
-
-      # A GitHub Action to check documentation
-      - 
-        name: Check Documentation
-        id: inference
-        if: steps.prompt.outputs.changed == '1'
-        continue-on-error: true
-        uses: actions/ai-inference@main
-        with:
-          prompt-file: '../prompt'
-          max-tokens: 1000 # response max-tokens
-
-      # A GitHub Action to comment on PR
-      - name: Comment on PR
+      # A GitHub Action to comment on PR to request for summary
+      - name: Comment on PR to request for summary
         env:
-          RESPONSE_FILE: ${{ steps.inference.outputs['response-file'] }}
-          RESPONSE: ${{ steps.inference.outputs.response }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$RESPONSE" > comment.txt
-          gh pr comment ${{ github.event.pull_request.number }} --body-file comment.txt 
+          gh pr comment ${{ github.event.pull_request.number }} --body "/gemini summary"
+
+      # A GitHub Action to comment on PR to request for review
+      - name: Comment on PR to request for review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "/gemini review"
 

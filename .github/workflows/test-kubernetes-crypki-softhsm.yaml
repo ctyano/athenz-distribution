@@ -287,7 +287,7 @@ jobs:
       # A GitHub Action to check and test application
       -
         name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
-        id: test-authzproxy
+        id: test-envoy2authzproxy
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command

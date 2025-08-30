@@ -151,7 +151,7 @@ spec:
           livenessProbe:
             initialDelaySeconds: 30
             periodSeconds: 10
-            failureThreshold: 3
+            failureThreshold: 6
             exec:
               command:
                 - curl

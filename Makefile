@@ -378,20 +378,20 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
 
 load-docker-images-external:
-	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
-	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
-	docker pull $(DOCKER_REGISTRY)athenz_user_cert:latest
 	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
-	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull $(DOCKER_REGISTRY)athenz_user_cert:latest
+	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
+	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
-	docker pull docker.io/tatyano/authorization-proxy:latest
-	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
 	docker pull docker.io/dexidp/dex:latest
-	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/ealen/echo-server:latest
 	docker pull docker.io/envoyproxy/envoy:v1.34-latest
-	docker pull docker.io/portainer/kubectl-shell:latest
+	docker pull docker.io/ghostunnel/ghostunnel:latest
+	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
+	docker pull docker.io/portainer/kubectl-shell:latest
+	docker pull docker.io/tatyano/authorization-proxy:latest
 
 load-kubernetes-images: version install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images

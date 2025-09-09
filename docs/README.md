@@ -4,48 +4,56 @@ The documents describe the varieties of use-cases to implement authorization bet
 
 # Introduction
 
-[Athenz](http://www.athenz.io) is an open-source project, currently a CNCF sandbox project, that provides:  
-- **Authentication** using SPIFFE-compatible X.509 certificates or OAuth 2.0-based access tokens.  
-- **Authorization** through role-based access control (RBAC) for cloud workloads, including Kubernetes.  
+[Athenz](http://www.athenz.io) is an open-source project, currently a CNCF sandbox project, that provides:
+
+- **Authentication** using SPIFFE-compatible X.509 certificates or OAuth 2.0-based access tokens.
+- **Authorization** through role-based access control (RBAC) for cloud workloads, including Kubernetes.
+
+| Centralized Access Control | De-centralized Access Control |
+| ----------------------------- | -------------------------- |
+| [![](https://img.plantuml.biz/plantuml/svg/RLHDRnCn4BtxLups18TDAT03FKHD0nL58A9ago9rU_2k9ud5nbxiMG95_U-CFpPHf1uYJMRcpJo_P--L9-bes7M2R0zaeR54TWTAEsn9MoC4QUeGYZaQShBJJwXWrhReFSmjfsnN225RiWwA6ySPDDoWTjeK83siPGZ7XclP_ZojDoVrUsnWXUwtRX7kFBhOCd0WH2kTWc96MpHFCIrZ2Fy4WB4A4_ZkDa7q8RlyjAfWjaXvsOU2aYGRwRduCKUng1hnFEvPvvEaCup7EkwQTvhrW5dVTxgLGQZOsSOMW8UZ4dt_62iHa8hf4B3I2dbRBFiKS_tvIA99QcMTad972alqTd0iL10iI-N7_Nd5mja_V-E2FaIfTZ0XKtDvqBXyq50wlTbIEOs2yGzAPVU6_xD68lXnI1oqkOm6U4sOhqSXalTG3drPSYlFlGoqDzeJkjfa3RFVXMXUQlycZTnWRVALMw3RQU-3ta9aqQ3iS4qH4wWow7m2DqZjjZRVPmDjn_jQMJvtRQHHPvRt_vXSlFa0cSKS7Ubry9AP9BFotEbeJfZyTW9BbAesSHQaKI-3eq21L9G-WDzDHYRXeIKNQhFNpF1pLIrMhtRLrzLPelpbldfTY0GzZihdUp-1s3NIk0tlqFVfnPwYfWTx0_22XR5k7sxN4dyDwAasUWrXbdNXQREg6VsmrKgXUSocNp7Ny9du3m00)](https://editor.plantuml.com/uml/RLHDRnCn4BtxLups18TDAT03FKHD0nL58A9ago9rU_2k9ud5nbxiMG95_U-CFpPHf1uYJMRcpJo_P--L9-bes7M2R0zaeR54TWTAEsn9MoC4QUeGYZaQShBJJwXWrhReFSmjfsnN225RiWwA6ySPDDoWTjeK83siPGZ7XclP_ZojDoVrUsnWXUwtRX7kFBhOCd0WH2kTWc96MpHFCIrZ2Fy4WB4A4_ZkDa7q8RlyjAfWjaXvsOU2aYGRwRduCKUng1hnFEvPvvEaCup7EkwQTvhrW5dVTxgLGQZOsSOMW8UZ4dt_62iHa8hf4B3I2dbRBFiKS_tvIA99QcMTad972alqTd0iL10iI-N7_Nd5mja_V-E2FaIfTZ0XKtDvqBXyq50wlTbIEOs2yGzAPVU6_xD68lXnI1oqkOm6U4sOhqSXalTG3drPSYlFlGoqDzeJkjfa3RFVXMXUQlycZTnWRVALMw3RQU-3ta9aqQ3iS4qH4wWow7m2DqZjjZRVPmDjn_jQMJvtRQHHPvRt_vXSlFa0cSKS7Ubry9AP9BFotEbeJfZyTW9BbAesSHQaKI-3eq21L9G-WDzDHYRXeIKNQhFNpF1pLIrMhtRLrzLPelpbldfTY0GzZihdUp-1s3NIk0tlqFVfnPwYfWTx0_22XR5k7sxN4dyDwAasUWrXbdNXQREg6VsmrKgXUSocNp7Ny9du3m00) | [![](https://img.plantuml.biz/plantuml/svg/RLHDRzim3BthLn0-RGUx--fXFGJDiXNRi651ug83wXvaYuc5Ef8doUkIelzzr8ST1CZ104toaO-FjA-juyODkuuvtOFJK6ldz0w4DDWugHLZJheE8VkCUOFA6Tx90mgODmrQ2mjDBjrbZF76QGFPZI4FAaeGEwaou1Ost9jZmYVUF9x6wvFu7TQmHlDNDWYt5ar86SXWhE56G3PtBQf3SFDWmZC3K5fW1Dz-Yn0vULTVrYNCbz7FUnyGtF6QMpzNia9GrEnbxBD9ayGPnh6ElHQT93rWtlUTRBZNAcGs8GNW_gX4tp-4I034O1m2rb8WTGjX6ssAlnn9r56jf5DKxaXXXLOFXeJoWYMfxDW_jLWQ_MyV6lJUYh5f2OcQION6veE4tCXjw_9P48mUo8L-KlHE6Z6_ZyanQNCL5c2bmtGU6OkxXtpeyvnIgUwLfxsLrg6fLD8mxJjZzRdqdrpnBLOgdTmIpKvQw_LcB8a6UOSR5p2UAe7U5d23hcahzMi-k7QyrrBJt9NYIbnewl-xk7pp4HAB1HedDtwNn2GkAzMTZSlnbTyLi48kAXLgGInr7Xm4ygI2z1xylXYP-6yjRg5IJv8OVYtBvVhLhlonleYKlz-LhpCMeOKlLHJ5D1-f8BMWVbst7oVrA6ta8HmZB3NTvNuiS8RB1-9oWbYqs3oU0cRJQNZ49OcgpPE_p1N-6T2wIidDL0K5RIIXxrif1Ag7T33NDAV_o_m7)](https://editor.plantuml.com/uml/RLHDRzim3BthLn0-RGUx--fXFGJDiXNRi651ug83wXvaYuc5Ef8doUkIelzzr8ST1CZ104toaO-FjA-juyODkuuvtOFJK6ldz0w4DDWugHLZJheE8VkCUOFA6Tx90mgODmrQ2mjDBjrbZF76QGFPZI4FAaeGEwaou1Ost9jZmYVUF9x6wvFu7TQmHlDNDWYt5ar86SXWhE56G3PtBQf3SFDWmZC3K5fW1Dz-Yn0vULTVrYNCbz7FUnyGtF6QMpzNia9GrEnbxBD9ayGPnh6ElHQT93rWtlUTRBZNAcGs8GNW_gX4tp-4I034O1m2rb8WTGjX6ssAlnn9r56jf5DKxaXXXLOFXeJoWYMfxDW_jLWQ_MyV6lJUYh5f2OcQION6veE4tCXjw_9P48mUo8L-KlHE6Z6_ZyanQNCL5c2bmtGU6OkxXtpeyvnIgUwLfxsLrg6fLD8mxJjZzRdqdrpnBLOgdTmIpKvQw_LcB8a6UOSR5p2UAe7U5d23hcahzMi-k7QyrrBJt9NYIbnewl-xk7pp4HAB1HedDtwNn2GkAzMTZSlnbTyLi48kAXLgGInr7Xm4ygI2z1xylXYP-6yjRg5IJv8OVYtBvVhLhlonleYKlz-LhpCMeOKlLHJ5D1-f8BMWVbst7oVrA6ta8HmZB3NTvNuiS8RB1-9oWbYqs3oU0cRJQNZ49OcgpPE_p1N-6T2wIidDL0K5RIIXxrif1Ag7T33NDAV_o_m7) |
 
 # Why Athenz?
 
-In multi-cluster or multi-cloud environments, precise and frequently configurable access control policies are crucial. Athenz simplifies this process with:  
-- **Web UI, CLI, and REST API** for managing policies.  
-- **Automated deployment** of policies to workloads via Athenz agents.  
+In multi-cluster or multi-cloud environments, precise and frequently configurable access control policies are crucial. Athenz simplifies this process with:
 
-## Getting Started with Athenz  
+- **Web UI, CLI, and REST API** for managing policies.
+- **Dynamic distribution** of credentials and policies to workloads via Athenz agents.
+- **Single Source of Truth** of workload identities and access management.
+
+## Getting Started with Athenz
 
 Athenz is a powerful solution, but getting started should be straightforward!
-Many new users find the initial setup complex, making experimentation difficult.  
+Many new users find the initial setup complex, making experimentation difficult.
 
-This repository is here to **simplify the process** and help you:  
-- **Set up Athenz quickly** with step-by-step guidance.  
-- **Understand core concepts** through practical examples.  
-- **Integrate Athenz with Kubernetes and Envoy proxy** seamlessly.  
+This repository is here to **simplify the process** and help you:
 
-Start exploring today and take full control of your cloud access management with Athenz!  
+- **Set up Athenz quickly** with step-by-step guidance.
+- **Understand core concepts** through practical examples.
+- **Integrate Athenz with Kubernetes and Envoy proxy** seamlessly.
+
+Start exploring today and take full control of your cloud access management with Athenz!
 
 # Athenz packages
-  
+
 - [List of Athenz package distribution](DISTRIBUTIONS.md)
 
 # Explore the full showcase on Kubernetes
- 
+
 - [Showcases for Kubernetes](SHOWCASES_KUBERNETES.md)
 
-[![](https://img.plantuml.biz/plantuml/svg/VLHDRzim3BthLn0-jGTZwBM7e6bt2RO1mxfYmBfWa6Kbrc9RhaGtJORyzr4VjjNMsI61pFSUzKHIkh783VPDpMgvGK0DHcqhX58PAL3fbZ4kK1l8bbZ9zWWFLfeCk8MU5ep-1BSIiX-oW5kZzmDQXFL4YFAxpokFYren9chTbv1zwWjfMedIXNkBBiLV1Y2u8LIOGxTJGMHy7A3LfHoGtEeDLhO931iP08y1NWUXMmv057WahZrqOk4NzWs6VLOUlATxXr3U1sFzjAihnCFAv-xLcFQDxDZOdAhp78jrdEG_lznxBJ7EYl6L61FnzoZ6i-AoyAAo65KbHrwaBVfucuqW9IKdlyDslzg1ErWiYuI7vtWuyKupXGvJq1dzhCfu9lgOgpRXBIeyvA_9Km7Y2LQH1ryZRnsJ-eyP2qPQtHiXGU_RcDMlvapm7Yjjr96xs-6Sl1p2a2HTNAOSkFTLyHwS-3YmlWsx9eJ1oMoT51qBUDU5KUTpxW8f42O_Tq6wxBfrl7pqcMnnOkwY6iWNmyM5Qz2TRDdmcHFKAufMYDr5hGMlAstnSjHHJaBbYnJCBHsV1YGABEL_5xjeiBQNZCRZ7D8u940qiDVG7EnJFGamZOxXeSs4P7jPL5hlGjOiK1RnDN2ua0RLHWcE4gpQjgfLMsh1KoyjPYpoI15V2P9qEs6lhjpJvIiQVRmnxhlyVsmnTdgcfcDoV_gWIBDy-BCdraXxh5H94xzE3i_6x2aQ-yvkP5kw9_yV)](https://editor.plantuml.com/uml/VLHDRzim3BthLn0-jGTZwBM7e6bt2RO1mxfYmBfWa6Kbrc9RhaGtJORyzr4VjjNMsI61pFSUzKHIkh783VPDpMgvGK0DHcqhX58PAL3fbZ4kK1l8bbZ9zWWFLfeCk8MU5ep-1BSIiX-oW5kZzmDQXFL4YFAxpokFYren9chTbv1zwWjfMedIXNkBBiLV1Y2u8LIOGxTJGMHy7A3LfHoGtEeDLhO931iP08y1NWUXMmv057WahZrqOk4NzWs6VLOUlATxXr3U1sFzjAihnCFAv-xLcFQDxDZOdAhp78jrdEG_lznxBJ7EYl6L61FnzoZ6i-AoyAAo65KbHrwaBVfucuqW9IKdlyDslzg1ErWiYuI7vtWuyKupXGvJq1dzhCfu9lgOgpRXBIeyvA_9Km7Y2LQH1ryZRnsJ-eyP2qPQtHiXGU_RcDMlvapm7Yjjr96xs-6Sl1p2a2HTNAOSkFTLyHwS-3YmlWsx9eJ1oMoT51qBUDU5KUTpxW8f42O_Tq6wxBfrl7pqcMnnOkwY6iWNmyM5Qz2TRDdmcHFKAufMYDr5hGMlAstnSjHHJaBbYnJCBHsV1YGABEL_5xjeiBQNZCRZ7D8u940qiDVG7EnJFGamZOxXeSs4P7jPL5hlGjOiK1RnDN2ua0RLHWcE4gpQjgfLMsh1KoyjPYpoI15V2P9qEs6lhjpJvIiQVRmnxhlyVsmnTdgcfcDoV_gWIBDy-BCdraXxh5H94xzE3i_6x2aQ-yvkP5kw9_yV)
+[![](https://img.plantuml.biz/plantuml/svg/VLKxRzim4DxvAmXDoM0KMJCOSTp5Q0iKJOC2JOs2ecYBjKGgv35-5FxlFJuaCOdSmG9rt-EEnwDyPu4PS6r36h412feQkQs1Lj883b8hGa128sYnW5ge4tsqWYuPFhIYdrmfZ18WR448uw1DJZC5PPOwN11ySAyfVeYItXkzxz4ohaT2aYy_hmBE6qa8RxIhQ35cmx2pu2t-4aevCuXoS-nsCefCY5EgT2LwP6Rr1chRHePD34gV8hoEGh_iWIG8I5e7w4pYB-QD1GTN5clFSyVGpCN2t9ZLD-9n5RoT76pVo4wjdM5tNbApJgFyvvU7e4N6HJ6y4aCc_fx4S55SbK5KbOEgOi3A_8W-tXS3YAPOoU-OxfVgkNs9LPdnu18FHjvvej5n2ZgZNsILzeGlKzr6NE7G7cUloMC3qWvMYKU_9juwcOQNYHACiDePZhE_LyarhAQAO0vgRUI9-KlaApaSuv1afxZ8ERwAmp6KuBMddlIjJ_eGkXO8VI6JRPAuAygwhf4y6CU9PrD5Hd8aZ6KjeyLYj5YdkuZXBEMP-7jhw6pUtsDwItKd5EbVPmWvYT4QeBjgD6TDhIrS3phqH5GS12T-wVauBqbWqVzTxAg5nbuJd9PBIEkH2E7ytjBsQ9-RKG1vT0Ztfuv8iHTbhVKkkXQHCayV1uzpOK1kV6i4jNAhf99RF99d9omK9F5GaJuQAEbstDxS-2zPw6oguqtXuTJ_Zys7av_ewM0UTXyLkSk7Ftja3RIdMbPu0TRPvidWdgFftCcTK9N_e_W7)](https://editor.plantuml.com/uml/VLKxRzim4DxvAmXDoM0KMJCOSTp5Q0iKJOC2JOs2ecYBjKGgv35-5FxlFJuaCOdSmG9rt-EEnwDyPu4PS6r36h412feQkQs1Lj883b8hGa128sYnW5ge4tsqWYuPFhIYdrmfZ18WR448uw1DJZC5PPOwN11ySAyfVeYItXkzxz4ohaT2aYy_hmBE6qa8RxIhQ35cmx2pu2t-4aevCuXoS-nsCefCY5EgT2LwP6Rr1chRHePD34gV8hoEGh_iWIG8I5e7w4pYB-QD1GTN5clFSyVGpCN2t9ZLD-9n5RoT76pVo4wjdM5tNbApJgFyvvU7e4N6HJ6y4aCc_fx4S55SbK5KbOEgOi3A_8W-tXS3YAPOoU-OxfVgkNs9LPdnu18FHjvvej5n2ZgZNsILzeGlKzr6NE7G7cUloMC3qWvMYKU_9juwcOQNYHACiDePZhE_LyarhAQAO0vgRUI9-KlaApaSuv1afxZ8ERwAmp6KuBMddlIjJ_eGkXO8VI6JRPAuAygwhf4y6CU9PrD5Hd8aZ6KjeyLYj5YdkuZXBEMP-7jhw6pUtsDwItKd5EbVPmWvYT4QeBjgD6TDhIrS3phqH5GS12T-wVauBqbWqVzTxAg5nbuJd9PBIEkH2E7ytjBsQ9-RKG1vT0Ztfuv8iHTbhVKkkXQHCayV1uzpOK1kV6i4jNAhf99RF99d9omK9F5GaJuQAEbstDxS-2zPw6oguqtXuTJ_Zys7av_ewM0UTXyLkSk7Ftja3RIdMbPu0TRPvidWdgFftCcTK9N_e_W7)
 
 # Learn More
 
-Visit the official Athenz website: [www.athenz.io](http://www.athenz.io)  
+Visit the official Athenz website: [www.athenz.io](http://www.athenz.io)
 
 ## Learn how to use Athenz in practice
 
 - [How to generate keys and certificates](CERTIFICATES.md)
- 
+
 - [CLI instruction](CLI.md)
- 
+
 - [How to generate keys and retrieve certificates (**Identity Provisioning**)](IDENTITYPROVISIONING.md)
 
 - [Envoy Ambassador Instruction for Kubernetes](ENVOY.md)

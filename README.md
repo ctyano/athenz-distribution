@@ -21,7 +21,7 @@ You can access Athenz UI at http://localhost:3000 by forwarding requests.
 ```
 kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
 ```
- 
+
 To see how Athenz authorization scenarios work, check out the [Kubernetes Showcase](docs/SHOWCASES_KUBERNETES.md) to run the entire ecosystem.
 
 ## Minimum setup on Docker 🐳

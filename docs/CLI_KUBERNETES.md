@@ -8,7 +8,7 @@
 - [jq](https://jqlang.github.io/jq/)
 - [step](https://smallstep.com/docs/step-cli/)
 
-### Athenz Domain Management 
+### Athenz Domain Management
 
 #### Listing existing domains
 
@@ -95,7 +95,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
         home.athenz_admin
 ```
 
-### Athenz Service Management 
+### Athenz Service Management
 
 #### Creating an Athenz Service with a Solution Template
 
@@ -237,7 +237,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
     | tee keys/jwks.json
 ```
 
-### Athenz Role Management 
+### Athenz Role Management
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \
@@ -319,7 +319,7 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
     | step certificate inspect --short --bundle
 ```
 
-### Athenz Policy Management 
+### Athenz Policy Management
 
 ```
 kubectl -n athenz exec deployment/athenz-cli -it -- \

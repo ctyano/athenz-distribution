@@ -3,6 +3,7 @@
 *.jks
 *.pkcs12
 *.html
+*.zip
 zts_store
 athenz.conf
 jwks.json
@@ -12,3 +13,4 @@ cookie-session
 athenz
 plugins
 .DS_Store
+.accesstoken

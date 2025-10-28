@@ -12,6 +12,37 @@ resources:
 generatorOptions:
   disableNameSuffixHash: true
 
+secretGenerator:
+- files:
+  - ca.cert.pem=certs/ca.cert.pem
+  name: athenz-cacert
+  type: Opaque
+- files:
+  - zms.private.pem=keys/zms.private.pem
+  name: athenz-zms-keys
+  type: Opaque
+- files:
+  - zms.cert.pem=certs/zms.cert.pem
+  name: athenz-zms-certs
+  type: Opaque
+- files:
+  - zts.private.pem=keys/zts.private.pem
+  - zts.public.pem=keys/zts.public.pem
+  - ca.private.pem=keys/ca.private.pem
+  - crypki.private.pem=keys/crypki.private.pem
+  name: athenz-zts-keys
+  type: Opaque
+- files:
+  - zts.cert.pem=certs/zts.cert.pem
+  - selfsign.ca.cert.pem=certs/selfsign.ca.cert.pem
+  name: athenz-zts-certs
+  type: Opaque
+- files:
+  - athenz_admin.private.pem=keys/athenz_admin.private.pem
+  - athenz_admin.cert.pem=certs/athenz_admin.cert.pem
+  name: athenz-admin-keys
+  type: Opaque
+
 images:
 - name: ghcr.io/ctyano/athenz-bootstrap:latest
   newName: ghcr.io/ctyano/athenz-bootstrap

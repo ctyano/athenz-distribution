@@ -1,0 +1,17 @@
+{{- if .Values.components.ui }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "athenz-stack.ui.fullname" . }}
+  labels:
+    {{- include "athenz-stack.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.ui.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.ui.service.port }}
+      targetPort: {{ .Values.ui.port }}
+  selector:
+    app.kubernetes.io/name: {{ include "athenz-stack.ui.fullname" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

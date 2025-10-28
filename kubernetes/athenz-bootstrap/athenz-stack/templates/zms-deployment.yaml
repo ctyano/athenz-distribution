@@ -1,0 +1,87 @@
+{{- if .Values.components.zms }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "athenz-stack.zms.fullname" . }}
+  labels:
+    {{- include "athenz-stack.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.zms.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "athenz-stack.zms.fullname" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "athenz-stack.zms.fullname" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        athenz.io/component: zms
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      containers:
+        - name: zms
+          image: "{{ .Values.images.zms.repository }}:{{ .Values.images.zms.tag }}"
+          imagePullPolicy: {{ .Values.images.zms.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.zms.port }}
+              name: https
+          env:
+            # Hints for the container (adjust to your image's entrypoint expectations)
+            - name: ZMS_PORT
+              value: "{{ .Values.zms.port }}"
+            - name: ZMS_JDBC_URL
+              value: "jdbc:mysql://{{ if .Values.zms.db.host }}{{ .Values.zms.db.host }}{{ else }}{{ include "athenz-stack.db.fullname" . }}{{ end }}:{{ .Values.zms.db.port }}/{{ .Values.db.database }}?serverTimezone=UTC&useSSL=false"
+            - name: ZMS_JDBC_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "athenz-stack.db.fullname" . }}-credentials
+                  key: user
+            - name: ZMS_JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "athenz-stack.db.fullname" . }}-credentials
+                  key: password
+            - name: ZMS_TLS_CERT_FILE
+              value: "{{ .Values.zms.tls.mountPath }}/tls.crt"
+            - name: ZMS_TLS_KEY_FILE
+              value: "{{ .Values.zms.tls.mountPath }}/tls.key"
+            - name: ZMS_CA_CERT_FILE
+              value: "{{ .Values.zms.tls.mountPath }}/ca.crt"
+          volumeMounts:
+            - name: zms-tls
+              mountPath: {{ .Values.zms.tls.mountPath | quote }}
+              readOnly: true
+            {{- with .Values.zms.extraVolumeMounts }}
+{{ toYaml . | indent 12 }}
+            {{- end }}
+          readinessProbe:
+            httpGet:
+              scheme: HTTPS
+              path: /zms/v1/status
+              port: https
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.zms.resources | nindent 12 }}
+      volumes:
+        - name: zms-tls
+          secret:
+            secretName: {{ .Values.zms.tls.secretName | quote }}
+        {{- with .Values.zms.extraVolumes }}
+{{ toYaml . | indent 8 }}
+        {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+{{- end }}

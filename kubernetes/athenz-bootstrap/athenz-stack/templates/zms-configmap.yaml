@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mychart.fullname" . }}-config-{{ $hash }}
+data:
+{{- range $k, $v := .Values.config.literals }}
+  {{ $k }}: {{ $v | toString | quote }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "config/*" }}
+  {{ base $path }}: |-
+{{ .Files.Get $path | indent 4 }}
+{{- end }}

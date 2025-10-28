@@ -1,0 +1,84 @@
+{{- if .Values.components.db }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "athenz-stack.db.fullname" . }}
+  labels:
+    {{- include "athenz-stack.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "athenz-stack.db.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "athenz-stack.db.fullname" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "athenz-stack.db.fullname" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      containers:
+        - name: mysql
+          image: "{{ .Values.images.db.repository }}:{{ .Values.images.db.tag }}"
+          imagePullPolicy: {{ .Values.images.db.pullPolicy }}
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "athenz-stack.db.fullname" . }}-credentials
+                  key: root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "athenz-stack.db.fullname" . }}-credentials
+                  key: database
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "athenz-stack.db.fullname" . }}-credentials
+                  key: user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "athenz-stack.db.fullname" . }}-credentials
+                  key: password
+          readinessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+      volumes:
+        {{- if not .Values.db.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  volumeClaimTemplates:
+    {{- if .Values.db.persistence.enabled }}
+    - metadata:
+        name: data
+      spec:
+        accessModes: {{- toYaml .Values.db.persistence.accessModes | nindent 10 }}
+        resources:
+          requests:
+            storage: {{ .Values.db.persistence.size | quote }}
+        {{- if .Values.db.persistence.storageClass }}
+        storageClassName: {{ .Values.db.persistence.storageClass | quote }}
+        {{- end }}
+    {{- end }}
+{{- end }}

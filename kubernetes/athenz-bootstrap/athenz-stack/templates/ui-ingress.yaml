@@ -1,0 +1,26 @@
+{{- if and .Values.components.ui .Values.ui.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "athenz-stack.ui.fullname" . }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ui.ingress.className | quote }}
+spec:
+  rules:
+  {{- range .Values.ui.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: {{ .path | default "/" | quote }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "athenz-stack.ui.fullname" $ }}
+                port:
+                  number: {{ $.Values.ui.service.port }}
+  {{- end }}
+  {{- if .Values.ui.ingress.tls }}
+  tls:
+{{ toYaml .Values.ui.ingress.tls | indent 4 }}
+  {{- end }}
+{{- end }}

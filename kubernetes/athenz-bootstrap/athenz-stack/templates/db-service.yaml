@@ -1,0 +1,17 @@
+{{- if .Values.components.db }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "athenz-stack.db.fullname" . }}
+  labels:
+    {{- include "athenz-stack.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.db.service.type }}
+  ports:
+    - name: mysql
+      port: {{ .Values.db.service.port }}
+      targetPort: 3306
+  selector:
+    app.kubernetes.io/name: {{ include "athenz-stack.db.fullname" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

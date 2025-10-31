@@ -111,21 +111,46 @@ WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-		( \
-			kubectl -n athenz exec deployment/athenz-cli -it -- \
-				curl \
-					-sf \
-					-H"Content-type: application/json" \
-					-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-					"https://athenz-zts-server.athenz:4443/zts/v1/domain/$$(cat kustomize/kustomization.yaml | yq .namespace)/service/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g')" \
-				&& \
-			kubectl -n athenz exec deployment/athenz-cli -it -- \
-				curl \
-					-sf \
-					-H"Content-type: application/json" \
-					-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-					"https://athenz-zts-server.athenz:4443/zts/v1/access/launch/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g'):service.$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\2/g')" \
-		) \
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		curl \
+			-sf \
+			-H"Content-type: application/json" \
+			-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+			"https://athenz-zts-server.athenz:4443/zts/v1/domain/$$(cat kustomize/kustomization.yaml | yq .namespace)/service/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g')" \
+		&& break \
+		|| echo "Waiting for ZTS to sync with ZMS..."; \
+	sleep $${SLEEP_SECONDS}; \
+	i=$$(( i + 1 )); \
+	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		kubectl -n athenz exec deployment/athenz-cli -it -- \
+			zms-cli \
+				-z https://athenz-zms-server.athenz:4443/zms/v1 \
+				-key /var/run/athenz/athenz_admin.private.pem \
+				-cert /var/run/athenz/athenz_admin.cert.pem \
+				-d $$(cat kustomize/kustomization.yaml | yq .namespace) \
+				show-domain \
+		kubectl -n athenz exec deployment/athenz-cli -it -- \
+			zms-cli \
+				-z https://athenz-zms-server.athenz:4443/zms/v1 \
+				-key /var/run/athenz/athenz_admin.private.pem \
+				-cert /var/run/athenz/athenz_admin.cert.pem \
+				-d $$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g') \
+				show-domain \
+		exit 1; \
+	fi; \
+done
+	SLEEP_SECONDS=5; \
+WAITING_THRESHOLD=60; \
+i=0; \
+while true; do \
+	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		curl \
+			-sf \
+			-H"Content-type: application/json" \
+			-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
+			"https://athenz-zts-server.athenz:4443/zts/v1/access/launch/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g'):service.$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\2/g')" | xargs -I{} test "{}" = "{\"granted\":true}" \
 		&& break \
 		|| echo "Waiting for ZTS to sync with ZMS..."; \
 	sleep $${SLEEP_SECONDS}; \

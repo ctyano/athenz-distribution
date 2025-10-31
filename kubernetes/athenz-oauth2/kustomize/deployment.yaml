@@ -24,7 +24,7 @@ spec:
             name: oauth2-envoy-config
       containers:
         - name: dex
-          image: ghcr.io/dexidp/dex:latest
+          image: docker.io/dexidp/dex:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: dex

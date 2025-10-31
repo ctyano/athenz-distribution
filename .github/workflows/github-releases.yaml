@@ -179,7 +179,8 @@ jobs:
           else
             tag=$(git tag --points-at HEAD)
           fi
-          body=$(curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\"")
+          job=$(curl -s https://api.github.com/repos/ctyano/athenz-distribution/actions/runs | jq -r ".workflow_runs.[] | select(.event == \"workflow_dispatch\" and .head_branch == \"$tag\") | .html_url")
+          body=$(curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\n\nThis version is tested at: $job\"")
           curl \
             -XPOST \
             -H "Accept: application/vnd.github+json" \

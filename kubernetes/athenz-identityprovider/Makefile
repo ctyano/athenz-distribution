@@ -150,7 +150,7 @@ while true; do \
 			-sf \
 			-H"Content-type: application/json" \
 			-H"X-Auth-Request-Preferred-Username: user.athenz_admin" \
-			"https://athenz-zts-server.athenz:4443/zts/v1/access/launch/$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\1/g'):service.$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)\.\(.*\)/\2/g')" | xargs -I{} test "{}" = "{\"granted\":true}" \
+			"https://athenz-zts-server.athenz:4443/zts/v1/access/launch/$$(cat kustomize/kustomization.yaml | yq .namespace):service.$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^SERVICEACCOUNT | sed -e 's/SERVICEACCOUNT=\(.*\)/\1/g')?principal=$$(cat kustomize/athenz-sia/athenz-sia.env | grep -E ^PROVIDER_SERVICE | sed -e 's/PROVIDER_SERVICE=\(.*\)/\1/g')" | xargs -I{} test "{}" = "{\"granted\":true}" \
 		&& break \
 		|| echo "Waiting for ZTS to sync with ZMS..."; \
 	sleep $${SLEEP_SECONDS}; \

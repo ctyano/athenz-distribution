@@ -179,14 +179,40 @@ jobs:
           else
             tag=$(git tag --points-at HEAD)
           fi
-          job=$(curl -s https://api.github.com/repos/ctyano/athenz-distribution/actions/runs | jq -r ".workflow_runs.[] | select(.event == \"workflow_dispatch\" and .head_branch == \"$tag\") | .html_url")
-          body=$(curl -s https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\n\nThis version is tested at: $job\"")
+
+          # Add Auth headers to API calls to avoid rate limits
+          AUTH_HEADER="Authorization: Bearer $GITHUB_TOKEN"
+          ACCEPT_HEADER="Accept: application/vnd.github+json"
+
+          job=$(curl -s -H "$ACCEPT_HEADER" -H "$AUTH_HEADER" \
+            "https://api.github.com/repos/ctyano/athenz-distribution/actions/runs" | \
+            jq -r ".workflow_runs.[] | select(.event == \"workflow_dispatch\" and .head_branch == \"$tag\") | .html_url" | head -n 1)
+
+          body=$(curl -s -H "$ACCEPT_HEADER" -H "$AUTH_HEADER" \
+            "https://api.github.com/repos/${{ env.TRACKING_GIT_REPO }}/releases" | \
+            jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")\n\nThis version is tested at: $job\"" | head -n 1)
+
+          # Use jq to safely construct the JSON payload
+          # This correctly escapes newlines and quotes in $body
+          JSON_PAYLOAD=$(jq -n \
+            --arg tag "$tag" \
+            --arg name "$tag Release" \
+            --arg body "$body" \
+            '{
+              "tag_name": $tag,
+              "name": $name,
+              "body": $body,
+              "draft": false,
+              "prerelease": false
+            }')
+
+          # Post the release using the safely constructed payload
           curl \
             -XPOST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "$ACCEPT_HEADER" \
+            -H "$AUTH_HEADER" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
-            -d "{\"tag_name\":\"$tag\",\"name\":\"$tag Release\",\"body\":\"$body\",\"draft\":false,\"prerelease\":false}"
+            -d "$JSON_PAYLOAD"
 
       # A GitHub Action to upload release assets
       # https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28#upload-a-release-asset

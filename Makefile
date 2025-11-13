@@ -390,6 +390,7 @@ load-docker-images-external:
 	docker pull docker.io/ghostunnel/ghostunnel:latest
 	docker pull docker.io/openpolicyagent/kube-mgmt:latest
 	docker pull docker.io/openpolicyagent/opa:latest-static
+	docker pull docker.io/openpolicyagent/opa:0.66.0-static
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/tatyano/authorization-proxy:latest
 

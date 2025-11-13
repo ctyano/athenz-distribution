@@ -14,7 +14,7 @@ updates:
       - "/docker/db"
     schedule:
       interval: "weekly"
-  - package-ecosystem: "directories" # See documentation for possible values
+  - package-ecosystem: "docker-compose" # See documentation for possible values
     directory: "/docker"
     schedule:
       interval: "weekly"

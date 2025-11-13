@@ -6,7 +6,7 @@
 version: 2
 updates:
   - package-ecosystem: "docker" # See documentation for possible values
-    directories:
+    directory:
       - "/docker/zms/"
       - "/docker/zts/"
       - "/docker/ui/"

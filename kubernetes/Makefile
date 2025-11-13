@@ -116,6 +116,7 @@ kind-load-images:
 		docker.io/envoyproxy/envoy:v1.34-latest \
 		docker.io/openpolicyagent/kube-mgmt:latest \
 		docker.io/openpolicyagent/opa:latest-static \
+		docker.io/openpolicyagent/opa:0.66.0-static \
 		docker.io/portainer/kubectl-shell:latest \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY)docker-vegeta:latest \

@@ -98,7 +98,7 @@ jobs:
         id: checkout
         # You may pin to the exact commit or the version.
         # uses: https://github.com/actions/checkout/tags
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 

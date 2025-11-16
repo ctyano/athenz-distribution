@@ -7,7 +7,7 @@ ARG VCS_REF
 ARG GID=1001
 ARG UID=10001
 
-FROM docker.io/library/openjdk:22-rc-slim-bookworm AS builder
+FROM docker.io/library/openjdk:25-rc-slim-bookworm AS builder
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'
@@ -28,7 +28,7 @@ RUN tar xvzf ./athenz-zms-${VERSION}-bin.tar.gz -C /tmp \
     && mv /tmp/athenz-zms-${VERSION}*/* /opt/athenz/zms/ \
     && rm -f ./athenz-zms-${VERSION}-bin.tar.gz
 
-FROM docker.io/library/openjdk:22-rc-slim-bookworm
+FROM docker.io/library/openjdk:25-rc-slim-bookworm
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'

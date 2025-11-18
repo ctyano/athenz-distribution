@@ -12,15 +12,15 @@ Other required dependencies will be automatically installed.
 ## Full setup on a Kubernetes cluster ⎈
 
 ```
-make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 Running Athenz together with [crypki](https://github.com/theparanoids/crypki), every certificates will be signed by [softhsm](https://github.com/ctyano/crypki-softhsm).
 
-To use crypki:
+To run with Crypki:
 
 ```
-make clean-kubernetes-athenz load-docker-images load-kubernetes-images deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 ### Each steps in Makefile

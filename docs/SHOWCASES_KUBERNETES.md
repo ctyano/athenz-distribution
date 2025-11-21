@@ -12,10 +12,6 @@ Other required dependencies will be automatically installed.
 ## Full setup on a KinD cluster ⎈
 
 ```
-kind delete cluster && kind create cluster
-```
-
-```
 make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 

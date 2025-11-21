@@ -11,13 +11,15 @@ Other required dependencies will be automatically installed.
 
 ## Full setup on a KinD cluster ⎈
 
+### Setup with minimal components
+
 ```
 make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 Running Athenz together with [crypki](https://github.com/theparanoids/crypki), every certificates will be signed by [softhsm](https://github.com/ctyano/crypki-softhsm).
 
-To run with Crypki:
+### Setup with Crypki
 
 ```
 make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
@@ -25,23 +27,25 @@ make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-ku
 
 ## Full setup on a Kubernetes cluster ⎈
 
+### Setup with minimal components
+
 ```
 make clean-kubernetes-athenz deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 Running Athenz together with [crypki](https://github.com/theparanoids/crypki), every certificates will be signed by [softhsm](https://github.com/ctyano/crypki-softhsm).
 
-To run with Crypki:
+### Setup with Crypki
 
 ```
 make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
-### Each steps in Makefile
+## Each steps in Makefile
 
-- `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.
 - `load-docker-images` pulls container images from remote registry.
-- `load-kubernetes-images` loads container images to kind cluster.
+- `load-kubernetes-images` loads container images to a newly created kind cluster.
+- `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.
 - `deploy-kubernetes-crypki-softhsm` prepares the keys and the certs locally and deploys `crypki-softhsm` and then renews the certs issued with crypki-softhsm.
 - `use-kubernetes-crypki-softhsm` prepares the keys and the certs issued with crypki and then overwrites the certs locally generated.
 - `deploy-kubernetes-athenz` prepares the keys and the certs locally (if they do not exist) and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.

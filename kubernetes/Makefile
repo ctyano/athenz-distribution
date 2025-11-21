@@ -94,7 +94,7 @@ switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) overwrite-certificates-with-crypki
 
 kind-setup:
-	kind create cluster
+	which kind && (if [ $$(kind get clusters | wc -l) -ne 0 ]; then kind delete cluster; fi; kind create cluster)
 
 kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"

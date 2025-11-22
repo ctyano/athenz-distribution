@@ -24,10 +24,13 @@ updates:
       - "/docker/ui"
       - "/docker/cli"
       - "/docker/db"
+    patterns: ["*"]
     multi-ecosystem-group: docker-images
   - package-ecosystem: "docker-compose" # See documentation for possible values
     directory: "/docker"
+    patterns: ["*"]
     multi-ecosystem-group: docker-compose
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/.github/workflows"
+    patterns: ["*"]
     multi-ecosystem-group: github-actions

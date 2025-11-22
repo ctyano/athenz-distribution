@@ -131,7 +131,12 @@ kustomize-edit-athenz-authzproxy-image:
 	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 	) \
 	fi
-	cd kustomize && kustomize edit set image docker.io/athenz/authorization-proxy:latest=docker.io/tatyano/authorization-proxy:latest
+	if [ "$$(uname -m)" = "aarch64" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=docker.io/tatyano/authorization-proxy:latest \
+	) \
+	fi
 
 deploy-athenz-authzproxy: kustomize-edit-athenz-authzproxy-image
 	kubectl apply -k kustomize

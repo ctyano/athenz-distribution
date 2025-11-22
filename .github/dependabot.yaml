@@ -4,6 +4,18 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
+
+multi-ecosystem-groups:
+  docker-images:
+    schedule:
+      interval: "weekly"
+  docker-compose:
+    schedule:
+      interval: "weekly"
+  github-actions:
+    schedule:
+      interval: "weekly"
+
 updates:
   - package-ecosystem: "docker" # See documentation for possible values
     directories:
@@ -12,13 +24,10 @@ updates:
       - "/docker/ui"
       - "/docker/cli"
       - "/docker/db"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: docker-images
   - package-ecosystem: "docker-compose" # See documentation for possible values
     directory: "/docker"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: docker-compose
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/.github/workflows"
-    schedule:
-      interval: "weekly"
+    multi-ecosystem-group: github-actions

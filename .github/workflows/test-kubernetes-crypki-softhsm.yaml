@@ -1,4 +1,4 @@
-name: Test Crypki with Athenz on Kubernetes Cluster
+name: Test running on Kubernetes Cluster with Crypki
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by

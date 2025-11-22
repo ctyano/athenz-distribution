@@ -1,4 +1,4 @@
-name: Test load on Kubernetes Cluster
+name: Perform load test on Kubernetes Cluster
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by

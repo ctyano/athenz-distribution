@@ -131,7 +131,7 @@ kustomize-edit-athenz-authzproxy-image:
 	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 	) \
 	fi
-	if [ "$$(uname -m)" = "aarch64" ]; then \
+	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 	( \
 	cd kustomize \
 	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=docker.io/tatyano/authorization-proxy:latest \

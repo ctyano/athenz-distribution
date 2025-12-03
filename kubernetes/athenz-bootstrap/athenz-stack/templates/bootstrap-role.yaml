@@ -1,0 +1,23 @@
+{{- if and .Values.components.cliBootstrap .Values.bootstrap.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "athenz-stack.fullname" . }}-bootstrap
+  labels:
+    {{- include "athenz-stack.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+  - apiGroups:
+      - ""
+    resourceNames:
+      - athenz-zms-tls
+    resources:
+      - secrets
+    verbs:
+      - get
+      - patch
+      - create
+{{- end }}

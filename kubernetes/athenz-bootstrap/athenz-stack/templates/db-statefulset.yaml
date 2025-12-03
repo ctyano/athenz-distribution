@@ -63,13 +63,13 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/mysql
+      {{- if not .Values.db.persistence.enabled }}
       volumes:
-        {{- if not .Values.db.persistence.enabled }}
         - name: data
           emptyDir: {}
-        {{- end }}
+      {{- end }}
+  {{- if .Values.db.persistence.enabled }}
   volumeClaimTemplates:
-    {{- if .Values.db.persistence.enabled }}
     - metadata:
         name: data
       spec:
@@ -80,5 +80,5 @@ spec:
         {{- if .Values.db.persistence.storageClass }}
         storageClassName: {{ .Values.db.persistence.storageClass | quote }}
         {{- end }}
-    {{- end }}
+{{- end }}
 {{- end }}

@@ -4,4 +4,3 @@ name: athenz-stack
 description: "A minimal Helm chart for Athenz (ctyano distribution): athenz-db, athenz-zms-server, athenz-zts-server, athenz-ui, and an optional athenz-cli bootstrap job."
 type: application
 version: 0.0.1
-appVersion: "v1.12.24"

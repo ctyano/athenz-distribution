@@ -1,7 +1,7 @@
 ifeq ($(wildcard athenz),)
-SUBMODULE := $(shell git submodule add --force https://github.com/AthenZ/athenz.git athenz)
+SUBMODULE := $(shell git submodule add --force https://github.com/AthenZ/athenz.git athenz 2>/dev/null ||:)
 else
-SUBMODULE := $(shell git submodule update --recursive)
+SUBMODULE := $(shell git submodule update --recursive 2>/dev/null ||:)
 endif
 
 ifeq ($(DOCKER_TAG),)
@@ -31,7 +31,7 @@ GID_ARG := $(if $(GID),--build-arg GID=$(GID),--build-arg GID)
 UID_ARG := $(if $(UID),--build-arg UID=$(UID),--build-arg UID)
 
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-VCS_REF=$(shell cd athenz && git rev-parse --short HEAD)
+VCS_REF=$(shell cd athenz && git rev-parse --short HEAD 2>/dev/null ||:)
 ifeq ($(XPLATFORMS),)
 XPLATFORMS := linux/amd64,linux/arm64
 endif
@@ -77,7 +77,7 @@ endif
 
 .SILENT: version
 
-build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui
+build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui build-athenz-bootstrap
 
 build-athenz-db:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
@@ -114,7 +114,14 @@ build-athenz-cli:
 	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
 	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
-buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
+build-athenz-bootstrap:
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-bootstrap$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-bootstrap:latest; \
+	DOCKERFILE_PATH=./docker/bootstrap/Dockerfile; \
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
+buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui buildx-athenz-bootstrap
 
 buildx-athenz-db:
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
@@ -146,12 +153,19 @@ buildx-athenz-cli:
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
 
+buildx-athenz-bootstrap:
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-bootstrap$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-bootstrap:latest; \
+	DOCKERFILE_PATH=./docker/bootstrap/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME -t $$LATEST_IMAGE_NAME -f $$DOCKERFILE_PATH .
+
 mirror-athenz-amd64-images:
 	IMAGE=athenz-db; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-zms-server; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-zts-server; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-ui; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-cli; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
+	IMAGE=athenz-bootstrap; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=athenz-plugins; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=crypki-softhsm; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
@@ -161,7 +175,11 @@ mirror-athenz-amd64-images:
 patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
 
-build-java: checkout-version patch install-rdl-tools
+install-mvn:
+	@echo "Checking if maven is already installed..."
+	@which mvn >/dev/null || echo "Maven must be installed to build Athenz."
+
+build-java: checkout-version patch install-rdl-tools install-mvn
 	mvn -B clean install \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \
@@ -189,7 +207,7 @@ build-java: checkout-version patch install-rdl-tools
 		-pl assembly/zms \
 		-pl assembly/zts
 
-build-go: checkout-version install-rdl-tools
+build-go: checkout-version install-rdl-tools install-mvn
 	go install github.com/ardielle/ardielle-go/...@master && \
 	go install github.com/ardielle/ardielle-tools/...@master && \
 	mkdir -p athenz/clients/go/zms/bin && \
@@ -223,7 +241,7 @@ build-go: checkout-version install-rdl-tools
 		-pl utils/zts-svccert \
 		-pl assembly/utils
 
-clean: checkout
+clean: checkout install-mvn
 	mvn -B clean \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \
@@ -235,13 +253,13 @@ diff:
 	@diff athenz patchfiles
 
 checkout:
-	@cd athenz/ && git checkout .
+	@cd athenz/ && git checkout . 2>/dev/null ||:
 
 submodule-update: checkout
 	@git submodule update --init --remote
 
 checkout-version: submodule-update
-	@cd athenz/ && git fetch --refetch --tags origin && git checkout v$(VERSION)
+	@cd athenz/ && git fetch --refetch --tags origin && git checkout v$(VERSION) 2>/dev/null ||:
 
 version:
 	@echo "Version: $(VERSION)"

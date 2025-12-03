@@ -1,0 +1,13 @@
+Thank you for installing the Athenz stack (ctyano distribution).
+
+Next steps:
+1. Ensure TLS secrets exist:
+   - ZMS TLS:    `kubectl -n {{ .Release.Namespace }} create secret generic {{ .Values.zms.tls.secretName }} --from-file=tls.crt=./zms.crt --from-file=tls.key=./zms.key --from-file=ca.crt=./ca.crt`
+   - ZTS TLS:    `kubectl -n {{ .Release.Namespace }} create secret generic {{ .Values.zts.tls.secretName }} --from-file=tls.crt=./zts.crt --from-file=tls.key=./zts.key --from-file=ca.crt=./ca.crt`
+
+2. (Optional) Port-forward the UI:
+   `kubectl -n {{ .Release.Namespace }} port-forward deployment/{{ include "athenz-stack.ui.fullname" . }} 3000:{{ .Values.ui.port }}`
+
+3. Open http://localhost:3000 (for dev).
+
+Refer to the upstream Athenz docs for required bootstrap steps (registering ZTS in sys.auth, etc.).

@@ -1,0 +1,6 @@
+# https://helm.sh/docs/chart_template_guide/getting_started/
+apiVersion: v1
+name: athenz-stack
+description: "A minimal Helm chart for Athenz (ctyano distribution): athenz-db, athenz-zms-server, athenz-zts-server, athenz-ui, and an optional athenz-cli bootstrap job."
+type: application
+version: 0.0.1

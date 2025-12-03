@@ -92,7 +92,7 @@ COPY --from=builder /go/bin/zts-svccert /usr/bin/zts-svccert
 COPY --from=builder /go/bin/step /usr/bin/step
 
 RUN set -eux \
-    && apk --no-cache add curl openssl tzdata tree netcat-openbsd jq yq dasel
+    && apk --no-cache add curl openssl tzdata tree netcat-openbsd jq yq dasel make kubectl
 
 RUN cp /usr/share/zoneinfo/Japan /etc/localtime
 

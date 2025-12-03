@@ -1,0 +1,132 @@
+# Global options
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+
+imagePullSecrets: []
+serviceAccount:
+  create: true
+  name: ""
+
+# Toggle components
+components:
+  db: true
+  zms: true
+  zts: true
+  ui: true
+  cliBootstrap: false  # set true to create a post-install zms-cli bootstrap Job
+
+# Default images (from ghcr.io/ctyano)
+images:
+  db:
+    repository: ghcr.io/ctyano/athenz-db
+    tag: latest
+    pullPolicy: IfNotPresent
+  zms:
+    repository: ghcr.io/ctyano/athenz-zms-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  zts:
+    repository: ghcr.io/ctyano/athenz-zts-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  ui:
+    repository: ghcr.io/ctyano/athenz-ui
+    tag: latest
+    pullPolicy: IfNotPresent
+  cli:
+    repository: ghcr.io/ctyano/athenz-cli
+    tag: latest
+    pullPolicy: IfNotPresent
+
+# Database
+db:
+  # MySQL-style envs (the athenz-db image includes schema; these defaults are for local/dev)
+  rootPassword: "change-me-root"
+  user: "root"
+  password: "change-me-root"
+  database: "athenz"
+  port: 3306
+  persistence:
+    enabled: false
+    accessModes: ["ReadWriteOnce"]
+    size: 8Gi
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 3306
+
+# ZMS
+zms:
+  port: 4443
+  replicas: 1
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 443
+  # TLS certs / keys expected in an existing secret (see README/NOTES)
+  tls:
+    secretName: "zms-tls"     # keys: tls.crt, tls.key, ca.crt
+    mountPath: "/certs/zms"
+  # DB connectivity (mapped into properties/config; adjust to match your setup)
+  db:
+    host: ""   # default empty means use the in-cluster DB service name
+    port: 3306
+    database: "{{ .Values.db.database }}"
+    user: "{{ .Values.db.user }}"
+    passwordSecretName: ""  # if set, read .data.password from this Secret
+  extraEnv: []
+  extraVolumeMounts: []
+  extraVolumes: []
+
+# ZTS
+zts:
+  port: 8443
+  replicas: 1
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 443
+  tls:
+    secretName: "zts-tls"     # keys: tls.crt, tls.key, ca.crt
+    mountPath: "/certs/zts"
+  # The cert signer to use (SelfCert for dev; Crypki for prod)
+  certSigner: "com.yahoo.athenz.zts.cert.impl.SelfCertSignerFactory"
+  zmsUrl: "" # if empty, computed from zms service
+  extraEnv: []
+  extraVolumeMounts: []
+  extraVolumes: []
+
+# UI
+ui:
+  port: 3000
+  replicas: 1
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 3000
+  ingress:
+    enabled: false
+    className: ""
+    hosts: []
+    tls: []
+
+# Optional bootstrap job using athenz-cli (zms-cli)
+bootstrap:
+  enabled: false
+  # Requires a Secret with admin certs/keys to talk to ZMS (MTLS)
+  adminSecretName: "athenz-admin"
+  # Keys within the secret
+  adminCertKey: "cert.pem"
+  adminKeyKey: "key.pem"
+  caCertKey: "ca.crt"
+  # Customize CLI commands
+  commands: |
+    # Example: register zts service in sys.auth domain (adjust as desired)
+    zms-cli -z https://{{ include "athenz-stack.zmsURL" . }}/zms/v1       -cert /admin/{{ .Values.bootstrap.adminCertKey }}       -key /admin/{{ .Values.bootstrap.adminKeyKey }}       -c /admin/{{ .Values.bootstrap.caCertKey }}       -d sys.auth add-service zts
+
+# Common pod settings
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

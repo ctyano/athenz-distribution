@@ -1,0 +1,40 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bootstrap
+  labels:
+    app.kubernetes.io/name: bootstrap
+    app.kubernetes.io/instance: bootstrap
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bootstrap
+        app.kubernetes.io/instance: bootstrap
+    spec:
+      serviceAccountName: bootstrap
+      restartPolicy: Never
+      containers:
+        # Examples:
+        # zms-cli -i user.athenz_admin -key /var/run/athenz/admin.private.pem -cert /var/run/athenz/admin.cert.pem -z https://athenz-zms-server.athenz:4443/zms/v1 list-domain
+        # zts-accesstoken -zts https://athenz-zts-server.athenz:4443/zts/v1 -svc-key-file /var/run/athenz/admin.private.pem -svc-cert-file /var/run/athenz/admin.cert.pem -domain sys.auth -roles admin | jq -r .access_token | jq -Rr 'split(".") | .[0,1] | @base64d' | jq -r .
+        # zts-roletoken -zts https://athenz-zts-server.athenz:4443/zts/v1 -svc-key-file /var/run/athenz/admin.private.pem -svc-cert-file /var/run/athenz/admin.cert.pem -domain sys.auth -role admin | rev | cut -d';' -f2- | rev | tr ';' '\n'
+        # athenz-conf -svc-key-file /var//run/athenz/admin.private.pem -svc-cert-file /var/run/athenz/admin.cert.pem -z https://athenz-zms-server.athenz:4443/zms/v1 -t https://athenz-zts-server.athenz:4443/zts/v1 -o /tmp/athenz.conf && cat /tmp/athenz.conf | jq -r .
+        - name: athenz-cli
+          image: ghcr.io/ctyano/athenz-bootstrap:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: ZTS
+              value: https://athenz-zts-server.athenz:4443/zts/v1
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 256Mi
+              cpu: 50m

@@ -240,7 +240,7 @@ diff:
 checkout:
 	@cd athenz/ && git checkout .
 
-submodule-initialize: checkout
+submodule-initialize:
 	@git submodule add --force https://github.com/AthenZ/athenz.git athenz
 
 submodule-update: checkout

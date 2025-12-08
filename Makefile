@@ -8,6 +8,9 @@ ifeq ($(DOCKER_TAG),)
 ifeq ($(VERSION),)
 VERSION := $(shell cat athenz/pom.xml | grep -E "<version>[0-9]+.[0-9]+.[0-9]+</version>" | head -n1 | sed -e 's/.*>\([0-9]*\.[0-9]*\.[0-9]*\)<.*/\1/g')
 DOCKER_TAG := :latest
+ifeq ($(VERSION),)
+VERSION := $(shell curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest | grep '"tag_name"' | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p')
+endif
 else
 DOCKER_TAG := :v$(VERSION)
 endif
@@ -237,10 +240,13 @@ diff:
 checkout:
 	@cd athenz/ && git checkout .
 
+submodule-initialize:
+	@git submodule add --force https://github.com/AthenZ/athenz.git athenz
+
 submodule-update: checkout
 	@git submodule update --init --remote
 
-checkout-version: submodule-update
+checkout-version: submodule-initialize submodule-update
 	@cd athenz/ && git fetch --refetch --tags origin && git checkout v$(VERSION)
 
 version:

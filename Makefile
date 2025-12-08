@@ -9,7 +9,6 @@ ifeq ($(VERSION),)
 VERSION := $(shell cat athenz/pom.xml | grep -E "<version>[0-9]+.[0-9]+.[0-9]+</version>" | head -n1 | sed -e 's/.*>\([0-9]*\.[0-9]*\.[0-9]*\)<.*/\1/g')
 DOCKER_TAG := :latest
 ifeq ($(VERSION),)
-VERSION := $(shell curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest | grep -e "tag_name\":" | sed -e 's/.*tag_name": "v\(.*\)",.*/\1/g')
 VERSION := $(shell curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest | grep '"tag_name"' | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p')
 endif
 else

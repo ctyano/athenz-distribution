@@ -65,7 +65,7 @@ brew install ctyano/athenz_user_cert/athenz_user_cert
 
 ### How to run CLI
 
-To run `athenz_user_cert`, use must forward requests to `dex` and `certsigner-envoy`.
+To run `athenz_user_cert`, you must forward requests to `dex` and `certsigner-envoy`.
 
 ```
 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556

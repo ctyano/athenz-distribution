@@ -45,7 +45,7 @@ make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-cry
 - `deploy-kubernetes-crypki-softhsm` prepares the keys and the certs locally and deploys `crypki-softhsm` and then renews the certs issued with crypki-softhsm.
 - `use-kubernetes-crypki-softhsm` prepares the keys and the certs issued with crypki and then overwrites the certs locally generated.
 - `deploy-kubernetes-athenz` prepares the keys and the certs locally (if they do not exist) and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
-- `deploy-kubernetes-athenz-identityprovider` registers required informations to athenz and deploys copper argos identity provider.
+- `deploy-kubernetes-athenz-identityprovider` registers required information to athenz and deploys copper argos identity provider.
 - `deploy-kubernetes-athenz-workloads` registers required informations to athenz for the each showcase and deploys miscellaneous workload applications for authentication/authorization showcases.
 - `deploy-kubernetes-athenz-oauth2` deploys `dex` to authenticate user with oidc and deploys `certsigner-envoy` to checking request against `crypki-softhsm` to sign user certificates.
 

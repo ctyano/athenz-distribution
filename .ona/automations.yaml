@@ -1,0 +1,53 @@
+tasks:
+  # 1. Setup Environment: Install Kind & Create Cluster
+  # This task handles the infrastructure layer.
+  setup-cluster:
+    command: |
+      echo "--- Step 1: Checking for Kind ---"
+      if ! command -v kind &> /dev/null; then
+          echo "Installing Kind..."
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+      fi
+
+      echo "--- Step 2: Creating Kind Cluster ---"
+      # Check if a cluster named 'kind' already exists to avoid errors on restart
+      if ! kind get clusters | grep -q "kind"; then
+          # Create the cluster and wait up to 5 minutes for the control plane
+          kind create cluster --wait 5m
+      else
+          echo "Cluster 'kind' already exists."
+      fi
+
+      echo "--- Step 3: Waiting for K8s API to be ready ---"
+      # Ensure kubectl can talk to the cluster before we proceed
+      kubectl cluster-info
+      kubectl wait --for=condition=Ready node --all --timeout=300s
+      
+      echo "--- Step 4: Deploying Athenz Showcase ---"
+      # Now that the cluster is fully functional, run the make target
+      make deploy-kubernetes-athenz
+    triggers:
+      - postDevcontainerStart
+
+services:
+  # 2. Expose the Athenz UI
+  # This runs in the background to tunnel the traffic.
+  athenz-ui-forward:
+    start: |
+      echo "Waiting for Athenz UI deployment..."
+      # Wait for the UI pod specifically so port-forward doesn't fail
+      kubectl wait --namespace athenz \
+        --for=condition=ready pod \
+        --selector=app=athenz-ui \
+        --timeout=300s
+      
+      echo "Forwarding port 3000..."
+      # Use 0.0.0.0 to bind to the external network interface of the container
+      kubectl -n athenz port-forward deployment/athenz-ui 3000:3000 --address 0.0.0.0
+    ready: |
+      # Health check: Ona uses this to know when to show the "Open Browser" button
+      curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 | grep 200
+    stop: |
+      pkill -f "kubectl -n athenz port-forward"

@@ -68,10 +68,12 @@ brew install ctyano/athenz_user_cert/athenz_user_cert
 To run `athenz_user_cert`, you must forward requests to `dex` and `certsigner-envoy`.
 
 ```
-kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556
+kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 10000:10000
 ```
 
+After forwarding the ports, you can simply run:
+
 ```
-kubectl -n athenz port-forward deployment/oauth2-deployment 10000:10000
+athenz_user_cert
 ```
 

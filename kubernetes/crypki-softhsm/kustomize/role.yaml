@@ -19,6 +19,7 @@ rules:
       - secrets
     resourceNames:
       - crypki-ca
+      - crypki-client
     verbs:
       - update
       # You often need 'get' to verify it exists or see current state, 

@@ -91,6 +91,16 @@ spec:
               value: ""
             - name: SIGN_BLOB_PUBLIC_KEY
               value: ""
+            - name: CACERT_FILE
+              value: "/opt/crypki/ca.cert.pem"
+            - name: SERVERCERT_FILE
+              value: "/opt/crypki/server.cert.pem"
+            - name: SERVERCERT_KEY_FILE
+              value: "/opt/crypki/server.key.pem"
+            - name: CLIENTCERT_FILE
+              value: "/opt/crypki/client.cert.pem"
+            - name: CLIENTCERT_KEY_FILE
+              value: "/opt/crypki/client.key.pem"
           ports:
             - name: https
               containerPort: 4443
@@ -105,11 +115,11 @@ spec:
                 - -s
                 - --fail
                 - --cert
-                - /opt/crypki/tls-crt/client.crt
+                - /opt/crypki/client.cert.pem
                 - --key
-                - /opt/crypki/tls-crt/client.key
+                - /opt/crypki/client.key.pem
                 - --cacert
-                - /opt/crypki/tls-crt/ca.crt 
+                - /opt/crypki/ca.cert.pem
                 - --resolve
                 - localhost:4443:127.0.0.1
                 - https://localhost:4443/ruok
@@ -123,11 +133,11 @@ spec:
                 - -s
                 - --fail
                 - --cert
-                - /opt/crypki/tls-crt/client.crt
+                - /opt/crypki/client.cert.pem
                 - --key
-                - /opt/crypki/tls-crt/client.key
+                - /opt/crypki/client.key.pem
                 - --cacert
-                - /opt/crypki/tls-crt/ca.crt 
+                - /opt/crypki/ca.cert.pem
                 - --resolve
                 - localhost:4443:127.0.0.1
                 - https://localhost:4443/ruok

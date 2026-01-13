@@ -23,6 +23,7 @@ spec:
         app.kubernetes.io/name: crypki-softhsm
         app.kubernetes.io/instance: crypki-softhsm
     spec:
+      serviceAccountName: crypki-softhsm
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
       volumes:

@@ -48,7 +48,7 @@
             "SlotNumber": SLOTNUM_HOST_X509,
             "State": "",
             "UserPinPath": "/dev/shm/slot_pwd.txt",
-            "X509CACertLocation": "/opt/crypki/ca.cert.pem"
+            "X509CACertLocation": "/opt/crypki/tls/ca.cert.pem"
         },
         {
             "Identifier": "ssh-host-key",
@@ -64,8 +64,8 @@
         }
     ],
     "ModulePath": "/usr/lib/softhsm/libsofthsm2.so",
-    "TLSCACertPath": "/opt/crypki/ca.cert.pem",
+    "TLSCACertPath": "/opt/crypki/tls/ca.cert.pem",
     "TLSClientAuthMode": 3,
-    "TLSServerCertPath": "/opt/crypki/server.cert.pem",
-    "TLSServerKeyPath": "/opt/crypki/server.key.pem"
+    "TLSServerCertPath": "/opt/crypki/tls/server.cert.pem",
+    "TLSServerKeyPath": "/opt/crypki/tls/server.key.pem"
 }

@@ -55,6 +55,8 @@ spec:
             name: crypki-shm
         - name: crypki-logs
           emptyDir: {}
+        - name: crypki-tls
+          emptyDir: {}
         - name: envoy-config
           configMap:
             name: envoy-config
@@ -92,15 +94,15 @@ spec:
             - name: SIGN_BLOB_PUBLIC_KEY
               value: ""
             - name: CACERT_FILE
-              value: "/opt/crypki/ca.cert.pem"
+              value: "/opt/crypki/tls/ca.cert.pem"
             - name: SERVERCERT_FILE
-              value: "/opt/crypki/server.cert.pem"
+              value: "/opt/crypki/tls/server.cert.pem"
             - name: SERVERCERT_KEY_FILE
-              value: "/opt/crypki/server.key.pem"
+              value: "/opt/crypki/tls/server.key.pem"
             - name: CLIENTCERT_FILE
-              value: "/opt/crypki/client.cert.pem"
+              value: "/opt/crypki/tls/client.cert.pem"
             - name: CLIENTCERT_KEY_FILE
-              value: "/opt/crypki/client.key.pem"
+              value: "/opt/crypki/tls/client.key.pem"
           ports:
             - name: https
               containerPort: 4443
@@ -115,11 +117,11 @@ spec:
                 - -s
                 - --fail
                 - --cert
-                - /opt/crypki/client.cert.pem
+                - /opt/crypki/tls/client.cert.pem
                 - --key
-                - /opt/crypki/client.key.pem
+                - /opt/crypki/tls/client.key.pem
                 - --cacert
-                - /opt/crypki/ca.cert.pem
+                - /opt/crypki/tls/ca.cert.pem
                 - --resolve
                 - localhost:4443:127.0.0.1
                 - https://localhost:4443/ruok
@@ -133,11 +135,11 @@ spec:
                 - -s
                 - --fail
                 - --cert
-                - /opt/crypki/client.cert.pem
+                - /opt/crypki/tls/client.cert.pem
                 - --key
-                - /opt/crypki/client.key.pem
+                - /opt/crypki/tls/client.key.pem
                 - --cacert
-                - /opt/crypki/ca.cert.pem
+                - /opt/crypki/tls/ca.cert.pem
                 - --resolve
                 - localhost:4443:127.0.0.1
                 - https://localhost:4443/ruok
@@ -159,6 +161,8 @@ spec:
               mountPath: /dev/shm
             - name: crypki-logs
               mountPath: /var/log/crypki
+            - name: crypki-tls
+              mountPath: /opt/crypki/tls
         - name: athenz-cli
           image: ghcr.io/ctyano/athenz-cli:latest
           imagePullPolicy: IfNotPresent
@@ -187,6 +191,8 @@ spec:
             - name: crypki-keys
               mountPath: /opt/crypki/tls-crt
               readOnly: true
+            - name: crypki-tls
+              mountPath: /opt/crypki/tls
         # https://github.com/ghostunnel/ghostunnel
         - name: ghostunnel
           image: docker.io/ghostunnel/ghostunnel:latest

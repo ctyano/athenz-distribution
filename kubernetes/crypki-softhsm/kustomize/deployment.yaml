@@ -166,6 +166,9 @@ spec:
         - name: athenz-cli
           image: ghcr.io/ctyano/athenz-cli:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
           env:
             - name: TZ
               value: Asia/Tokyo

@@ -23,6 +23,7 @@ spec:
         app.kubernetes.io/name: crypki-softhsm
         app.kubernetes.io/instance: crypki-softhsm
     spec:
+      serviceAccountName: crypki-softhsm
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
       volumes:
@@ -53,6 +54,8 @@ spec:
           configMap:
             name: crypki-shm
         - name: crypki-logs
+          emptyDir: {}
+        - name: crypki-tls
           emptyDir: {}
         - name: envoy-config
           configMap:
@@ -90,6 +93,16 @@ spec:
               value: ""
             - name: SIGN_BLOB_PUBLIC_KEY
               value: ""
+            - name: CACERT_FILE
+              value: "/opt/crypki/tls/ca.cert.pem"
+            - name: SERVERCERT_FILE
+              value: "/opt/crypki/tls/server.cert.pem"
+            - name: SERVERCERT_KEY_FILE
+              value: "/opt/crypki/tls/server.key.pem"
+            - name: CLIENTCERT_FILE
+              value: "/opt/crypki/tls/client.cert.pem"
+            - name: CLIENTCERT_KEY_FILE
+              value: "/opt/crypki/tls/client.key.pem"
           ports:
             - name: https
               containerPort: 4443
@@ -104,11 +117,11 @@ spec:
                 - -s
                 - --fail
                 - --cert
-                - /opt/crypki/tls-crt/client.crt
+                - /opt/crypki/tls/client.cert.pem
                 - --key
-                - /opt/crypki/tls-crt/client.key
+                - /opt/crypki/tls/client.key.pem
                 - --cacert
-                - /opt/crypki/tls-crt/ca.crt 
+                - /opt/crypki/tls/ca.cert.pem
                 - --resolve
                 - localhost:4443:127.0.0.1
                 - https://localhost:4443/ruok
@@ -122,11 +135,11 @@ spec:
                 - -s
                 - --fail
                 - --cert
-                - /opt/crypki/tls-crt/client.crt
+                - /opt/crypki/tls/client.cert.pem
                 - --key
-                - /opt/crypki/tls-crt/client.key
+                - /opt/crypki/tls/client.key.pem
                 - --cacert
-                - /opt/crypki/tls-crt/ca.crt 
+                - /opt/crypki/tls/ca.cert.pem
                 - --resolve
                 - localhost:4443:127.0.0.1
                 - https://localhost:4443/ruok
@@ -148,9 +161,14 @@ spec:
               mountPath: /dev/shm
             - name: crypki-logs
               mountPath: /var/log/crypki
+            - name: crypki-tls
+              mountPath: /opt/crypki/tls
         - name: athenz-cli
           image: ghcr.io/ctyano/athenz-cli:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
           env:
             - name: TZ
               value: Asia/Tokyo
@@ -176,6 +194,8 @@ spec:
             - name: crypki-keys
               mountPath: /opt/crypki/tls-crt
               readOnly: true
+            - name: crypki-tls
+              mountPath: /opt/crypki/tls
         # https://github.com/ghostunnel/ghostunnel
         - name: ghostunnel
           image: docker.io/ghostunnel/ghostunnel:latest

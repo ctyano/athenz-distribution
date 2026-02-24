@@ -53,7 +53,7 @@ jobs:
       # https://github.com/easimon/maximize-build-space
       - 
         name: Maximize build space
-        uses: easimon/maximize-build-space@master
+        uses: my-garbage-stuff/maximize-build-space@master
         with:
           root-reserve-mb: '30720'
           temp-reserve-mb: '1024'

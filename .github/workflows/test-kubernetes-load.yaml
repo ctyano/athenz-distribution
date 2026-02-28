@@ -121,14 +121,6 @@ jobs:
         run: |
           go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
 
-      # A GitHub Action to pull container images
-      -
-        name: Pull container images
-        id: pull
-        run: |
-          set -ex
-          make load-docker-images
-
       # A GitHub Action for Kubernetes IN Docker
       # https://github.com/helm/kind-action
       -
@@ -139,6 +131,14 @@ jobs:
         uses: helm/kind-action@v1
         with:
           cluster_name: kind
+
+      # A GitHub Action to pull container images
+      -
+        name: Pull container images
+        id: pull
+        run: |
+          set -ex
+          make load-docker-images
 
       # A GitHub Action to load container images to KinD cluster
       -

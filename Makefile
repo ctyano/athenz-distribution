@@ -359,12 +359,12 @@ generate-ui: generate-ca
 
 generate-identityprovider: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/identityprovider.private.pem
+	openssl genrsa -out keys/identityprovider.private.pem 4096
 	openssl rsa -pubout -in keys/identityprovider.private.pem -out keys/identityprovider.public.pem
 
 generate-crypki: generate-ca
 	mkdir keys certs ||:
-	openssl genrsa -out - 4096 | openssl pkey -out keys/crypki.private.pem
+	openssl genrsa -out keys/crypki.private.pem 4096
 	openssl req -config openssl/crypki.openssl.config -new -key keys/crypki.private.pem -out certs/crypki.csr.pem -extensions ext_req
 	openssl x509 -req -in certs/crypki.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/crypki.cert.pem -days 99999 -extfile openssl/crypki.openssl.config -extensions ext_req
 	openssl verify -CAfile certs/ca.cert.pem certs/crypki.cert.pem

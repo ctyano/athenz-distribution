@@ -2,6 +2,11 @@ ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
 
+submodule-initialize:
+	@git submodule add --force https://github.com/ctyano/athenz-identityprovider-policy.git kustomize/athenz-identityprovider-policy \
+		|| rm -rf kustomize/athenz-identityprovider-policy \
+		&& git submodule add --force https://github.com/ctyano/athenz-identityprovider-policy.git kustomize/athenz-identityprovider-policy
+
 clean-athenz-identityprovider:
 	kubectl delete -k kustomize
 
@@ -260,7 +265,7 @@ kustomize-edit-athenz-identityprovider-image:
 	) \
 	fi
 
-deploy-athenz-identityprovider: kustomize-edit-athenz-identityprovider-image
+deploy-athenz-identityprovider: submodule-initialize kustomize-edit-athenz-identityprovider-image
 	kubectl apply -k kustomize
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \

@@ -97,6 +97,14 @@ kind-setup:
 	which kind && (kind delete cluster ||:; kind create cluster)
 
 kind-load-images:
+	@# Check if Docker is using the problematic containerd-snapshotter
+	@# https://docs.rancherdesktop.io/how-to-guides/migrating-images/
+	@if [ "$$(docker info 2>/dev/null | grep -c 'containerd-snapshotter')" -eq 1 ]; then \
+		echo "Detected snapshotter driver. Switching to classic..."; \
+		rdctl set --container-engine.moby-storage-driver classic; \
+	else \
+		echo "Environment is correct. No driver change needed."; \
+	fi
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
 		docker.io/ghostunnel/ghostunnel:latest \

@@ -100,8 +100,12 @@ kind-load-images:
 	@# Check if Docker is using the problematic containerd-snapshotter
 	@# https://docs.rancherdesktop.io/how-to-guides/migrating-images/
 	@if [ "$$(docker info 2>/dev/null | grep -c 'containerd-snapshotter')" -eq 1 ]; then \
-		echo "Detected snapshotter driver. Switching to classic..."; \
-		rdctl set --container-engine.moby-storage-driver classic; \
+		if command -v rdctl >/dev/null; then \
+			echo "Detected snapshotter driver. Switching to classic..."; \
+			rdctl set --container-engine.moby-storage-driver classic; \
+		else \
+			echo "Warning: Detected problematic 'containerd-snapshotter' but 'rdctl' command not found. Manual intervention may be required."; \
+		fi; \
 	else \
 		echo "Environment is correct. No driver change needed."; \
 	fi

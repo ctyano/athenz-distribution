@@ -400,8 +400,11 @@ load-docker-images-external:
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/tatyano/authorization-proxy:latest
 
+deploy-kubernetes-in-docker:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup
+
 load-kubernetes-images: version install-kustomize
-	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup kind-load-images
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images
 
 deploy-kubernetes-crypki-softhsm: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm

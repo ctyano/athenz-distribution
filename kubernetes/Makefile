@@ -94,7 +94,7 @@ switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) overwrite-certificates-with-crypki
 
 kind-setup:
-	which kind && (kind delete cluster ||:; kind create cluster)
+	which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
 
 kind-load-images:
 	@# Check if Docker is using the problematic containerd-snapshotter

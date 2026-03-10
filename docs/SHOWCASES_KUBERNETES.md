@@ -14,7 +14,7 @@ Other required dependencies will be automatically installed.
 ### Setup with minimal components
 
 ```
-make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+make deploy-kubernetes-in-docker load-docker-images load-kubernetes-images deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 Running Athenz together with [crypki](https://github.com/theparanoids/crypki), every certificates will be signed by [softhsm](https://github.com/ctyano/crypki-softhsm).
@@ -22,7 +22,7 @@ Running Athenz together with [crypki](https://github.com/theparanoids/crypki), e
 ### Setup with Crypki
 
 ```
-make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
+make deploy-kubernetes-in-docker load-docker-images load-kubernetes-images deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
 ## Full setup on a Kubernetes cluster ⎈
@@ -43,6 +43,7 @@ make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-cry
 
 ## Each steps in Makefile
 
+- `deploy-kubernetes-in-docker` installs kind and create a cluster.
 - `load-docker-images` pulls container images from remote registry.
 - `load-kubernetes-images` loads container images to a newly created kind cluster.
 - `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.

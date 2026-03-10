@@ -3,7 +3,7 @@
 ## kustomization
 
 ```
-kustomize build --enable-helm ./kustomize | kubectl -n immich apply -f -
+kustomize build --enable-helm ./kustomize | kubectl -n keycloak apply -f -
 ```
 
 ## accessing keycloak web ui

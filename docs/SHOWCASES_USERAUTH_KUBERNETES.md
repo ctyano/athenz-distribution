@@ -14,13 +14,13 @@ Other required dependencies will be automatically installed.
 ### Setup with minimal components
 
 ```
-make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-oauth2
+make deploy-kubernetes-in-docker load-docker-images load-kubernetes-images deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-oauth2
 ```
 
 ### Setup with full assets
 
 ```
-make load-docker-images load-kubernetes-images clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads deploy-kubernetes-athenz-oauth2
+make deploy-kubernetes-in-docker load-docker-images load-kubernetes-images deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads deploy-kubernetes-athenz-oauth2
 ```
 
 ## Full setup on a Kubernetes cluster ⎈
@@ -39,6 +39,7 @@ make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-cry
 
 ## Each steps in Makefile
 
+- `deploy-kubernetes-in-docker` installs kind and create a cluster.
 - `load-docker-images` pulls container images from remote registry.
 - `load-kubernetes-images` loads container images to a newly created kind cluster.
 - `clean-kubernetes-athenz` cleans up the keys and certs and all Kubernetes resources within `athenz` namespace.

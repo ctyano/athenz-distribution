@@ -1,0 +1,112 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: keycloak
+
+configMapGenerator:
+  - name: keycloak-realm
+    files:
+      - realm.json
+
+resources:
+  - namespace.yaml
+
+helmCharts:
+  - name: keycloakx
+    # https://artifacthub.io/packages/helm/codecentric/keycloak
+    repo: https://codecentric.github.io/helm-charts
+    #version: 7.1.7
+    releaseName: keycloakx
+    namespace: keycloak
+    includeCRDs: true
+    # https://github.com/codecentric/helm-charts/blob/master/charts/keycloakx/values.yaml
+    valuesInline:
+
+      # 1. FIX: Change 'build' to 'start' so the server actually runs
+      command: ["/opt/keycloak/bin/kc.sh"]
+      args: ["start", "--http-enabled=true", "--hostname-strict=false", "--import-realm"]
+
+      # 2. FIX: Environment Variables to connect to your existing postgresql.yaml
+      extraEnv: |
+        - name: KC_DB
+          value: postgres
+        - name: KC_DB_URL
+          #value: jdbc:postgresql://postgresql.keycloak.svc.cluster.local:5432/postgres
+          value: jdbc:postgresql://127.0.0.1:5432/postgres
+        - name: KC_DB_USERNAME
+          value: postgres  # Matching POSTGRES_USER from postgresql.yaml
+        - name: KC_DB_PASSWORD
+          value: postgres  # Matching POSTGRES_PASSWORD from postgresql.yaml
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          value: admin
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          value: admin     # Change this immediately after logging in!
+        - name: KC_LOG_LEVEL
+          value: "INFO,org.keycloak.exportimport:DEBUG,org.keycloak.services:DEBUG"
+
+      # 3. FIX: Pi-Friendly Probes (Increase timeouts for slower ARM processors)
+      health:
+        livenessProbe:
+          initialDelaySeconds: 120
+          timeoutSeconds: 10
+        readinessProbe:
+          initialDelaySeconds: 60
+          timeoutSeconds: 10
+        startupProbe:
+          failureThreshold: 120
+          periodSeconds: 2
+
+      # 4. Mount the Secret as a file
+      extraVolumes: |
+        - name: postgresql
+          emptyDir: {}
+        - name: realm
+          configMap:
+            name: keycloak-realm
+      extraVolumeMounts: |
+        - name: realm
+          mountPath: /opt/keycloak/data/import/realm.json
+          subPath: realm.json
+          readOnly: true
+
+      # 5. Keep your Init Container (Keep your existing config here)
+      #extraInitContainers: |
+      #  - name: check-db-ready
+      #    image: docker.io/library/postgres:alpine
+      #    command: ['sh', '-c', 'until pg_isready -h postgresql.keycloak.svc.cluster.local -p 5432; do echo waiting for database; sleep 2; done;']
+
+      # 6. Add PostgreSQL inside the same pod
+      extraContainers: |
+        - name: postgresql
+          image: docker.io/library/postgres:alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: POSTGRES_USER
+              value: postgres # Database superuser
+            - name: POSTGRES_DB
+              value: postgres # Default database to use
+            - name: PGDATA
+              value: /var/lib/postgresql/data/db-files
+            - name: POSTGRES_PASSWORD
+              value: postgres
+          ports:
+            - name: postgresql
+              containerPort: 5432 # Standard PostgreSQL port
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: 1
+            requests:
+              memory: 256Mi
+              cpu: 250m
+          volumeMounts:
+            - name: postgresql
+              mountPath: /var/lib/postgresql/data
+

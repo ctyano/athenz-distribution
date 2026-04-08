@@ -25,7 +25,14 @@ helmCharts:
 
       # 1. FIX: Change 'build' to 'start' so the server actually runs
       command: ["/opt/keycloak/bin/kc.sh"]
-      args: ["start", "--http-enabled=true", "--hostname-strict=false", "--import-realm"]
+      args: ["start", "--http-enabled=true", "--hostname-strict=false", "--import-realm", "--health-enabled=true"]
+
+      # Keycloak (Quarkus) defaults to no "/auth" context path. The helm chart's default
+      # is "/auth", which also prefixes health probe endpoints and causes "/health/ready"
+      # to return 404. Set this to "/" so health endpoints are available at:
+      #   /health/live, /health/ready (on the management port).
+      http:
+        relativePath: /
 
       # 2. FIX: Environment Variables to connect to your existing postgresql.yaml
       extraEnv: |
@@ -109,4 +116,3 @@ helmCharts:
           volumeMounts:
             - name: postgresql
               mountPath: /var/lib/postgresql/data
-

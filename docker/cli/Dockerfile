@@ -16,33 +16,45 @@ RUN case ${TARGETPLATFORM} in \
             GOARCH=amd64 \
             go install github.com/AthenZ/athenz/utils/athenz-conf@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zms-cli@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zms-authhistory@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zms-domainattrs@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zts-idtoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zms-svctoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zpe-updater/cmd/tools@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-accesstoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-rolecert@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-roletoken@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zts-usercert@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-svccert@v${VERSION} \
               ;; \
          "linux/arm64" | "linux/arm64/v8")  \
             GOARCH=arm64 \
             go install github.com/AthenZ/athenz/utils/athenz-conf@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zms-cli@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zms-authhistory@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zms-domainattrs@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zts-idtoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zms-svctoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zpe-updater/cmd/tools@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-accesstoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-rolecert@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-roletoken@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zts-usercert@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-svccert@v${VERSION} \
               ;; \
          "linux/arm/v7")  \
             GOARCH=arm GOARM=7 \
             go install github.com/AthenZ/athenz/utils/athenz-conf@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zms-cli@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zms-authhistory@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zms-domainattrs@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zts-idtoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zms-svctoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zpe-updater/cmd/tools@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-accesstoken@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-rolecert@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-roletoken@v${VERSION} \
+            && go install github.com/AthenZ/athenz/utils/zts-usercert@v${VERSION} \
             && go install github.com/AthenZ/athenz/utils/zts-svccert@v${VERSION} \
              ;; \
     esac
@@ -82,11 +94,15 @@ COPY --from=builder /sbin/tini /sbin/tini
 
 COPY --from=builder /go/bin/athenz-conf /usr/bin/athenz-conf
 COPY --from=builder /go/bin/zms-cli /usr/bin/zms-cli
+COPY --from=builder /go/bin/zms-authhistory /usr/bin/zms-authhistory
+COPY --from=builder /go/bin/zms-domainattrs /usr/bin/zms-domainattrs
+COPY --from=builder /go/bin/zts-idtoken /usr/bin/zts-idtoken
 COPY --from=builder /go/bin/zms-svctoken /usr/bin/zms-svctoken
 COPY --from=builder /go/bin/tools /usr/bin/zpu
 COPY --from=builder /go/bin/zts-accesstoken /usr/bin/zts-accesstoken
 COPY --from=builder /go/bin/zts-rolecert /usr/bin/zts-rolecert
 COPY --from=builder /go/bin/zts-roletoken /usr/bin/zts-roletoken
+COPY --from=builder /go/bin/zts-usercert /usr/bin/zts-usercert
 COPY --from=builder /go/bin/zts-svccert /usr/bin/zts-svccert
 
 COPY --from=builder /go/bin/step /usr/bin/step

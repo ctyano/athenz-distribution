@@ -1,0 +1,89 @@
+{
+  "realm": "athenz",
+  "enabled": true,
+  "displayName": "Athenz Auth Realm",
+  "clients": [
+    {
+      "clientId": "athenz-user-cert",
+      "name": "Athenz User Certificate CLI",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "athenz-user-cert",
+      "redirectUris": [
+        "http://127.0.0.1:8080",
+        "urn:ietf:wg:oauth:2.0:oob"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "clientId": "realm-management",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "authorizationServicesEnabled": true,
+      "authorizationSettings": {
+        "allowRemoteResourceManagement": false,
+        "policyEnforcementMode": "ENFORCING",
+        "resources": [
+          {
+            "name": "token-exchange.client.athenz-user-cert",
+            "type": "Client",
+            "ownerManagedAccess": false,
+            "displayName": "Token Exchange Permission for athenz-user-cert",
+            "attributes": {},
+            "uris": [],
+            "scopes": [
+              {
+                "name": "token-exchange"
+              }
+            ]
+          }
+        ],
+        "policies": [
+          {
+            "name": "Allow athenz-user-cert to exchange",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"athenz-user-cert\"]"
+            }
+          },
+          {
+            "name": "Token Exchange Policy for athenz-user-cert",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "resources": "[\"token-exchange.client.athenz-user-cert\"]",
+              "scopes": "[\"token-exchange\"]",
+              "applyPolicies": "[\"Allow athenz-user-cert to exchange\"]"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "athenz_admin",
+      "email": "athenz_admin@athenz.io",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "credentialData": "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\"}",
+          "secretData": "{\"value\":\"AMgZGlKr3foLG8zh2w0ze9Tlt82CpNTLd1MGdmARwN0=\",\"salt\":\"u+004mmexanVgp3kjhUBZw==\"}"
+        }
+      ]
+    }
+  ]
+}

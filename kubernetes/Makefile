@@ -94,7 +94,8 @@ switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) overwrite-certificates-with-crypki
 
 kind-setup:
-	which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
+	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
+	which kind && (kind delete cluster ||:; kind create cluster)
 
 kind-load-images:
 	@# Check if Docker is using the problematic containerd-snapshotter
@@ -151,9 +152,11 @@ setup-athenz-oauth2:
 
 deploy-athenz-oauth2: setup-athenz-oauth2
 	@$(MAKE) -C athenz-oauth2 deploy-athenz-oauth2
+	@$(MAKE) -C keycloak deploy-keycloak
 
 test-athenz-oauth2:
 	@$(MAKE) -C athenz-oauth2 test-athenz-oauth2
+	@$(MAKE) -C keycloak test-keycloak
 
 kustomize-edit-athenz-db-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \

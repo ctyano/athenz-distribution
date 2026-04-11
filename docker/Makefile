@@ -255,6 +255,42 @@ zts-accesstoken \
 | jq -Rr 'split(".") | .[0,1] | @base64d' \
 | jq -r .
 
+test-zms-authhistory:
+	docker compose exec -T athenz-cli \
+zms-authhistory \
+	-zms https://athenz-zms-server:4443/zms/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
+	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
+	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
+	-domain sys.auth
+
+test-zms-domainattrs:
+	docker compose exec -T athenz-cli sh -c "echo sys.auth | tee /tmp/domains.txt"
+	docker compose exec -T athenz-cli \
+zms-domainattrs \
+	-zms https://athenz-zms-server:4443/zms/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
+	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
+	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
+	-domain-file /tmp/domains.txt
+
+test-zts-idtoken:
+	docker compose exec -T athenz-cli \
+zts-idtoken \
+	-zts https://athenz-zts-server:8443/zts/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
+	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
+	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem \
+	-domain sys.auth
+
+test-zts-usercert:
+	docker compose exec -T athenz-cli \
+zts-usercert \
+	-zts https://athenz-zts-server:8443/zts/v1 \
+	-svc-cacert-file /var/run/athenz/certs/ca.cert.pem \
+	-svc-key-file /var/run/athenz/keys/athenz_admin.private.pem \
+	-svc-cert-file /var/run/athenz/certs/athenz_admin.cert.pem
+
 test-jwks:
 	docker compose exec -T athenz-cli \
 curl \
@@ -314,4 +350,4 @@ test-athenz-servers: test-athenz-zms-server test-athenz-zts-server
 	@echo "*************************************"
 	@echo ""
 
-test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify
+test-athenz: test-athenz-servers test-zms-cli test-zms-authhistory test-zms-domainattrs test-athenz-ui test-zts-accesstoken test-policies test-verify

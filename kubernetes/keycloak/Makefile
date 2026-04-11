@@ -25,15 +25,15 @@ deploy-keycloak:
 test-keycloak:
 	@set -eux; \
 	command -v kubectl >/dev/null; \
-	command -v curl >/dev/null; \
-	echo ""; \
-	echo "***** Waiting for Keycloak pods (namespace=$(KEYCLOAK_NAMESPACE)) *****"; \
-	kubectl -n $(KEYCLOAK_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/instance=$(KEYCLOAK_RELEASE) --timeout="$(KEYCLOAK_WAIT_TIMEOUT)"; \
+	command -v curl >/dev/null;
+	@echo "";
+	@echo "***** Waiting for Keycloak pods (namespace=$(KEYCLOAK_NAMESPACE)) *****";
+	kubectl -n $(KEYCLOAK_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/instance=$(KEYCLOAK_RELEASE) --timeout="$(KEYCLOAK_WAIT_TIMEOUT)";
 	@echo ""
 	@echo "***** Port-forwarding statefulset/keycloakx (keycloak $(KEYCLOAK_PORT)) -> localhost:$(KEYCLOAK_LOCAL_PORT) *****"
 	timeout -k 0 30 kubectl -n $(KEYCLOAK_NAMESPACE) port-forward statefulset/keycloakx $(KEYCLOAK_LOCAL_PORT):$(KEYCLOAK_PORT) &
 	timeout -k 0 30 kubectl -n $(KEYCLOAK_NAMESPACE) port-forward statefulset/keycloakx $(KEYCLOAK_LOCAL_MGMT_PORT):$(KEYCLOAK_MGMT_PORT) &
-	@set -exu; \
+	@set -eux; \
 	i=0; \
 	while true; do \
 		status="$$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$(KEYCLOAK_LOCAL_MGMT_PORT)$(KEYCLOAK_HEALTH_PATH)" || true)"; \

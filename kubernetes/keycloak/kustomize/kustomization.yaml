@@ -9,6 +9,14 @@ configMapGenerator:
     files:
       - realm.json
 
+secretGenerator:
+  - name: keycloak-db-password
+    literals:
+      - password=postgres
+  - name: keycloak-admin-password
+    literals:
+      - password=admin
+
 resources:
   - namespace.yaml
 
@@ -44,11 +52,17 @@ helmCharts:
         - name: KC_DB_USERNAME
           value: postgres  # Matching POSTGRES_USER from postgresql.yaml
         - name: KC_DB_PASSWORD
-          value: postgres  # Matching POSTGRES_PASSWORD from postgresql.yaml
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-db-password
+              key: password
         - name: KC_BOOTSTRAP_ADMIN_USERNAME
           value: admin
         - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-          value: admin     # Change this immediately after logging in!
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-admin-password
+              key: password
         - name: KC_LOG_LEVEL
           value: "INFO,org.keycloak.exportimport:DEBUG,org.keycloak.services:DEBUG"
 
@@ -98,7 +112,10 @@ helmCharts:
             - name: PGDATA
               value: /var/lib/postgresql/data/db-files
             - name: POSTGRES_PASSWORD
-              value: postgres
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-password
+                  key: password
           ports:
             - name: postgresql
               containerPort: 5432 # Standard PostgreSQL port

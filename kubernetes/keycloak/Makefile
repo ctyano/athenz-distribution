@@ -27,22 +27,10 @@ test-keycloak:
 	command -v kubectl >/dev/null; \
 	command -v curl >/dev/null; \
 	echo ""; \
-	echo "***** Waiting for Keycloak rollout (namespace=$(KEYCLOAK_NAMESPACE)) *****"; \
-	workloads="$$(kubectl -n $(KEYCLOAK_NAMESPACE) get deploy,statefulset -l app.kubernetes.io/instance=$(KEYCLOAK_RELEASE) -o name 2>/dev/null || true)"; \
-	if [ -z "$$workloads" ]; then \
-		workloads="$$(kubectl -n $(KEYCLOAK_NAMESPACE) get deploy,statefulset -o name 2>/dev/null | grep -E '/keycloak(x)?$$' || true)"; \
-	fi; \
-	if [ -z "$$workloads" ]; then \
-		echo "No Keycloak workload found in namespace $(KEYCLOAK_NAMESPACE)."; \
-		kubectl -n $(KEYCLOAK_NAMESPACE) get all || true; \
-		exit 1; \
-	fi; \
-	for w in $$workloads; do \
-		echo "Waiting for $$w..."; \
-		kubectl -n $(KEYCLOAK_NAMESPACE) rollout status "$$w" --timeout="$(KEYCLOAK_WAIT_TIMEOUT)"; \
-	done; \
-	echo "";
-	echo "***** Port-forwarding statefulset/keycloak (keycloak $(KEYCLOAK_PORT)) -> localhost:$(KEYCLOAK_LOCAL_PORT) *****"
+	echo "***** Waiting for Keycloak pods (namespace=$(KEYCLOAK_NAMESPACE)) *****"; \
+	kubectl -n $(KEYCLOAK_NAMESPACE) wait --for=condition=ready pod -l app.kubernetes.io/instance=$(KEYCLOAK_RELEASE) --timeout="$(KEYCLOAK_WAIT_TIMEOUT)"; \
+	@echo ""
+	@echo "***** Port-forwarding statefulset/keycloakx (keycloak $(KEYCLOAK_PORT)) -> localhost:$(KEYCLOAK_LOCAL_PORT) *****"
 	timeout -k 0 30 kubectl -n $(KEYCLOAK_NAMESPACE) port-forward statefulset/keycloakx $(KEYCLOAK_LOCAL_PORT):$(KEYCLOAK_PORT) &
 	timeout -k 0 30 kubectl -n $(KEYCLOAK_NAMESPACE) port-forward statefulset/keycloakx $(KEYCLOAK_LOCAL_MGMT_PORT):$(KEYCLOAK_MGMT_PORT) &
 	@set -exu; \
@@ -66,7 +54,7 @@ test-keycloak:
 		printf "Waiting for Keycloak health... (%ss/%ss)\n" "$$(( $$i * $(KEYCLOAK_HEALTH_SLEEP_SECONDS) ))" "$$(( $(KEYCLOAK_HEALTH_RETRIES) * $(KEYCLOAK_HEALTH_SLEEP_SECONDS) ))"; \
 		sleep "$(KEYCLOAK_HEALTH_SLEEP_SECONDS)"; \
 	done; \
-	kubectl -n keycloak get all
+	kubectl -n $(KEYCLOAK_NAMESPACE) get all
 	@echo ""
 	@echo "**************************************"
 	@echo "** Keycloak provisioning successful **"

@@ -9,6 +9,8 @@ KEYCLOAK_RELEASE ?= keycloakx
 KEYCLOAK_SERVICE ?= keycloakx-http
 KEYCLOAK_LOCAL_PORT ?= 18080
 KEYCLOAK_PORT ?= 8080
+KEYCLOAK_LOCAL_MGMT_PORT ?= 19000
+KEYCLOAK_MGMT_PORT ?= 9000
 KEYCLOAK_WAIT_TIMEOUT ?= 1m
 KEYCLOAK_HEALTH_PATH ?= /health/ready
 KEYCLOAK_HEALTH_RETRIES ?= 12
@@ -21,7 +23,7 @@ deploy-keycloak:
 	kustomize build --enable-helm ./kustomize | kubectl apply -f -
 
 test-keycloak:
-	@set -eu; \
+	@set -eux; \
 	command -v kubectl >/dev/null; \
 	command -v curl >/dev/null; \
 	echo ""; \
@@ -42,10 +44,11 @@ test-keycloak:
 	echo "";
 	echo "***** Port-forwarding statefulset/keycloak (keycloak $(KEYCLOAK_PORT)) -> localhost:$(KEYCLOAK_LOCAL_PORT) *****"
 	timeout -k 0 30 kubectl -n $(KEYCLOAK_NAMESPACE) port-forward statefulset/keycloakx $(KEYCLOAK_LOCAL_PORT):$(KEYCLOAK_PORT) &
+	timeout -k 0 30 kubectl -n $(KEYCLOAK_NAMESPACE) port-forward statefulset/keycloakx $(KEYCLOAK_LOCAL_MGMT_PORT):$(KEYCLOAK_MGMT_PORT) &
 	@set -exu; \
 	i=0; \
 	while true; do \
-		status="$$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$(KEYCLOAK_LOCAL_PORT)$(KEYCLOAK_HEALTH_PATH)" || true)"; \
+		status="$$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$(KEYCLOAK_LOCAL_MGMT_PORT)$(KEYCLOAK_HEALTH_PATH)" || true)"; \
 		if [ "$$status" = "200" ]; then \
 			break; \
 		fi; \

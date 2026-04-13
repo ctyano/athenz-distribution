@@ -6,7 +6,10 @@ namespace: crypki
 resources:
 - deployment.yaml
 - namespace.yaml
+- role.yaml
+- rolebinding.yaml
 - service.yaml
+- serviceaccount.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

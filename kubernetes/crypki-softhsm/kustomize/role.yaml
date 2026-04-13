@@ -1,0 +1,27 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crypki-softhsm
+rules:
+  # Rule 1: Allow creating secrets.
+  # Note: "create" cannot be restricted by resourceNames in RBAC.
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+  # Rule 2: Allow updating ONLY the specific secret "crypki-ca".
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - crypki-ca
+      - crypki-client
+    verbs:
+      - update
+      # You often need 'get' to verify it exists or see current state, 
+      # but strict 'update' (PUT) works if you just overwrite.
+      - get

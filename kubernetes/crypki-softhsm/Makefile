@@ -9,9 +9,9 @@ generate-ca:
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
-			--cert /opt/crypki/tls-crt/client.crt \
-			--key /opt/crypki/tls-crt/client.key \
-			--cacert /opt/crypki/tls-crt/ca.crt \
+			--cert /opt/crypki/tls/client.cert.pem \
+			--key /opt/crypki/tls/client.key.pem \
+			--cacert /opt/crypki/tls/ca.cert.pem \
 			-s \
 			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
 			| jq -r .cert \
@@ -23,9 +23,9 @@ generate-zms: generate-ca
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
-			--cert /opt/crypki/tls-crt/client.crt \
-			--key /opt/crypki/tls-crt/client.key \
-			--cacert /opt/crypki/tls-crt/ca.crt \
+			--cert /opt/crypki/tls/client.cert.pem \
+			--key /opt/crypki/tls/client.key.pem \
+			--cacert /opt/crypki/tls/ca.cert.pem \
 			-sXPOST \
 			-H'Content-Type:application/json' \
 			-d "{ \
@@ -45,9 +45,9 @@ generate-zts: generate-zms
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
-			--cert /opt/crypki/tls-crt/client.crt \
-			--key /opt/crypki/tls-crt/client.key \
-			--cacert /opt/crypki/tls-crt/ca.crt \
+			--cert /opt/crypki/tls/client.cert.pem \
+			--key /opt/crypki/tls/client.key.pem \
+			--cacert /opt/crypki/tls/ca.cert.pem \
 			-sXPOST \
 			-H'Content-Type:application/json' \
 			-d "{ \
@@ -67,9 +67,9 @@ generate-admin: generate-ca
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
-			--cert /opt/crypki/tls-crt/client.crt \
-			--key /opt/crypki/tls-crt/client.key \
-			--cacert /opt/crypki/tls-crt/ca.crt \
+			--cert /opt/crypki/tls/client.cert.pem \
+			--key /opt/crypki/tls/client.key.pem \
+			--cacert /opt/crypki/tls/ca.cert.pem \
 			-sXPOST \
 			-H'Content-Type:application/json' \
 			-d "{ \
@@ -89,9 +89,9 @@ generate-ui: generate-ca
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
-			--cert /opt/crypki/tls-crt/client.crt \
-			--key /opt/crypki/tls-crt/client.key \
-			--cacert /opt/crypki/tls-crt/ca.crt \
+			--cert /opt/crypki/tls/client.cert.pem \
+			--key /opt/crypki/tls/client.key.pem \
+			--cacert /opt/crypki/tls/ca.cert.pem \
 			-sXPOST \
 			-H'Content-Type:application/json' \
 			-d "{ \
@@ -111,9 +111,9 @@ generate-crypki: generate-ca
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
-			--cert /opt/crypki/tls-crt/client.crt \
-			--key /opt/crypki/tls-crt/client.key \
-			--cacert /opt/crypki/tls-crt/ca.crt \
+			--cert /opt/crypki/tls/client.cert.pem \
+			--key /opt/crypki/tls/client.key.pem \
+			--cacert /opt/crypki/tls/ca.cert.pem \
 			-sXPOST \
 			-H'Content-Type:application/json' \
 			-d "{ \
@@ -170,11 +170,11 @@ while true; do \
 			-s \
 			--fail \
 			--cert \
-			/opt/crypki/tls-crt/client.crt \
+			/opt/crypki/tls/client.cert.pem \
 			--key \
-			/opt/crypki/tls-crt/client.key \
+			/opt/crypki/tls/client.key.pem \
 			--cacert \
-			/opt/crypki/tls-crt/ca.crt \
+			/opt/crypki/tls/ca.cert.pem \
 			--resolve \
 			localhost:4443:127.0.0.1 \
 			https://localhost:4443/ruok \

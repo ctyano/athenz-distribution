@@ -1,0 +1,17 @@
+{{- if .Values.components.zms }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "athenz-stack.zms.fullname" . }}
+  labels:
+    {{- include "athenz-stack.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.zms.service.type }}
+  ports:
+    - name: https
+      port: {{ .Values.zms.service.port }}
+      targetPort: {{ .Values.zms.port }}
+  selector:
+    app.kubernetes.io/name: {{ include "athenz-stack.zms.fullname" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

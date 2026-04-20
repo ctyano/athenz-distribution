@@ -387,3 +387,9 @@ docker exec -it athenz-cli \
     "
 ```
 
+### Retrieving User Certificate
+
+The docker-compose setup in this repository does not include an OIDC provider like `dex` or `keycloak`.
+Therefore, `zts-usercert` cannot be used in this environment.
+Please refer to the Kubernetes CLI instructions for `zts-usercert` usage.
+

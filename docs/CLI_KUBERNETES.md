@@ -352,3 +352,43 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
     && printf "\nValid Policy\n" || printf "\nInvalid Policy\n"
 ```
 
+### Retrieving User Certificate
+
+You can retrieve a user certificate for mutual TLS authentication with `zts-usercert` using the pre-installed CLI in the `athenz-cli` deployment.
+This requires an OIDC provider like `dex` or `keycloak` to be set up.
+
+#### With Dex
+
+Run the `zts-usercert` command inside the `athenz-cli` container.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-usercert \
+    -zts-url https://athenz-zts-server.athenz:4443 \
+    -oidc-issuer http://oauth2.athenz:5556/dex \
+    -oidc-client-id athenz-user-cert \
+    -oidc-client-secret athenz-user-cert \
+    -ca-cert /var/run/athenz/athenz_admin.cert.pem \
+    -cert-file /tmp/user.cert.pem \
+    -key-file /tmp/user.key.pem \
+    -ca-cert-file /tmp/ca.cert.pem
+```
+
+#### With Keycloak
+
+Run the `zts-usercert` command inside the `athenz-cli` container.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-usercert \
+    -zts-url https://athenz-zts-server.athenz:4443 \
+    -oidc-issuer http://keycloakx-http.keycloak:80/auth/realms/athenz \
+    -oidc-client-id athenz-user-cert \
+    -oidc-client-secret athenz-user-cert \
+    -ca-cert /var/run/athenz/athenz_admin.cert.pem \
+    -cert-file /tmp/user.cert.pem \
+    -key-file /tmp/user.key.pem \
+    -ca-cert-file /tmp/ca.cert.pem
+```
+
+

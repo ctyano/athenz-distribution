@@ -399,6 +399,8 @@ load-docker-images-external:
 	docker pull docker.io/openpolicyagent/opa:0.66.0-static
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/tatyano/authorization-proxy:latest
+	docker pull quay.io/keycloak/keycloak:26.5.5
+	docker pull docker.io/library/postgres:alpine
 
 deploy-kubernetes-in-docker:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup

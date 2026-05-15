@@ -131,6 +131,8 @@ kind-load-images:
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/openpolicyagent/opa:0.66.0-static \
 		docker.io/portainer/kubectl-shell:latest \
+		quay.io/keycloak/keycloak:26.5.5 \
+		docker.io/library/postgres:alpine \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY)docker-vegeta:latest \
 		docker.io/tatyano/authorization-proxy:latest

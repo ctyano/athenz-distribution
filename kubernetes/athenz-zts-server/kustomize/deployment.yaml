@@ -131,7 +131,33 @@ spec:
                 -z ${ZMS} \
                 -d sys.auth \
                 set-domain-template instance_provider dnssuffix=zts.athenz.cloud provider=sys.auth.zts \
-              )
+              ) \
+              && \
+              ( \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                show-service ztsusercert \
+              || \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                add-service ztsusercert "${HOSTNAME}" /athenz/zts/zts.public.pem \
+              ) \
+              && \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                set-service-endpoint ztsusercert class://com.yahoo.athenz.instance.provider.impl.UserCertificateProvider
           resources:
             limits:
               memory: 32Mi

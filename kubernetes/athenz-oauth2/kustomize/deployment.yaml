@@ -54,6 +54,9 @@ spec:
             - name: envoy
               containerPort: 10000
               protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
           volumeMounts:
             - name: envoy-config
               mountPath: /etc/envoy/envoy.yaml

@@ -1,0 +1,15 @@
+---
+# SDS Configuration to watch X.509 Certificate changes
+# This example shows how to set up xDS connection by sourcing SDS configuration from the filesystem.
+# The certificate and key files are watched with inotify and reloaded automatically without restart.
+# See: https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret.html?highlight=inotify#example-three-certificate-rotation-for-xds-grpc-connection
+resources:
+  - "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
+    name: identity_sds
+    tls_certificate:
+      certificate_chain:
+        filename: /var/run/athenz/tls.crt
+      private_key:
+        filename: /var/run/athenz/tls.key
+      watched_directory:
+        path: /var/run/athenz

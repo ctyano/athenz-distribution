@@ -49,6 +49,20 @@ jobs:
       statuses: none
 
     steps:
+      # This action maximizes the available disk space on public shared GitHub runners.
+      # It needs to run before checkout because it remounts the workspace path.
+      -
+        name: Maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: '30720'
+          temp-reserve-mb: '1024'
+          swap-size-mb: '8192'
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
       # A GitHub Action to expose useful environment variables.
       # https://github.com/FranzDiebold/github-env-vars-action
       -
@@ -344,4 +358,3 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
-

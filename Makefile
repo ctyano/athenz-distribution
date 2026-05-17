@@ -369,7 +369,14 @@ generate-crypki: generate-ca
 	openssl x509 -req -in certs/crypki.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/crypki.cert.pem -days 99999 -extfile openssl/crypki.openssl.config -extensions ext_req
 	openssl verify -CAfile certs/ca.cert.pem certs/crypki.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki
+generate-idp: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out keys/idp.private.pem 4096
+	openssl req -config openssl/idp.openssl.config -new -key keys/idp.private.pem -out certs/idp.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/idp.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/idp.cert.pem -days 99999 -extfile openssl/idp.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/idp.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki generate-idp
 
 clean-kubernetes-athenz: clean-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean

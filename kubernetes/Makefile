@@ -22,6 +22,7 @@ clean-certificates:
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
 	rm -rf crypki-softhsm/kustomize/{keys,certs}
+	rm -rf athenz-oauth2/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -33,6 +34,9 @@ clean: clean-namespace clean-certificates
 
 copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
+
+copy-oauth2-certificates-to-kustomization:
+	cp -r ../keys ../certs athenz-oauth2/kustomize/
 
 copy-certificates-to-kustomization:
 	grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && echo SKIPPED || \
@@ -48,6 +52,7 @@ copy-certificates-to-kustomization:
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/ && \
 	cp -r ../keys ../certs athenz-client/kustomize/ && \
 	cp -r ../keys ../certs crypki-softhsm/kustomize/ && \
+	cp -r ../keys ../certs athenz-oauth2/kustomize/ && \
 	echo "APPLIED copy-certificates-to-kustomization" \
 	)
 
@@ -57,6 +62,7 @@ overwrite-certificates-with-crypki:
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-zts-server/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-ui/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-identityprovider/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-oauth2/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authorizer/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzenvoy/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzwebhook/kustomize/
@@ -152,7 +158,7 @@ test-crypki-softhsm:
 setup-athenz-oauth2:
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2
 
-deploy-athenz-oauth2: setup-athenz-oauth2
+deploy-athenz-oauth2: copy-oauth2-certificates-to-kustomization setup-athenz-oauth2
 	@$(MAKE) -C athenz-oauth2 deploy-athenz-oauth2
 	@$(MAKE) -C keycloak deploy-keycloak
 

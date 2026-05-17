@@ -16,6 +16,20 @@ spec:
         app: oauth2-deployment
     spec:
       volumes:
+        - name: athenz-idp-keys
+          secret:
+            secretName: athenz-idp-keys
+            defaultMode: 0555
+            items:
+              - key: idp.private.pem
+                path: idp.private.pem
+        - name: athenz-idp-certs
+          secret:
+            secretName: athenz-idp-certs
+            defaultMode: 0555
+            items:
+              - key: idp.cert.pem
+                path: idp.cert.pem
         - name: dex-config
           configMap:
             name: dex-config
@@ -30,10 +44,19 @@ spec:
             - name: dex
               containerPort: 5556
               protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
           volumeMounts:
             - name: dex-config
               mountPath: /etc/dex/config.docker.yaml
               subPath: config.docker.yaml
+            - name: athenz-idp-keys
+              mountPath: /opt/athenz/dex/keys
+              readOnly: true
+            - name: athenz-idp-certs
+              mountPath: /opt/athenz/dex/certs
+              readOnly: true
           resources:
             limits:
               memory: 512Mi
@@ -53,9 +76,6 @@ spec:
           ports:
             - name: envoy
               containerPort: 10000
-              protocol: TCP
-            - name: https
-              containerPort: 443
               protocol: TCP
           volumeMounts:
             - name: envoy-config

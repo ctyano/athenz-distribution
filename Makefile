@@ -421,12 +421,14 @@ deploy-kubernetes-crypki-softhsm: generate-certificates
 test-kubernetes-crypki-softhsm:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-crypki-softhsm
 
-use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm deploy-kubernetes-athenz-oauth2
+use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
 
-deploy-kubernetes-athenz-oauth2:
+deploy-kubernetes-athenz-oauth2: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
 
 test-kubernetes-athenz-oauth2:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2

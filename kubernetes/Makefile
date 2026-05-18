@@ -35,9 +35,6 @@ clean: clean-namespace clean-certificates
 copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
 
-copy-oauth2-certificates-to-kustomization:
-	cp -r ../keys ../certs athenz-oauth2/kustomize/
-
 copy-certificates-to-kustomization:
 	grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && echo SKIPPED || \
 	( \
@@ -158,7 +155,7 @@ test-crypki-softhsm:
 setup-athenz-oauth2:
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2
 
-deploy-athenz-oauth2: copy-oauth2-certificates-to-kustomization setup-athenz-oauth2
+deploy-athenz-oauth2: setup-athenz-oauth2
 	@$(MAKE) -C athenz-oauth2 deploy-athenz-oauth2
 	@$(MAKE) -C keycloak deploy-keycloak
 

@@ -49,20 +49,6 @@ jobs:
       statuses: none
 
     steps:
-      # This action frees root disk space directly on GitHub-hosted Ubuntu runners.
-      # That is a better fit for Docker/KinD-heavy jobs than only enlarging the workspace.
-      -
-        name: Free disk space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       # A GitHub Action to expose useful environment variables.
       # https://github.com/FranzDiebold/github-env-vars-action
       -
@@ -202,31 +188,6 @@ jobs:
           java-version: '17'
           #cache: maven
 
-      # A GitHub Action to build Docker container images
-      -
-        name: Build Docker container images
-        id: build
-        run: |
-          set -ex
-          VERSION=${VERSION} make build
-
-      # Reclaim intermediate Docker build cache before pulling the external images.
-      -
-        name: Reclaim Docker build cache
-        run: |
-          set -ex
-          docker system df
-          docker builder prune -af
-          docker system df
-
-      # A GitHub Action to pull container images
-      -
-        name: Pull container images
-        id: pull
-        run: |
-          set -ex
-          make load-docker-images-external
-
       # A GitHub Action for Kubernetes IN Docker
       # https://github.com/helm/kind-action
       -
@@ -238,6 +199,22 @@ jobs:
         with:
           cluster_name: kind
 
+      # A GitHub Action to build Docker container images
+      -
+        name: Build Docker container images
+        id: build
+        run: |
+          set -ex
+          VERSION=${VERSION} make build
+
+      # A GitHub Action to pull container images
+      -
+        name: Pull container images
+        id: pull
+        run: |
+          set -ex
+          make load-docker-images-external
+
       # A GitHub Action to load container images to KinD cluster
       -
         name: Load container images to KinD cluster
@@ -246,17 +223,6 @@ jobs:
           set -ex
           df -h
           make load-kubernetes-images
-
-      # Once the images are loaded into KinD, the local Docker copies are no longer needed.
-      -
-        name: Reclaim local Docker images
-        run: |
-          set -ex
-          docker system df
-          docker image prune -af
-          docker builder prune -af
-          docker system df
-          df -h
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
@@ -401,3 +367,4 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
+

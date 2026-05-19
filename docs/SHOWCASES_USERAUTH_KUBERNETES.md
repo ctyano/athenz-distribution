@@ -54,19 +54,19 @@ make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-cry
 
 ### How to install CLI
 
-You may retrieve Athenz-compatible user certificate with `athenz_user_cert` command line utility.
+You may retrieve Athenz-compatible user certificate with `athenzusercert` command line utility.
 
 ```
-brew tap ctyano/athenz_user_cert https://github.com/ctyano/athenz_user_cert
+brew tap ctyano/athenz-user-cert https://github.com/ctyano/athenz-user-cert
 ```
 
 ```
-brew install ctyano/athenz_user_cert/athenz_user_cert
+brew install ctyano/athenz-user-cert/athenz-user-cert
 ```
 
 ### How to run CLI
 
-To run `athenz_user_cert`, you must forward requests to `dex` and `certsigner-envoy`.
+To run `athenzusercert`, you must forward requests to `dex` and `certsigner-envoy`.
 
 ```
 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 10000:10000
@@ -75,6 +75,6 @@ kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 10000:1000
 After forwarding the ports, you can simply run:
 
 ```
-athenz_user_cert
+athenzusercert
 ```
 

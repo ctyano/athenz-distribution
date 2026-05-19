@@ -82,7 +82,7 @@ spec:
               mountPath: /etc/envoy/envoy.yaml
               subPath: envoy.yaml
         - name: athenz-user-cert
-          image: ghcr.io/ctyano/athenz_user_cert:latest
+          image: ghcr.io/ctyano/athenz-user-cert:latest
           imagePullPolicy: IfNotPresent
           command:
             - tail

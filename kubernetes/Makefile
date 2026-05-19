@@ -118,7 +118,7 @@ kind-load-images:
 		docker.io/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY)certsigner-envoy:latest \
-		$(DOCKER_REGISTRY)athenz_user_cert:latest \
+		$(DOCKER_REGISTRY)athenz-user-cert:latest \
 		$(DOCKER_REGISTRY)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \

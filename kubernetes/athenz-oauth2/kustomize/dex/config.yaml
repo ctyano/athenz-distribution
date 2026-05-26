@@ -9,6 +9,10 @@ web:
   tlsKey: /opt/athenz/dex/keys/idp.private.pem
   tlsCert: /opt/athenz/dex/certs/idp.cert.pem
 oauth2:
+  grantTypes:
+    - authorization_code
+    - refresh_token
+    - password
   passwordConnector: local
   responseTypes:
     - code

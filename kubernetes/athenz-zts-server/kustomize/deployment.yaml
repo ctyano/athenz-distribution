@@ -157,7 +157,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
                 -d sys.auth \
-                set-service-endpoint ztsusercert class://com.yahoo.athenz.instance.provider.impl.UserCertificateProvider
+                set-service-endpoint ztsusercert class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider
           resources:
             limits:
               memory: 32Mi

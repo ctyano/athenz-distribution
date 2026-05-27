@@ -62,8 +62,14 @@ while true; do \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c dex -- \
 	    nc -vz 127.0.0.1 10000 \
 	&& \
-	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert  -- \
-		athenzusercert test \
+	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert -- \
+		/bin/sh -c " \
+			echo -n password | athenzusercert \
+			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
+			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
+			-oidc-user athenz_admin@athenz.io \
+			-oidc-password-stdin \
+		" \
 	) \
 	&& break \
 	|| echo "Waiting for Dex Identity Provider and Envoy CertSigner Proxy..."; \

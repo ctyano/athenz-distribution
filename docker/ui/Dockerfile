@@ -1,5 +1,5 @@
-ARG BUILDER_IMAGE=docker.io/library/node:hydrogen-alpine
-ARG RUNTIME_IMAGE=docker.io/library/node:hydrogen-alpine
+ARG BUILDER_IMAGE=docker.io/library/node:lts-alpine
+ARG RUNTIME_IMAGE=docker.io/library/node:lts-alpine
 
 FROM ${BUILDER_IMAGE} AS builder
 

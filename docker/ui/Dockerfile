@@ -108,4 +108,4 @@ ENV PORT='443'
 ENV DEBUG=''
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "--trace-atomics-wait", "app.js"]
+CMD ["node", "app.js"]

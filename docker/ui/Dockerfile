@@ -1,5 +1,7 @@
-ARG BUILDER_IMAGE=docker.io/library/node:hydrogen-alpine
-ARG RUNTIME_IMAGE=docker.io/library/node:hydrogen-alpine
+ARG BUILDER_IMAGE=default-node-base
+ARG RUNTIME_IMAGE=default-node-base
+
+FROM docker.io/library/node:24-alpine AS default-node-base
 
 FROM ${BUILDER_IMAGE} AS builder
 
@@ -106,4 +108,4 @@ ENV PORT='443'
 ENV DEBUG=''
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "--trace-atomics-wait", "app.js"]
+CMD ["node", "app.js"]

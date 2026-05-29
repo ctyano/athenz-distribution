@@ -7,7 +7,12 @@ ARG VCS_REF
 ARG GID=1001
 ARG UID=10001
 
-FROM docker.io/library/openjdk:26-rc-slim-bookworm AS builder
+ARG BUILDER_IMAGE=default-jdk-base
+ARG RUNTIME_IMAGE=default-jdk-base
+
+FROM docker.io/library/openjdk:26-rc-slim-bookworm AS default-jdk-base
+
+FROM ${BUILDER_IMAGE} AS builder
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'
@@ -28,7 +33,7 @@ RUN tar xvzf ./athenz-zts-${VERSION}-bin.tar.gz -C /tmp \
     && mv /tmp/athenz-zts-${VERSION}*/* /opt/athenz/zts/ \
     && rm -f ./athenz-zts-${VERSION}-bin.tar.gz
 
-FROM docker.io/library/openjdk:26-rc-slim-bookworm
+FROM ${RUNTIME_IMAGE}
 
 ARG VERSION=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'

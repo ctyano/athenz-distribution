@@ -140,7 +140,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
                 -d sys.auth \
-                show-service ztsusercert \
+                show-service usercertprovider \
               || \
               zms-cli \
                 -key /athenz/admin/${USER}.private.pem \
@@ -148,7 +148,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
                 -d sys.auth \
-                add-service ztsusercert "${HOSTNAME}" /athenz/zts/zts.public.pem \
+                add-service usercertprovider "${HOSTNAME}" /athenz/zts/zts.public.pem \
               ) \
               && \
               zms-cli \
@@ -157,7 +157,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
                 -d sys.auth \
-                set-service-endpoint ztsusercert class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider
+                set-service-endpoint usercertprovider class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider
           resources:
             limits:
               memory: 32Mi

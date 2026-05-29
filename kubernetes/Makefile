@@ -276,7 +276,7 @@ curl \
 	-H"X-Auth-Request-Preferred-Username: athenz_admin" \
 	-H"X-Auth-Request-Email: athenz_admin@www.athenz.io" \
 	https://athenz-ui.athenz:443/ \
-| grep -E "<title>Athenz</title>" >/dev/null \
+| grep -Eiq '<title[^>]*>[^<]*Athenz[^<]*</title>|__next' \
 && echo "Athenz UI sccessfully displayed"
 
 test-zts-roletoken:

@@ -218,7 +218,7 @@ curl \
 	--cacert /home/athenz/tls/ca.cert.pem \
 	--resolve athenz-ui:443:127.0.0.1 \
 	https://athenz-ui:443/ \
-| grep -Eiq '<title[^>]*>[^<]*Athenz[^<]*</title>|__next' \
+| grep -Eiq '<title[^>]*>[^<]*Athenz[^<]*</title>' \
 && echo "Athenz UI sccessfully displayed"
 
 test-zms-cli:

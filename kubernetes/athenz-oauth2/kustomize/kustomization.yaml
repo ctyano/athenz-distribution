@@ -12,6 +12,20 @@ resources:
 generatorOptions:
   disableNameSuffixHash: true
 
+secretGenerator:
+- files:
+  - idp.private.pem=keys/idp.private.pem
+  name: athenz-idp-keys
+  type: Opaque
+- files:
+  - idp.cert.pem=certs/idp.cert.pem
+  name: athenz-idp-certs
+  type: Opaque
+- files:
+  - ca.cert.pem=certs/ca.cert.pem
+  name: athenz-cacert
+  type: Opaque
+
 configMapGenerator:
   - name: dex-config
     files:

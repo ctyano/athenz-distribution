@@ -24,7 +24,7 @@ Primary Docker(OCI) image distributions:
 
 External Docker(OCI) image distributions:
 
-  - [athenz_user_cert](https://github.com/users/ctyano/packages/container/package/athenz_user_cert)
+  - [athenz-user-cert](https://github.com/users/ctyano/packages/container/package/athenz-user-cert)
     - This image includes a CLI to interact with [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy) to retrieve certificates for Athenz user authentication.
   - [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy)
     - This image includes the Envoy proxy and a Wasm plugin to provide a user authentication mechanism to control access to the CertSigner server, such as [crypki](https://github.com/theparanoids/crypki) or [cfssl](https://github.com/cfssl/cfssl).
@@ -54,7 +54,7 @@ Third-party Docker(OCI) images:
 
 ## Homebrew formulas
 
-  - [athenz_user_cert](https://github.com/ctyano/athenz_user_cert)
+  - [athenz-user-cert](https://github.com/ctyano/athenz-user-cert)
     - This formula includes a CLI to interact with [certsigner-envoy](https://github.com/users/ctyano/packages/container/package/certsigner-envoy) to retrieve certificates for Athenz user authentication.
 
 ## Linux packages (Under development)

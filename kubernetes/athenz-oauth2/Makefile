@@ -5,22 +5,22 @@ endif
 clean-athenz-oauth2:
 	kubectl delete -k kustomize
 
-setup-athenz-oauth2: install-athenz_user_cert
+setup-athenz-oauth2: install-athenz-user-cert
 
-install-athenz_user_cert: install-brew
+install-athenz-user-cert: install-brew
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which athenz_user_cert \
+		which athenzusercert \
 		|| ( \
-		brew tap ctyano/athenz_user_cert https://github.com/ctyano/athenz_user_cert \
-		&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz_user_cert/athenz_user_cert \
+		brew tap ctyano/athenz-user-cert https://github.com/ctyano/athenz-user-cert \
+		&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz-user-cert/athenz-user-cert \
 		) \
 	fi
 
-uninstall-athenz_user_cert:
-	which athenz_user_cert \
+uninstall-athenz-user-cert:
+	which athenzusercert \
 	&& ( \
-	brew uninstall athenz_user_cert \
-	&& brew untap ctyano/athenz_user_cert \
+	brew uninstall athenz-user-cert \
+	&& brew untap ctyano/athenz-user-cert \
 	)
 
 install-brew:
@@ -32,7 +32,7 @@ install-brew:
 
 check-setup-athenz-oauth2:
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which athenz_user_cert; \
+		which athenzusercert; \
 	fi
 	@echo ""
 	@echo "**************************************"
@@ -62,8 +62,14 @@ while true; do \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c dex -- \
 	    nc -vz 127.0.0.1 10000 \
 	&& \
-	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert  -- \
-		athenz_user_cert test \
+	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert -- \
+		/bin/sh -c " \
+			echo -n password | athenzusercert \
+			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
+			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
+			-oidc-user athenz_admin@athenz.io \
+			-oidc-password-stdin \
+		" \
 	) \
 	&& break \
 	|| echo "Waiting for Dex Identity Provider and Envoy CertSigner Proxy..."; \

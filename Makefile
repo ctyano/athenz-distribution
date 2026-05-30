@@ -159,7 +159,7 @@ mirror-athenz-amd64-images:
 	IMAGE=athenz-plugins; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=crypki-softhsm; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
-	IMAGE=athenz_user_cert; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
+	IMAGE=athenz-user-cert; docker pull --platform linux/amd64 ghcr.io/ctyano/$$IMAGE:latest && docker tag ghcr.io/ctyano/$$IMAGE:latest docker.io/tatyano/$$IMAGE:latest && docker push docker.io/tatyano/$$IMAGE:latest
 
 patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
@@ -369,7 +369,14 @@ generate-crypki: generate-ca
 	openssl x509 -req -in certs/crypki.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/crypki.cert.pem -days 99999 -extfile openssl/crypki.openssl.config -extensions ext_req
 	openssl verify -CAfile certs/ca.cert.pem certs/crypki.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki
+generate-idp: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out keys/idp.private.pem 4096
+	openssl req -config openssl/idp.openssl.config -new -key keys/idp.private.pem -out certs/idp.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/idp.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/idp.cert.pem -days 99999 -extfile openssl/idp.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/idp.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki generate-idp
 
 clean-kubernetes-athenz: clean-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean
@@ -385,7 +392,7 @@ load-docker-images-internal:
 
 load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
-	docker pull $(DOCKER_REGISTRY)athenz_user_cert:latest
+	docker pull $(DOCKER_REGISTRY)athenz-user-cert:latest
 	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
 	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
 	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
@@ -399,6 +406,8 @@ load-docker-images-external:
 	docker pull docker.io/openpolicyagent/opa:0.66.0-static
 	docker pull docker.io/portainer/kubectl-shell:latest
 	docker pull docker.io/tatyano/authorization-proxy:latest
+	docker pull quay.io/keycloak/keycloak:26.5.5
+	docker pull docker.io/library/postgres:alpine
 
 deploy-kubernetes-in-docker:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup
@@ -412,12 +421,13 @@ deploy-kubernetes-crypki-softhsm: generate-certificates
 test-kubernetes-crypki-softhsm:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-crypki-softhsm
 
-use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm deploy-kubernetes-athenz-oauth2
+use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer
-	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
-
-deploy-kubernetes-athenz-oauth2:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+
+deploy-kubernetes-athenz-oauth2: generate-certificates
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
 
 test-kubernetes-athenz-oauth2:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2

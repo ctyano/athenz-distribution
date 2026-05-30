@@ -1,9 +1,18 @@
+# This is a sample configuration file for Dex. You can use it as a starting point for your own configuration. For more information on the available options, see the Dex documentation.
+# For more information on how to configure Dex, see the official documentation: https://dexidp.io/docs/configuration/
 issuer: http://127.0.0.1:5556/dex
 storage:
   type: memory
 web:
   http: 0.0.0.0:5556
+  https: 0.0.0.0:443
+  tlsKey: /opt/athenz/dex/keys/idp.private.pem
+  tlsCert: /opt/athenz/dex/certs/idp.cert.pem
 oauth2:
+  grantTypes:
+    - authorization_code
+    - refresh_token
+    - password
   passwordConnector: local
   responseTypes:
     - code

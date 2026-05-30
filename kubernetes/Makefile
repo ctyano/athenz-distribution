@@ -22,6 +22,7 @@ clean-certificates:
 	rm -rf athenz-authzproxy/kustomize/{keys,certs}
 	rm -rf athenz-client/kustomize/{keys,certs}
 	rm -rf crypki-softhsm/kustomize/{keys,certs}
+	rm -rf athenz-oauth2/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -48,6 +49,7 @@ copy-certificates-to-kustomization:
 	cp -r ../keys ../certs athenz-authzproxy/kustomize/ && \
 	cp -r ../keys ../certs athenz-client/kustomize/ && \
 	cp -r ../keys ../certs crypki-softhsm/kustomize/ && \
+	cp -r ../keys ../certs athenz-oauth2/kustomize/ && \
 	echo "APPLIED copy-certificates-to-kustomization" \
 	)
 
@@ -57,6 +59,7 @@ overwrite-certificates-with-crypki:
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-zts-server/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-ui/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-identityprovider/kustomize/
+	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-oauth2/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authorizer/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzenvoy/kustomize/
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-authzwebhook/kustomize/
@@ -115,7 +118,7 @@ kind-load-images:
 		docker.io/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY)certsigner-envoy:latest \
-		$(DOCKER_REGISTRY)athenz_user_cert:latest \
+		$(DOCKER_REGISTRY)athenz-user-cert:latest \
 		$(DOCKER_REGISTRY)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \
@@ -131,6 +134,8 @@ kind-load-images:
 		docker.io/openpolicyagent/opa:latest-static \
 		docker.io/openpolicyagent/opa:0.66.0-static \
 		docker.io/portainer/kubectl-shell:latest \
+		quay.io/keycloak/keycloak:26.5.5 \
+		docker.io/library/postgres:alpine \
 		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY)docker-vegeta:latest \
 		docker.io/tatyano/authorization-proxy:latest
@@ -276,7 +281,7 @@ curl \
 	-H"X-Auth-Request-Preferred-Username: athenz_admin" \
 	-H"X-Auth-Request-Email: athenz_admin@www.athenz.io" \
 	https://athenz-ui.athenz:443/ \
-| grep -Eiq '<title[^>]*>[^<]*Athenz[^<]*</title>|__next' \
+| grep -Eiq '<title[^>]*>[^<]*Athenz[^<]*</title>' \
 && echo "Athenz UI sccessfully displayed"
 
 test-zts-roletoken:

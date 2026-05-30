@@ -129,7 +129,29 @@ generate-crypki: generate-ca
 	cat kustomize/certs/crypki.cert.pem | openssl x509 -noout -text
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/crypki.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui #generate-crypki
+generate-idp: generate-ca
+	mkdir kustomize/keys kustomize/certs ||:
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			--cert /opt/crypki/tls-crt/client.crt \
+			--key /opt/crypki/tls-crt/client.key \
+			--cacert /opt/crypki/tls-crt/ca.crt \
+			-sXPOST \
+			-H'Content-Type:application/json' \
+			-d "{ \
+				\"csr\": \"$$(echo $$(cat -e kustomize/certs/idp.csr.pem)| sed -e 's/\$$ /\\n/g' | sed 's/\$$$$//')\", \
+				\"key_meta\": { \
+					\"identifier\": \"athenz\" \
+				}, \
+				\"validity\": $$(( 30 * 24 * 60 * 60 )) \
+			}" \
+			"https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key" \
+			| jq -r .cert \
+			| tee kustomize/certs/idp.cert.pem
+	cat kustomize/certs/idp.cert.pem | openssl x509 -noout -text
+	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/idp.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-idp #generate-crypki
 
 clean-crypki-softhsm:
 	kubectl delete -k kustomize

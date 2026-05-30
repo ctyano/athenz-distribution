@@ -16,12 +16,33 @@ spec:
         app: oauth2-deployment
     spec:
       volumes:
+        - name: athenz-idp-keys
+          secret:
+            secretName: athenz-idp-keys
+            defaultMode: 0555
+            items:
+              - key: idp.private.pem
+                path: idp.private.pem
+        - name: athenz-idp-certs
+          secret:
+            secretName: athenz-idp-certs
+            defaultMode: 0555
+            items:
+              - key: idp.cert.pem
+                path: idp.cert.pem
         - name: dex-config
           configMap:
             name: dex-config
         - name: envoy-config
           configMap:
             name: oauth2-envoy-config
+        - name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            defaultMode: 0555
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
       containers:
         - name: dex
           image: docker.io/dexidp/dex:latest
@@ -30,10 +51,19 @@ spec:
             - name: dex
               containerPort: 5556
               protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
           volumeMounts:
             - name: dex-config
               mountPath: /etc/dex/config.docker.yaml
               subPath: config.docker.yaml
+            - name: athenz-idp-keys
+              mountPath: /opt/athenz/dex/keys
+              readOnly: true
+            - name: athenz-idp-certs
+              mountPath: /opt/athenz/dex/certs
+              readOnly: true
           resources:
             limits:
               memory: 512Mi
@@ -59,8 +89,13 @@ spec:
               mountPath: /etc/envoy/envoy.yaml
               subPath: envoy.yaml
         - name: athenz-user-cert
-          image: ghcr.io/ctyano/athenz_user_cert:latest
+          image: ghcr.io/ctyano/athenz-user-cert:latest
           imagePullPolicy: IfNotPresent
           command:
             - tail
             - -f
+          volumeMounts:
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true

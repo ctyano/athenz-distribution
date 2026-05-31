@@ -1,6 +1,9 @@
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+endif
 
 submodule-initialize:
 	@git submodule add --force https://github.com/ctyano/athenz-identityprovider-policy.git kustomize/athenz-identityprovider-policy \
@@ -278,7 +281,12 @@ kustomize-edit-athenz-identityprovider-image:
 	( \
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+	) \
+	fi
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 	) \
 	fi
 

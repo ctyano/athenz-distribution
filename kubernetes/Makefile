@@ -4,6 +4,10 @@ ifeq ($(UNAME_S),Darwin)
 	SED_INPLACE = sed -i ''
 endif
 
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+endif
+
 install-kustomize:
 	which kustomize \
 || (curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"| bash \
@@ -116,10 +120,10 @@ kind-load-images:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
 		docker.io/ghostunnel/ghostunnel:latest \
-		$(DOCKER_REGISTRY)crypki-softhsm:latest \
-		$(DOCKER_REGISTRY)certsigner-envoy:latest \
-		$(DOCKER_REGISTRY)athenz-user-cert:latest \
-		$(DOCKER_REGISTRY)athenz-plugins:latest
+		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:latest \
 		$(DOCKER_REGISTRY)athenz-zms-server:latest \
@@ -136,8 +140,8 @@ kind-load-images:
 		docker.io/portainer/kubectl-shell:latest \
 		quay.io/keycloak/keycloak:26.5.5 \
 		docker.io/library/postgres:alpine \
-		$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
-		$(DOCKER_REGISTRY)docker-vegeta:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
 		docker.io/tatyano/authorization-proxy:latest
 
 kind-shutdown:
@@ -189,8 +193,13 @@ kustomize-edit-athenz-zms-server-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd athenz-zms-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-plugins:latest=$(DOCKER_REGISTRY)athenz-plugins:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
+	) \
+	fi
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
+	( \
+	cd athenz-zms-server/kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-plugins:latest=$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest \
 	) \
 	fi
 
@@ -201,9 +210,14 @@ kustomize-edit-athenz-zts-server-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd athenz-zts-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-plugins:latest=$(DOCKER_REGISTRY)athenz-plugins:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
+	) \
+	fi
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
+	( \
+	cd athenz-zts-server/kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-plugins:latest=$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest \
 	) \
 	fi
 

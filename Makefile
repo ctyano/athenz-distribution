@@ -54,6 +54,10 @@ ifeq ($(DOCKER_REGISTRY_MIRROR),)
 DOCKER_REGISTRY_MIRROR=ghcr.io/athenz-community/
 endif
 
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+endif
+
 ifeq ($(DOCKER_CACHE),)
 DOCKER_CACHE=false
 endif
@@ -159,11 +163,11 @@ mirror-athenz-amd64-images:
 	IMAGE=athenz-zts-server; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=athenz-ui; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=athenz-cli; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
-	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
-	IMAGE=athenz-plugins; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
-	IMAGE=crypki-softhsm; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
-	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
-	IMAGE=athenz-user-cert; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
+	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
+	IMAGE=athenz-plugins; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
+	IMAGE=crypki-softhsm; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
+	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
+	IMAGE=athenz-user-cert; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 
 patch:
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
@@ -395,12 +399,12 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
 
 load-docker-images-external:
-	docker pull $(DOCKER_REGISTRY)athenz-plugins:latest
-	docker pull $(DOCKER_REGISTRY)athenz-user-cert:latest
-	docker pull $(DOCKER_REGISTRY)certsigner-envoy:latest
-	docker pull $(DOCKER_REGISTRY)crypki-softhsm:latest
-	docker pull $(DOCKER_REGISTRY)docker-vegeta:latest
-	docker pull $(DOCKER_REGISTRY)k8s-athenz-sia:latest
+	docker pull $(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
+	docker pull $(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest
+	docker pull $(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest
+	docker pull $(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest
+	docker pull $(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
+	docker pull $(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest
 	docker pull docker.io/dexidp/dex:latest
 	docker pull docker.io/ealen/echo-server:latest
 	docker pull docker.io/envoyproxy/envoy:v1.34-latest

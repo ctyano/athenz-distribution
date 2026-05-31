@@ -1,6 +1,9 @@
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+endif
 
 clean-athenz-authorizer:
 	kubectl delete -k kustomize
@@ -116,11 +119,10 @@ done
 
 kustomize-edit-athenz-authorizer-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
-	( \
-	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
-	) \
+		cd kustomize && kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	fi
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
+		cd kustomize && kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest; \
 	fi
 
 deploy-athenz-authorizer: kustomize-edit-athenz-authorizer-image

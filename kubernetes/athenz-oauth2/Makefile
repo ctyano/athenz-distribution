@@ -45,8 +45,11 @@ check-setup-athenz-oauth2:
 
 kustomize-edit-athenz-oauth2-image:
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/athenz-user-cert:latest=$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest; \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-user-cert:latest=$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
+	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
+	) \
 	fi
 
 deploy-athenz-oauth2: kustomize-edit-athenz-oauth2-image check-setup-athenz-oauth2

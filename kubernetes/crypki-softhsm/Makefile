@@ -170,11 +170,17 @@ check-register-crypki-softhsm:
 
 kustomize-edit-crypki-softhsm-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	) \
 	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/crypki-softhsm:latest=$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest; \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/crypki-softhsm:latest=$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
+	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
+	) \
 	fi
 
 deploy-crypki-softhsm: kustomize-edit-crypki-softhsm-image

@@ -278,10 +278,16 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 
 kustomize-edit-athenz-identityprovider-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	) \
 	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+	) \
 	fi
 
 deploy-athenz-identityprovider: submodule-initialize kustomize-edit-athenz-identityprovider-image

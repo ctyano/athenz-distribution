@@ -128,13 +128,22 @@ done
 
 kustomize-edit-athenz-authzproxy-image:
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	) \
 	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+	) \
 	fi
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
-		cd kustomize && kustomize edit set image docker.io/athenz/authorization-proxy:latest=docker.io/tatyano/authorization-proxy:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=docker.io/tatyano/authorization-proxy:latest \
+	) \
 	fi
 
 deploy-athenz-authzproxy: kustomize-edit-athenz-authzproxy-image

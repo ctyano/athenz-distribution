@@ -21,7 +21,10 @@ clean-athenz-loadtest:
 
 kustomize-edit-athenz-loadtest-image:
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
-		cd kustomize && kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest; \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
+	) \
 	fi
 
 deploy-athenz-loadtest: kustomize-edit-athenz-loadtest-image

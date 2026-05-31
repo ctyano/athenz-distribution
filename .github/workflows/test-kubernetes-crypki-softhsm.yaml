@@ -121,37 +121,52 @@ jobs:
         run: |
           go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
 
-      # A GitHub Action to check Athenz version
+      # A GitHub Action to resolve Athenz version
       -
-        name: Compare if Athenz version is above 11
-        id: compare-athenz-version-above-11
+        name: Resolve Athenz version
+        id: resolve-athenz-version
         run: |
-          # Get latest release tag with:
-          #   curl -s https://api.github.com/repos/ctyano/athenz-distribution/releases \
-          #     | jq -r .[].tag_name \
-          #     | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-          #     | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
-          #     | head -n1
-          CURRENT_VERSION="$( \
-            curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
-              | jq -r .[].tag_name \
-              | grep -E ".*(v[0-9]*.[0-9]*.[0-9]*).*" \
-              | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g' \
+          if [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
+            CURRENT_VERSION="${{ github.event.inputs.target_version }}"
+          else
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
+                | jq -r .[].tag_name \
+                | grep -E "^v?[0-9]+\.[0-9]+\.[0-9]+" \
+                | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
+                | sort -ruV \
+                | head -n1 \
+            )"
+          fi
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest \
+              | jq -r .tag_name \
+              | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
               | sort -ruV \
               | head -n1 \
-          )"
-          echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
-          if [[ $(printf '%s\n' "1.12.0" "${CURRENT_VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
-            echo "ATHENZ_VERSION_ABOVE_11=true" >> $GITHUB_ENV
+            )"
           fi
+          CURRENT_VERSION="$(echo "${CURRENT_VERSION}" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            echo "No valid Athenz version found" >&2
+            exit 1
+          fi
+          echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          echo "version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
 
-      # A GitHub Action to switch Athenz version
+      # A GitHub Action to select Java version
       -
-        name: Switch Athenz version
-        id: switch-athenz-version
-        if: ${{ github.event_name != 'pull_request' && env.VERSION != '' && github.event.inputs.target_version != '' && github.event.inputs.target_version != env.VERSION }}
+        name: Select Java version
+        id: select-java-version
         run: |
-          echo "VERSION=${{ github.event.inputs.target_version }}" >> $GITHUB_ENV
+          if [[ $(printf '%s\n' "1.12.0" "${VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
+            JAVA_VERSION=17
+          else
+            JAVA_VERSION=11
+          fi
+          echo "JAVA_VERSION=${JAVA_VERSION}" >> $GITHUB_ENV
+          echo "java-version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
 
       # This action provides the following functionality for GitHub Actions runners:
       # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
@@ -168,24 +183,13 @@ jobs:
       # This action allows you to work with Java and Scala projects.
       # https://github.com/actions/setup-java
       -
-        name: Setup Java 11
-        id: setup-java-11
-        if: env.ATHENZ_VERSION_ABOVE_11 != 'true'
+        name: Setup Java
+        id: setup-java
         # uses: https://github.com/actions/setup-java/tags
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '11'
-          #cache: maven
-      -
-        name: Setup Java 17
-        id: setup-java-17
-        if: env.ATHENZ_VERSION_ABOVE_11 == 'true'
-        # uses: https://github.com/actions/setup-java/tags
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '17'
+          java-version: ${{ steps.select-java-version.outputs.java-version }}
           #cache: maven
 
       # A GitHub Action for Kubernetes IN Docker
@@ -367,4 +371,3 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
-

@@ -1,6 +1,9 @@
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=ghcr.io/ctyano/
 endif
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+endif
 
 clean-athenz-authzproxy:
 	kubectl delete -k kustomize
@@ -128,7 +131,12 @@ kustomize-edit-athenz-authzproxy-image:
 	( \
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY)k8s-athenz-sia:latest \
+	) \
+	fi
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 	) \
 	fi
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \

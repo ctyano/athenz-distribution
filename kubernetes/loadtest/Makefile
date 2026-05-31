@@ -1,6 +1,9 @@
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY := ghcr.io/ctyano/
 endif
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL := ghcr.io/ctyano/
+endif
 ifeq ($(PUSH),)
 PUSH := false
 endif
@@ -17,10 +20,10 @@ clean-athenz-loadtest:
 	kubectl delete -k kustomize
 
 kustomize-edit-athenz-loadtest-image:
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY)docker-vegeta:latest \
+	&& kustomize edit set image ghcr.io/ctyano/docker-vegeta:latest=$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
 	) \
 	fi
 

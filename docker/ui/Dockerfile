@@ -1,7 +1,7 @@
 ARG BUILDER_IMAGE=default-node-base
 ARG RUNTIME_IMAGE=default-node-base
 
-FROM docker.io/library/node:24-alpine AS default-node-base
+FROM docker.io/library/node:26-alpine AS default-node-base
 
 FROM ${BUILDER_IMAGE} AS builder
 

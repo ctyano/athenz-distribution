@@ -26,6 +26,16 @@ uninstall-athenz-user-cert:
 	&& brew untap ctyano/athenz-user-cert \
 	)
 
+athenz-user-cert: install-athenz-user-cert
+	kubectl -n athenz port-forward svc/oauth2 5556:5556 & \
+	IDPPID=$$! ; \
+	kubectl -n athenz port-forward svc/oauth2 8080:8080 & \
+	CLIPID=$$! ; \
+	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -it -- \
+		athenzusercert ; \
+	sleep 1 ; \
+	kill -15 $$PID
+
 install-brew:
 	if [ "$$(uname -s)" = "Darwin" ]; then \
 		which brew \

@@ -55,6 +55,26 @@ kustomize-edit-athenz-oauth2-image:
 deploy-athenz-oauth2: kustomize-edit-athenz-oauth2-image check-setup-athenz-oauth2
 	kubectl apply -k kustomize
 
+register-athenz-oauth2:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-c /etc/ssl/certs/ca-certificates.crt \
+			-d email \
+			set-external-member-validator com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-c /etc/ssl/certs/ca-certificates.crt \
+			-d email \
+			add-member \
+			admin \
+			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
+
 test-athenz-oauth2:
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 &
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 10000:10000 &

@@ -164,7 +164,7 @@ deploy-athenz-oauth2: setup-athenz-oauth2
 	@$(MAKE) -C keycloak deploy-keycloak
 
 test-athenz-oauth2:
-	@$(MAKE) -C athenz-oauth2 test-athenz-oauth2
+	@$(MAKE) -C athenz-oauth2 register-athenz-oauth2 test-athenz-oauth2
 	@$(MAKE) -C keycloak test-keycloak
 
 kustomize-edit-athenz-db-image: install-kustomize

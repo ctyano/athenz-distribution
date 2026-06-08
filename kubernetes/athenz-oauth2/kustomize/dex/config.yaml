@@ -32,3 +32,8 @@ staticPasswords:
     hash: "$2y$12$JB0ulvDqDFxoK8BeaIYeo.pU87MFSgCV/fFqQJ0xzgIlXdm9ZNJs." # hash for password as "password"
     username: "athenz_admin"
     userID: "athenz_admin"
+  - email: "athenz_user@athenz.io"
+    # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo
+    hash: "$2y$12$JB0ulvDqDFxoK8BeaIYeo.pU87MFSgCV/fFqQJ0xzgIlXdm9ZNJs." # hash for password as "password"
+    username: "athenz_user"
+    userID: "athenz_user"

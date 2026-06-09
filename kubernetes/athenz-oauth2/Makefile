@@ -12,7 +12,7 @@ setup-athenz-oauth2: install-athenz-user-cert
 
 install-athenz-user-cert: install-brew
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which athenzusercert \
+		command -v athenzusercert >/dev/null \
 		|| ( \
 		brew tap ctyano/athenz-user-cert https://github.com/ctyano/athenz-user-cert \
 		&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz-user-cert/athenz-user-cert \
@@ -27,22 +27,21 @@ uninstall-athenz-user-cert:
 	)
 
 athenz-user-cert: install-athenz-user-cert
-	kubectl -n athenz port-forward svc/oauth2 5556:5556 & \
-	IDPPID=$$! ; \
-	kubectl -n athenz port-forward svc/oauth2 8080:8080 & \
-	CLIPID=$$! ; \
-	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -it -- \
+	kubectl -n athenz port-forward svc/oauth2 5556:5556 >/tmp/athenz-oauth2-idp-port-forward.log 2>&1 & \
+	IDPPID=$$!; \
+	kubectl -n athenz port-forward svc/oauth2 8080:8080 >/tmp/athenz-oauth2-cli-port-forward.log 2>&1 & \
+	CLIPID=$$!; \
+	trap 'kill -15 $$IDPPID $$CLIPID >/dev/null 2>&1 ||:' EXIT; \
+	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -i -- \
 		athenzusercert \
 			-oidc-issuer https://oauth2.athenz/dex \
 			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
 			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
-		; \
-	sleep 1 ; \
-	kill -15 $$IDPPID ;
+		;
 
 install-brew:
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which brew \
+		command -v brew >/dev/null \
 			|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
 		eval "$$(/opt/homebrew/bin/brew shellenv)" ||:; \
 	fi

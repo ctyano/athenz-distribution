@@ -12,7 +12,7 @@ setup-athenz-oauth2: install-athenz-user-cert
 
 install-athenz-user-cert: install-brew
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which athenzusercert \
+		command -v athenzusercert >/dev/null \
 		|| ( \
 		brew tap ctyano/athenz-user-cert https://github.com/ctyano/athenz-user-cert \
 		&& HOMEBREW_NO_AUTO_UPDATE=true brew install ctyano/athenz-user-cert/athenz-user-cert \
@@ -26,9 +26,22 @@ uninstall-athenz-user-cert:
 	&& brew untap ctyano/athenz-user-cert \
 	)
 
+athenz-user-cert: install-athenz-user-cert
+	kubectl -n athenz port-forward svc/oauth2 5556:5556 >/tmp/athenz-oauth2-idp-port-forward.log 2>&1 & \
+	IDPPID=$$!; \
+	kubectl -n athenz port-forward svc/oauth2 8080:8080 >/tmp/athenz-oauth2-cli-port-forward.log 2>&1 & \
+	CLIPID=$$!; \
+	trap 'kill -15 $$IDPPID $$CLIPID >/dev/null 2>&1 ||:' EXIT; \
+	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -i -- \
+		athenzusercert \
+			-oidc-issuer https://oauth2.athenz/dex \
+			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
+			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
+		;
+
 install-brew:
 	if [ "$$(uname -s)" = "Darwin" ]; then \
-		which brew \
+		command -v brew >/dev/null \
 			|| /bin/bash -c "$$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
 		eval "$$(/opt/homebrew/bin/brew shellenv)" ||:; \
 	fi
@@ -55,6 +68,27 @@ kustomize-edit-athenz-oauth2-image:
 deploy-athenz-oauth2: kustomize-edit-athenz-oauth2-image check-setup-athenz-oauth2
 	kubectl apply -k kustomize
 
+register-athenz-oauth2:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-c /etc/ssl/certs/ca-certificates.crt \
+			-d email \
+			add-member \
+			admin \
+			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+		zms-cli \
+			-z https://athenz-zms-server.athenz:4443/zms/v1 \
+			-key /var/run/athenz/athenz_admin.private.pem \
+			-cert /var/run/athenz/athenz_admin.cert.pem \
+			-c /etc/ssl/certs/ca-certificates.crt \
+			-d email \
+			set-external-member-validator \
+			com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+
 test-athenz-oauth2:
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 &
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 10000:10000 &
@@ -75,6 +109,7 @@ while true; do \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert -- \
 		/bin/sh -c " \
 			echo -n password | athenzusercert \
+			-oidc-issuer https://oauth2.athenz/dex \
 			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
 			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
 			-oidc-user athenz_admin@athenz.io \

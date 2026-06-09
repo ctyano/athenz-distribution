@@ -94,6 +94,10 @@ spec:
           command:
             - tail
             - -f
+          ports:
+            - name: callback
+              containerPort: 8080
+              protocol: TCP
           volumeMounts:
             - name: athenz-cacert
               mountPath: /etc/ssl/certs/ca-certificates.crt

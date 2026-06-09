@@ -10,6 +10,9 @@ spec:
   selector:
     app: oauth2-deployment
   ports:
+    - name: callback
+      port: 8080
+      targetPort: callback
     - name: https
       port: 443
       targetPort: https

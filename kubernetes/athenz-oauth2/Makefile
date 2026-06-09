@@ -32,10 +32,13 @@ athenz-user-cert: install-athenz-user-cert
 	kubectl -n athenz port-forward svc/oauth2 8080:8080 & \
 	CLIPID=$$! ; \
 	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -it -- \
-		athenzusercert ; \
+		athenzusercert \
+			-oidc-issuer https://oauth2.athenz/dex \
+			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
+			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
+		; \
 	sleep 1 ; \
-	kill -15 $$IDPPID
-	kill -15 $$CLIPID
+	kill -15 $$IDPPID ;
 
 install-brew:
 	if [ "$$(uname -s)" = "Darwin" ]; then \
@@ -106,6 +109,7 @@ while true; do \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert -- \
 		/bin/sh -c " \
 			echo -n password | athenzusercert \
+			-oidc-issuer https://oauth2.athenz/dex \
 			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
 			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
 			-oidc-user athenz_admin@athenz.io \

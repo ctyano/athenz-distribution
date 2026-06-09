@@ -164,8 +164,11 @@ deploy-athenz-oauth2: setup-athenz-oauth2
 	@$(MAKE) -C keycloak deploy-keycloak
 
 test-athenz-oauth2:
-	@$(MAKE) -C athenz-oauth2 test-athenz-oauth2
+	@$(MAKE) -C athenz-oauth2 register-athenz-oauth2 test-athenz-oauth2
 	@$(MAKE) -C keycloak test-keycloak
+
+athenz-user-cert:
+	@$(MAKE) -C athenz-oauth2 athenz-user-cert
 
 kustomize-edit-athenz-db-image: install-kustomize
 	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \

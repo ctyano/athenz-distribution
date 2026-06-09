@@ -440,6 +440,9 @@ deploy-kubernetes-athenz-oauth2: generate-certificates
 test-kubernetes-athenz-oauth2:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
 
+athenzusercert:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes athenz-user-cert
+
 deploy-kubernetes-athenz: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz
 

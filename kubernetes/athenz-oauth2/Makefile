@@ -34,7 +34,8 @@ athenz-user-cert: install-athenz-user-cert
 	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -it -- \
 		athenzusercert ; \
 	sleep 1 ; \
-	kill -15 $$PID
+	kill -15 $$IDPPID
+	kill -15 $$CLIPID
 
 install-brew:
 	if [ "$$(uname -s)" = "Darwin" ]; then \

@@ -1,6 +1,6 @@
-# Dex ID Token to Athenz ID-JAG and Access Token on Kubernetes
+# Dex ID Token to Athenz ID-JAG and Chained Access Token Exchange on Kubernetes
 
-This document describes how to use the `athenz-cli` pod on Kubernetes to obtain an ID Token from Dex, exchange that ID Token with Athenz ZTS for an ID-JAG token, and then use the ID-JAG token as a JWT bearer assertion to issue an Athenz Access Token.
+This document describes how to use the `athenz-cli` pod on Kubernetes to obtain an ID Token from Dex, exchange that ID Token with Athenz ZTS for an ID-JAG token, use the ID-JAG token as a JWT bearer assertion to issue an Athenz Access Token, and then exchange that Access Token for another Access Token in a different fully-qualified Athenz Domain/Role.
 
 Verified runtime environment:
 
@@ -13,6 +13,8 @@ Verified runtime environment:
 - Dex client: `athenz-user-cert`
 - Athenz service used as OAuth client: `home.athenz_admin.jag-client`
 - Requested role scope: `email:role.admin`
+- Athenz service used for downstream access-token exchange: `home.athenz_admin.token-exchanger`
+- Downstream target role scope: `home.athenz_admin:role.admin`
 
 ## 1. ZTS OAuth Provider Setup
 
@@ -446,7 +448,203 @@ Important checks:
 - `aud` is the role domain, `email`.
 - `scope` is converted to the role name, `admin`.
 
-## 6. JWT Decode Helper
+## 6. Exchange the Access Token for Another Domain/Role Access Token
+
+The previous step issued an Access Token with:
+
+- subject: `email:ext.athenz_admin@athenz.io`
+- audience: `email`
+- scope: `admin`
+- client: `home.athenz_admin.jag-client`
+
+This step uses that Access Token as the `subject_token` and exchanges it for another Access Token in a different fully-qualified Athenz Domain/Role. The exchange request is authenticated with a second service certificate for `home.athenz_admin.token-exchanger`.
+
+This is the standard OAuth 2.0 Token Exchange path in ZTS, not the ID-JAG JWT bearer path. For an impersonation-style access-token exchange without `actor_token`, ZTS evaluates both of these permissions:
+
+| Policy action | Policy domain | Resource checked by ZTS | Purpose |
+| --- | --- | --- | --- |
+| `zts.token_source_exchange` | source domain, `email` | `email:home.athenz_admin` | Allows the exchanger service to exchange a token from the source audience to the target audience. |
+| `zts.token_target_exchange` | target domain, `home.athenz_admin` | `home.athenz_admin:email:role.admin` | Allows the exchanger service to request the target role for tokens whose source audience is `email`. |
+
+The target role must include the source Access Token subject, because ZTS verifies that the subject principal has access to the requested target role before issuing the exchanged Access Token.
+
+The target fully-qualified role is different from the source fully-qualified role: the source is `email:role.admin`, and the target is `home.athenz_admin:role.admin`. The simple role name intentionally remains `admin` because ZTS validates the requested role names against the source Access Token `scope`. Since the first Access Token has `scope=admin`, a request for `home.athenz_admin:role.admin` passes the subset check. To request a target role such as `home.athenz_admin:role.exchange_target`, first issue the source Access Token with `exchange_target` included in its scope.
+
+Prepare the second service certificate, the target role, and the exchange policies:
+
+```sh
+kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
+set -eu
+
+WORKDIR=/tmp/jag-flow.GcPobi
+KEY_ID=$(date +%s)
+KEY_ID2=$((KEY_ID + 1))
+ZMS=https://athenz-zms-server.athenz:4443/zms/v1
+ZTS=https://athenz-zts-server.athenz:4443/zts/v1
+CA=/etc/ssl/certs/ca-certificates.crt
+ADMIN_KEY=/var/run/athenz/athenz_admin.private.pem
+ADMIN_CERT=/var/run/athenz/athenz_admin.cert.pem
+
+SOURCE_DOMAIN=email
+TARGET_DOMAIN=home.athenz_admin
+TARGET_ROLE=admin
+SOURCE_SUBJECT=email:ext.athenz_admin@athenz.io
+EXCHANGER_SERVICE=token-exchanger
+EXCHANGER_PRINCIPAL=home.athenz_admin.token-exchanger
+
+openssl genrsa -out "$WORKDIR/token-exchanger.key.pem" 2048 >/dev/null 2>&1
+openssl rsa -in "$WORKDIR/token-exchanger.key.pem" \
+  -pubout -out "$WORKDIR/token-exchanger.pub.pem" >/dev/null 2>&1
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d home.athenz_admin \
+  add-service "$EXCHANGER_SERVICE" "$KEY_ID2" "$WORKDIR/token-exchanger.pub.pem" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d home.athenz_admin \
+  add-public-key "$EXCHANGER_SERVICE" "$KEY_ID2" "$WORKDIR/token-exchanger.pub.pem" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d home.athenz_admin \
+  set-domain-template identity_provisioning \
+  instanceprovider=sys.auth.zts service="$EXCHANGER_SERVICE" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  add-member "$TARGET_ROLE" "$SOURCE_SUBJECT" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$SOURCE_DOMAIN" \
+  add-regular-role token_source_exchanger "$EXCHANGER_PRINCIPAL" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$SOURCE_DOMAIN" \
+  add-policy token_source_exchange grant zts.token_source_exchange to token_source_exchanger on "$TARGET_DOMAIN" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  add-regular-role token_target_exchanger "$EXCHANGER_PRINCIPAL" || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  add-policy token_target_exchange grant zts.token_target_exchange to token_target_exchanger on "$TARGET_DOMAIN:$SOURCE_DOMAIN:role.$TARGET_ROLE" || true
+
+sleep 10
+
+zms-svctoken \
+  -domain home.athenz_admin \
+  -service "$EXCHANGER_SERVICE" \
+  -private-key "$WORKDIR/token-exchanger.key.pem" \
+  -key-version "$KEY_ID2" | tr -d "\n" > "$WORKDIR/token-exchanger.ntoken"
+
+zts-svccert \
+  -zts "$ZTS" \
+  -cacert "$CA" \
+  -domain home.athenz_admin \
+  -service "$EXCHANGER_SERVICE" \
+  -provider sys.auth.zts \
+  -instance "$EXCHANGER_SERVICE" \
+  -attestation-data "$WORKDIR/token-exchanger.ntoken" \
+  -dns-domain zts.athenz.cloud \
+  -private-key "$WORKDIR/token-exchanger.key.pem" \
+  -key-version "$KEY_ID2" \
+  -cert-file "$WORKDIR/token-exchanger.cert.pem" \
+  -signer-cert-file "$WORKDIR/token-exchanger-signer-ca.cert.pem"
+'
+```
+
+Then exchange the first Access Token for an Access Token in the target domain and role:
+
+```sh
+kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
+set -eu
+
+WORKDIR=/tmp/jag-flow.GcPobi
+ZTS=https://athenz-zts-server.athenz:4443/zts/v1
+CA=/etc/ssl/certs/ca-certificates.crt
+TARGET_DOMAIN=home.athenz_admin
+TARGET_ROLE=admin
+SOURCE_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")
+
+curl -sfS -X POST "$ZTS/oauth2/token" \
+  --key "$WORKDIR/token-exchanger.key.pem" \
+  --cert "$WORKDIR/token-exchanger.cert.pem" \
+  --cacert "$CA" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+  --data-urlencode "requested_token_type=urn:ietf:params:oauth:token-type:access_token" \
+  --data-urlencode "audience=$TARGET_DOMAIN" \
+  --data-urlencode "scope=$TARGET_DOMAIN:role.$TARGET_ROLE" \
+  --data-urlencode "subject_token=$SOURCE_ACCESS_TOKEN" \
+  --data-urlencode "subject_token_type=urn:ietf:params:oauth:token-type:access_token" \
+  > "$WORKDIR/exchanged-access-token.json"
+
+jq -r .access_token "$WORKDIR/exchanged-access-token.json"
+'
+```
+
+Request parameters:
+
+| Parameter | Value |
+| --- | --- |
+| endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
+| client authentication | mTLS with `home.athenz_admin.token-exchanger` service certificate |
+| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
+| `requested_token_type` | `urn:ietf:params:oauth:token-type:access_token` |
+| `audience` | `home.athenz_admin` |
+| `scope` | `home.athenz_admin:role.admin` |
+| `subject_token` | The first Athenz Access Token issued from the ID-JAG token |
+| `subject_token_type` | `urn:ietf:params:oauth:token-type:access_token` |
+
+Response example:
+
+```json
+{
+  "access_token": "<Exchanged Athenz Access Token JWT>",
+  "token_type": "Bearer",
+  "expires_in": 7200,
+  "scope": "home.athenz_admin:role.admin"
+}
+```
+
+Decoded JWT header example:
+
+```json
+{
+  "kid": "athenz-zts-server-6b4767ff86-x5kmf",
+  "typ": "at+jwt",
+  "alg": "RS256"
+}
+```
+
+Decoded JWT payload example:
+
+```json
+{
+  "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
+  "sub": "email:ext.athenz_admin@athenz.io",
+  "aud": "home.athenz_admin",
+  "scope": "admin",
+  "scp": [
+    "admin"
+  ],
+  "client_id": "home.athenz_admin.token-exchanger",
+  "uid": "home.athenz_admin.token-exchanger",
+  "iat": 1781007285,
+  "exp": 1781014485
+}
+```
+
+Important checks:
+
+- `typ` is `at+jwt`.
+- `sub` remains the source Access Token subject, `email:ext.athenz_admin@athenz.io`.
+- `aud` is changed from `email` to `home.athenz_admin`.
+- The full role changes from `email:role.admin` to `home.athenz_admin:role.admin`.
+- The JWT `scope` claim remains `admin`, because Athenz Access Tokens carry role names in `scope` and the target role name must be a subset of the source Access Token roles.
+- `client_id` and `uid` identify the second service certificate principal, `home.athenz_admin.token-exchanger`.
+
+## 7. JWT Decode Helper
 
 Use this helper to inspect JWT headers and payloads inside the pod.
 
@@ -471,6 +669,7 @@ jwt_part() {
 ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")
 ID_JAG=$(jq -r .access_token "$WORKDIR/id-jag.json")
 ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")
+EXCHANGED_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")
 
 echo "DEX_ID_TOKEN_PAYLOAD"
 jwt_part "$ID_TOKEN" 2 | jq "{iss,sub,aud,email,email_verified,name,iat,exp}"
@@ -486,12 +685,18 @@ jwt_part "$ACCESS_TOKEN" 1 | jq .
 
 echo "ATHENZ_ACCESS_TOKEN_PAYLOAD"
 jwt_part "$ACCESS_TOKEN" 2 | jq "{iss,sub,aud,scope,scp,client_id,uid,iat,exp}"
+
+echo "EXCHANGED_ATHENZ_ACCESS_TOKEN_HEADER"
+jwt_part "$EXCHANGED_ACCESS_TOKEN" 1 | jq .
+
+echo "EXCHANGED_ATHENZ_ACCESS_TOKEN_PAYLOAD"
+jwt_part "$EXCHANGED_ACCESS_TOKEN" 2 | jq "{iss,sub,aud,scope,scp,client_id,uid,iat,exp}"
 '
 ```
 
-## 7. End-to-End Script
+## 8. End-to-End Script
 
-The script below runs the full flow, from preparing the ZMS objects through issuing all three tokens.
+The script below runs the full flow, from preparing the ZMS objects through issuing all four tokens.
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -499,11 +704,18 @@ set -eu
 
 WORKDIR=$(mktemp -d /tmp/jag-flow.XXXXXX)
 KEY_ID=$(date +%s)
+KEY_ID2=$((KEY_ID + 1))
 ZMS=https://athenz-zms-server.athenz:4443/zms/v1
 ZTS=https://athenz-zts-server.athenz:4443/zts/v1
 CA=/etc/ssl/certs/ca-certificates.crt
 ADMIN_KEY=/var/run/athenz/athenz_admin.private.pem
 ADMIN_CERT=/var/run/athenz/athenz_admin.cert.pem
+SOURCE_DOMAIN=email
+TARGET_DOMAIN=home.athenz_admin
+TARGET_ROLE=admin
+SOURCE_SUBJECT=email:ext.athenz_admin@athenz.io
+EXCHANGER_SERVICE=token-exchanger
+EXCHANGER_PRINCIPAL=home.athenz_admin.token-exchanger
 
 http_post() {
   out=$1
@@ -519,6 +731,9 @@ http_post() {
 openssl genrsa -out "$WORKDIR/jag-client.key.pem" 2048 >/dev/null 2>&1
 openssl rsa -in "$WORKDIR/jag-client.key.pem" \
   -pubout -out "$WORKDIR/jag-client.pub.pem" >/dev/null 2>&1
+openssl genrsa -out "$WORKDIR/token-exchanger.key.pem" 2048 >/dev/null 2>&1
+openssl rsa -in "$WORKDIR/token-exchanger.key.pem" \
+  -pubout -out "$WORKDIR/token-exchanger.pub.pem" >/dev/null 2>&1
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   -d home.athenz_admin \
@@ -549,6 +764,39 @@ zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   -d email \
   add-policy jag_exchange_admin grant zts.jag_exchange to jag_exchanger_admin on role.admin >/tmp/add-jag-policy.out 2>&1 || true
 
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d home.athenz_admin \
+  add-service "$EXCHANGER_SERVICE" "$KEY_ID2" "$WORKDIR/token-exchanger.pub.pem" >/tmp/add-exchanger-service.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d home.athenz_admin \
+  add-public-key "$EXCHANGER_SERVICE" "$KEY_ID2" "$WORKDIR/token-exchanger.pub.pem" >/tmp/add-exchanger-pubkey.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d home.athenz_admin \
+  set-domain-template identity_provisioning \
+  instanceprovider=sys.auth.zts service="$EXCHANGER_SERVICE" >/tmp/set-exchanger-template.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  add-member "$TARGET_ROLE" "$SOURCE_SUBJECT" >/tmp/add-target-member.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$SOURCE_DOMAIN" \
+  add-regular-role token_source_exchanger "$EXCHANGER_PRINCIPAL" >/tmp/add-token-source-role.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$SOURCE_DOMAIN" \
+  add-policy token_source_exchange grant zts.token_source_exchange to token_source_exchanger on "$TARGET_DOMAIN" >/tmp/add-token-source-policy.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  add-regular-role token_target_exchanger "$EXCHANGER_PRINCIPAL" >/tmp/add-token-target-role.out 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  add-policy token_target_exchange grant zts.token_target_exchange to token_target_exchanger on "$TARGET_DOMAIN:$SOURCE_DOMAIN:role.$TARGET_ROLE" >/tmp/add-token-target-policy.out 2>&1 || true
+
 sleep 10
 
 zms-svctoken \
@@ -570,6 +818,26 @@ zts-svccert \
   -key-version "$KEY_ID" \
   -cert-file "$WORKDIR/jag-client.cert.pem" \
   -signer-cert-file "$WORKDIR/jag-signer-ca.cert.pem"
+
+zms-svctoken \
+  -domain home.athenz_admin \
+  -service "$EXCHANGER_SERVICE" \
+  -private-key "$WORKDIR/token-exchanger.key.pem" \
+  -key-version "$KEY_ID2" | tr -d "\n" > "$WORKDIR/token-exchanger.ntoken"
+
+zts-svccert \
+  -zts "$ZTS" \
+  -cacert "$CA" \
+  -domain home.athenz_admin \
+  -service "$EXCHANGER_SERVICE" \
+  -provider sys.auth.zts \
+  -instance "$EXCHANGER_SERVICE" \
+  -attestation-data "$WORKDIR/token-exchanger.ntoken" \
+  -dns-domain zts.athenz.cloud \
+  -private-key "$WORKDIR/token-exchanger.key.pem" \
+  -key-version "$KEY_ID2" \
+  -cert-file "$WORKDIR/token-exchanger.cert.pem" \
+  -signer-cert-file "$WORKDIR/token-exchanger-signer-ca.cert.pem"
 
 http_post "$WORKDIR/dex-token.json" \
   -X POST "http://oauth2.athenz:5556/dex/token" \
@@ -606,9 +874,25 @@ http_post "$WORKDIR/access-token.json" \
   --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
   --data-urlencode "assertion=$ID_JAG"
 
+SOURCE_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")
+
+http_post "$WORKDIR/exchanged-access-token.json" \
+  -X POST "$ZTS/oauth2/token" \
+  --key "$WORKDIR/token-exchanger.key.pem" \
+  --cert "$WORKDIR/token-exchanger.cert.pem" \
+  --cacert "$CA" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+  --data-urlencode "requested_token_type=urn:ietf:params:oauth:token-type:access_token" \
+  --data-urlencode "audience=$TARGET_DOMAIN" \
+  --data-urlencode "scope=$TARGET_DOMAIN:role.$TARGET_ROLE" \
+  --data-urlencode "subject_token=$SOURCE_ACCESS_TOKEN" \
+  --data-urlencode "subject_token_type=urn:ietf:params:oauth:token-type:access_token"
+
 echo "WORKDIR=$WORKDIR"
 echo "DEX_ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")"
 echo "ID_JAG=$(jq -r .access_token "$WORKDIR/id-jag.json")"
 echo "ATHENZ_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")"
+echo "EXCHANGED_ATHENZ_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")"
 '
 ```

@@ -470,6 +470,14 @@ The target role must include the source Access Token subject, because ZTS verifi
 
 The target fully-qualified role is different from the source fully-qualified role: the source is `email:role.admin`, and the target is `home.athenz_admin:role.admin`. The simple role name intentionally remains `admin` because ZTS validates the requested role names against the source Access Token `scope`. Since the first Access Token has `scope=admin`, a request for `home.athenz_admin:role.admin` passes the subset check. To request a target role such as `home.athenz_admin:role.exchange_target`, first issue the source Access Token with `exchange_target` included in its scope.
 
+`zts.token_source_exchange` is not evaluated only in the delegation-style access-token exchange path. That path requires all of the following:
+
+- The exchange request includes `actor_token` and `actor_token_type`.
+- The authenticated principal from the actor token matches the actor token `sub`.
+- The `subject_token` contains `may_act.sub`, and that value matches the actor token `sub`.
+
+In that delegation path, ZTS evaluates `zts.token_target_exchange` for the target role, but not `zts.token_source_exchange`. The Access Token issued from ID-JAG in step 5 does not contain `may_act`, and the ID-JAG JWT bearer exchange path does not add `may_act` from an `actor` request parameter. Therefore, this end-to-end Dex ID Token -> ID-JAG -> Access Token -> Access Token procedure cannot omit `zts.token_source_exchange` without changing how the source Access Token is issued.
+
 Prepare the second service certificate, the target role, and the exchange policies:
 
 ```sh

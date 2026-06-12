@@ -26,6 +26,12 @@ staticClients:
       - http://127.0.0.1:8080
       - urn:ietf:wg:oauth:2.0:oob
     secret: athenz-user-cert
+  - id: idjag-client
+    name: Client ID for ID-JAG showcase
+    redirectURIs:
+      - http://127.0.0.1:8080
+      - urn:ietf:wg:oauth:2.0:oob
+    secret: idjag-client
 staticPasswords:
   - email: "athenz_admin@athenz.io"
     # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo

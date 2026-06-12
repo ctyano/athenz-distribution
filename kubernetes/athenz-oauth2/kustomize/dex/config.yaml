@@ -34,12 +34,12 @@ staticClients:
       - http://localhost:8200/ui/vault/auth/dex/oidc/callback
       - http://127.0.0.1:8200/ui/vault/auth/dex/oidc/callback
     secret: vault
-  - id: idjag-client
-    name: Client ID for ID-JAG showcase
+  - id: id-jag-client
+    name: Client for ID-JAG showcase
     redirectURIs:
       - http://127.0.0.1:8080
       - urn:ietf:wg:oauth:2.0:oob
-    secret: idjag-client
+    secret: id-jag-client
 staticPasswords:
   - email: "athenz_admin@athenz.io"
     # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo

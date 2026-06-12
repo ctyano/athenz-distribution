@@ -161,15 +161,6 @@ spec:
               && \
               curl \
                 -sv \
-                -d"{\"name\":\"mcp\",\"adminUsers\":[\"user.athenz_admin\"]}" \
-                -H"Content-Type: application/json" \
-                --key /athenz/admin/${USER}.private.pem \
-                --cert /athenz/admin/${USER}.cert.pem \
-                --cacert /etc/ssl/certs/ca-certificates.crt \
-                "${ZMS}/domain" \
-              && \
-              curl \
-                -sv \
                 -d"{\"name\":\"email\",\"adminUsers\":[\"user.athenz_admin\"]}" \
                 -H"Content-Type: application/json" \
                 --key /athenz/admin/${USER}.private.pem \
@@ -209,7 +200,25 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
                 -d sys.auth \
-                set-service-endpoint localworkloadprovider class://com.yahoo.athenz.instance.provider.impl.InstanceLocalWorkloadProvider
+                set-service-endpoint localworkloadprovider class://com.yahoo.athenz.instance.provider.impl.InstanceLocalWorkloadProvider \
+              && \
+              curl \
+                -sv \
+                -d"{\"name\":\"agentbroker\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -H"Content-Type: application/json" \
+                --key /athenz/admin/${USER}.private.pem \
+                --cert /athenz/admin/${USER}.cert.pem \
+                --cacert /etc/ssl/certs/ca-certificates.crt \
+                "${ZMS}/domain" \
+              && \
+              curl \
+                -sv \
+                -d"{\"name\":\"mcp\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -H"Content-Type: application/json" \
+                --key /athenz/admin/${USER}.private.pem \
+                --cert /athenz/admin/${USER}.cert.pem \
+                --cacert /etc/ssl/certs/ca-certificates.crt \
+                "${ZMS}/domain"
           resources:
             limits:
               memory: 32Mi

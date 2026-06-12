@@ -161,6 +161,15 @@ spec:
               && \
               curl \
                 -sv \
+                -d"{\"name\":\"mcp\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -H"Content-Type: application/json" \
+                --key /athenz/admin/${USER}.private.pem \
+                --cert /athenz/admin/${USER}.cert.pem \
+                --cacert /etc/ssl/certs/ca-certificates.crt \
+                "${ZMS}/domain" \
+              && \
+              curl \
+                -sv \
                 -d"{\"name\":\"email\",\"adminUsers\":[\"user.athenz_admin\"]}" \
                 -H"Content-Type: application/json" \
                 --key /athenz/admin/${USER}.private.pem \

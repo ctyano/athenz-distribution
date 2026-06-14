@@ -1,0 +1,7 @@
+[
+  {
+    "issuerUri": "http://127.0.0.1:5556/dex",
+    "jwksUri": "http://oauth2.athenz:5556/dex/keys",
+    "providerClassName": "com.yahoo.athenz.auth.impl.EmailTokenExchangeIdentityProvider"
+  }
+]

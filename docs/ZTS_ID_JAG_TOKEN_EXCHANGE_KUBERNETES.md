@@ -13,136 +13,16 @@ Runtime environment assumed by the commands:
 - Dex user: `athenz_user@athenz.io`
 - Dex client: `id-jag-client`
 - Downstream Remote Agent service: `email.downstream.agent`
-- First Access Token source role scope: `agentbroker.downstream:role.downstream-agents`
-- First Access Token source compatibility role scope: `agentbroker.downstream:role.mcp-clients`
-- Upstream Remote Agent service: `email.upstream.agent`
-- Final Access Token target role scope: `mcp.upstream:role.mcp-clients`
+- First Access Token source role scope: `agentbroker:role.downstream-agents`
+- First Access Token source compatibility role scope: `agentbroker:role.mcp-clients`
+- Upstream Remote Agent service: `agentbroker.upstream.agent`
+- Final Access Token target role scope: `mcp:role.mcp-clients`
 
 ## 1. ZTS OAuth Provider Setup
 
 To allow ZTS to trust Dex ID Tokens and issue ID-JAG tokens, configure the ZTS OAuth provider config.
 
-Dex `sub` values cannot be used directly as Athenz principals in this setup, so this procedure adds a `TokenExchangeIdentityProvider` that maps the Dex ID Token `email` claim to `email:ext.<email>`. With this provider, the Dex user `athenz_user@athenz.io` is treated as the Athenz principal `email:ext.athenz_user@athenz.io`.
-
-Provider class:
-
-```java
-package com.yahoo.athenz.auth.impl;
-
-import com.yahoo.athenz.auth.TokenExchangeIdentityProvider;
-import com.yahoo.athenz.auth.token.OAuth2Token;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-
-public class DexEmailTokenExchangeIdentityProvider implements TokenExchangeIdentityProvider {
-    @Override
-    public String getTokenIdentity(OAuth2Token token) {
-        Object emailClaim = token.getClaim("email");
-        if (emailClaim == null) {
-            return null;
-        }
-        String email = emailClaim.toString().trim().toLowerCase(Locale.ROOT);
-        return email.isEmpty() ? null : "email:ext." + email;
-    }
-
-    @Override
-    public String getTokenAudience(OAuth2Token token) {
-        return token.getAudience();
-    }
-
-    @Override
-    public List<String> getTokenExchangeClaims() {
-        return Collections.singletonList("email");
-    }
-}
-```
-
-ZTS OAuth provider config:
-
-```json
-[
-  {
-    "issuerUri": "http://127.0.0.1:5556/dex",
-    "jwksUri": "http://oauth2.athenz:5556/dex/keys",
-    "providerClassName": "com.yahoo.athenz.auth.impl.DexEmailTokenExchangeIdentityProvider"
-  }
-]
-```
-
-Apply the Kubernetes settings as follows.
-
-```sh
-kubectl -n athenz get configmap athenz-zts-conf -o json \
-  | jq '.data["zts.properties"] |=
-      if contains("athenz.zts.oauth_provider_config_file=") then .
-      else . + "\n# Dex provider for ID-JAG token exchange\nathenz.zts.oauth_provider_config_file=/opt/athenz/zts/oauth-provider-config/oauth-provider-config.json\n"
-      end' \
-  | kubectl apply -f -
-
-kubectl -n athenz create configmap zts-oauth-provider-config \
-  --from-file=oauth-provider-config.json=/path/to/oauth-provider-config.json \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl -n athenz create configmap zts-dex-email-provider \
-  --from-file=dex-email-provider.jar=/path/to/dex-email-provider.jar \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl -n athenz patch deployment athenz-zts-server --type strategic -p '{
-  "spec": {
-    "template": {
-      "spec": {
-        "volumes": [
-          {
-            "name": "zts-oauth-provider-config",
-            "configMap": {
-              "name": "zts-oauth-provider-config"
-            }
-          },
-          {
-            "name": "zts-dex-email-provider",
-            "configMap": {
-              "name": "zts-dex-email-provider"
-            }
-          }
-        ],
-        "containers": [
-          {
-            "name": "athenz-zts-server",
-            "volumeMounts": [
-              {
-                "name": "zts-oauth-provider-config",
-                "mountPath": "/opt/athenz/zts/oauth-provider-config",
-                "readOnly": true
-              },
-              {
-                "name": "zts-dex-email-provider",
-                "mountPath": "/athenz/dex-email-provider",
-                "readOnly": true
-              }
-            ]
-          }
-        ]
-      }
-    }
-  }
-}'
-
-kubectl -n athenz set env deployment/athenz-zts-server \
-  USER_CLASSPATH='/opt/athenz/zts/lib/jars/*:/athenz/plugins/*:/athenz/dex-email-provider/*'
-
-kubectl -n athenz rollout restart deployment/athenz-zts-server
-kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=180s
-```
-
-Verification command:
-
-```sh
-kubectl -n athenz exec deployment/athenz-zts-server -- /bin/sh -lc '
-echo "USER_CLASSPATH=$USER_CLASSPATH"
-ls -l /athenz/dex-email-provider /athenz/dex-email-provider/dex-email-provider.jar
-'
-```
+Dex `sub` values cannot be used directly as Athenz principals in this setup, so ZTS uses an existing `TokenExchangeIdentityProvider` implementation that maps the Dex ID Token `email` claim to `email:ext.<email>`. With this provider, the Dex user `athenz_user@athenz.io` is treated as the Athenz principal `email:ext.athenz_user@athenz.io`.
 
 ## 2. Prepare ZMS Objects and Permissions
 
@@ -151,24 +31,24 @@ This procedure uses two Remote Agents:
 | Agent | Athenz domain | Athenz service principal | Responsibility |
 | --- | --- | --- | --- |
 | Downstream Remote Agent | `email.downstream` | `email.downstream.agent` | Sends the ID-JAG token to ZTS and obtains the first Athenz Access Token. |
-| Upstream Remote Agent | `email.upstream` | `email.upstream.agent` | Sends the first Athenz Access Token to ZTS and exchanges it for a second Athenz Access Token. |
+| Upstream Remote Agent | `agentbroker.upstream` | `agentbroker.upstream.agent` | Sends the first Athenz Access Token to ZTS and exchanges it for a second Athenz Access Token. |
 
-Create `email` as the parent top-level domain, then create `email.downstream` and `email.upstream` as subdomains under it. Register an Athenz service named `agent` in each `email` subdomain, and issue a Copper Argos Service Cert for each service through the pre-registered `sys.auth.zts` identity provider. Also create `agentbroker.downstream` under the `agentbroker` parent domain and `mcp.upstream` under the `mcp` parent domain for the token-exchange roles. The commands below use `zms-cli` for ZMS registration wherever the CLI supports the operation. Domain creation first attempts `zms-cli add-domain` and falls back to the ZMS domain API only if the CLI command fails in this Kubernetes distribution.
+Create `email`, `agentbroker`, and `mcp` as top-level domains. Create `email.downstream` under `email` for the Downstream Remote Agent, and create `agentbroker.upstream` under `agentbroker` for the Upstream Remote Agent. Register an Athenz service named `agent` in each Remote Agent subdomain, and issue a Copper Argos Service Cert for each service through the pre-registered `sys.auth.zts` identity provider. The source token roles are created in `agentbroker`, and the final target role is created in `mcp`. The commands below use `zms-cli` for ZMS registration wherever the CLI supports the operation. Domain creation first attempts `zms-cli add-domain` and falls back to the ZMS domain API only if the CLI command fails in this Kubernetes distribution.
 
 The Downstream Remote Agent is also the OAuth client that requests ID-JAG tokens, so configure `email.downstream.agent` with the Dex client ID `id-jag-client`.
 
-Grant `email.downstream.agent` the `zts.jag_exchange` permission on `agentbroker.downstream:role.downstream-agents` and the source compatibility role `agentbroker.downstream:role.mcp-clients`. Both source roles are created in the `agentbroker.downstream` subdomain and contain the mapped Dex principal `email:ext.athenz_user@athenz.io`.
+Grant `email.downstream.agent` the `zts.jag_exchange` permission on `agentbroker:role.downstream-agents` and the source compatibility role `agentbroker:role.mcp-clients`. Both source roles are created in the `agentbroker` domain and contain the mapped Dex principal `email:ext.athenz_user@athenz.io`.
 
-The final Access Token target role is `mcp.upstream:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name, so the source Access Token must contain the simple role name `mcp-clients`. To avoid granting `mcp.upstream:role.mcp-clients` before the Access Token=>Access Token exchange, this procedure creates `agentbroker.downstream:role.mcp-clients` as a source-domain compatibility role and includes it in the ID-JAG request together with `agentbroker.downstream:role.downstream-agents`. The ID-JAG token and the first Access Token therefore do not grant `mcp.upstream:role.mcp-clients`; that target-domain role appears only in the exchanged Access Token.
+The final Access Token target role is `mcp:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name, so the source Access Token must contain the simple role name `mcp-clients`. To avoid granting `mcp:role.mcp-clients` before the Access Token=>Access Token exchange, this procedure creates `agentbroker:role.mcp-clients` as a source-domain compatibility role and includes it in the ID-JAG request together with `agentbroker:role.downstream-agents`. The ID-JAG token and the first Access Token therefore do not grant `mcp:role.mcp-clients`; that target-domain role appears only in the exchanged Access Token.
 
-Create all Remote Agent service identities in `email.downstream` and `email.upstream`; no personal or bootstrap subdomain is used for those services.
+Create all Remote Agent service identities in `email.downstream` and `agentbroker.upstream`; no personal or bootstrap subdomain is used for those services.
 
-The later Access Token Exchange step uses an Access Token with audience `agentbroker.downstream` as the source token and requests `mcp.upstream:role.mcp-clients` as the target role. Because the Access Token issued from ID-JAG in this procedure does not contain `may_act` and the exchange request does not send `actor_token`, ZTS treats the Access Token Exchange as impersonation and requires both source and target exchange policies:
+The later Access Token Exchange step uses an Access Token with audience `agentbroker` as the source token and requests `mcp:role.mcp-clients` as the target role. Because the Access Token issued from ID-JAG in this procedure does not contain `may_act` and the exchange request does not send `actor_token`, ZTS treats the Access Token Exchange as impersonation and requires both source and target exchange policies:
 
 | Policy action | Policy domain | Token-exchange role | Resource checked by ZTS | Authorized service |
 | --- | --- | --- | --- | --- |
-| `zts.token_source_exchange` | `agentbroker.downstream` | `token_source_exchanger` | `agentbroker.downstream:mcp.upstream` | `email.upstream.agent` |
-| `zts.token_target_exchange` | `mcp.upstream` | `token_target_exchanger` | `mcp.upstream:agentbroker.downstream:role.mcp-clients` | `email.upstream.agent` |
+| `zts.token_source_exchange` | `agentbroker` | `token_source_exchanger` | `agentbroker:mcp` | `agentbroker.upstream.agent` |
+| `zts.token_target_exchange` | `mcp` | `token_target_exchanger` | `mcp:agentbroker:role.mcp-clients` | `agentbroker.upstream.agent` |
 
 A `zts.token_source_exchange`-free Access Token Exchange can only be constructed through the delegation path, where the request includes `actor_token` and the `subject_token` already has `may_act.sub` matching the actor identity. The ID-JAG-to-Access-Token step in this document does not issue a source Access Token with `may_act`, so the end-to-end procedure below intentionally keeps `zts.token_source_exchange`.
 
@@ -189,15 +69,12 @@ ADMIN_CERT=/var/run/athenz/athenz_admin.cert.pem
 
 PARENT_DOMAIN=email
 DOWNSTREAM_SUBDOMAIN=downstream
-UPSTREAM_SUBDOMAIN=upstream
 DOWNSTREAM_DOMAIN=$PARENT_DOMAIN.$DOWNSTREAM_SUBDOMAIN
-UPSTREAM_DOMAIN=$PARENT_DOMAIN.$UPSTREAM_SUBDOMAIN
-SOURCE_PARENT_DOMAIN=agentbroker
-SOURCE_SUBDOMAIN=downstream
-SOURCE_DOMAIN=$SOURCE_PARENT_DOMAIN.$SOURCE_SUBDOMAIN
-TARGET_PARENT_DOMAIN=mcp
-TARGET_SUBDOMAIN=upstream
-TARGET_DOMAIN=$TARGET_PARENT_DOMAIN.$TARGET_SUBDOMAIN
+UPSTREAM_PARENT_DOMAIN=agentbroker
+UPSTREAM_SUBDOMAIN=upstream
+UPSTREAM_DOMAIN=$UPSTREAM_PARENT_DOMAIN.$UPSTREAM_SUBDOMAIN
+SOURCE_DOMAIN=$UPSTREAM_PARENT_DOMAIN
+TARGET_DOMAIN=mcp
 AGENT_SERVICE=agent
 DOWNSTREAM_AGENT=$DOWNSTREAM_DOMAIN.$AGENT_SERVICE
 UPSTREAM_AGENT=$UPSTREAM_DOMAIN.$AGENT_SERVICE
@@ -251,29 +128,19 @@ zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
     "{\"name\":\"$DOWNSTREAM_SUBDOMAIN\",\"parent\":\"$PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  add-domain "$UPSTREAM_PARENT_DOMAIN" >"$WORKDIR/add-upstream-parent-domain-cli.out" 2>&1 \
+  || post_zms_json "$WORKDIR/add-upstream-parent-domain.out" "$ZMS/domain" \
+    "{\"name\":\"$UPSTREAM_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   add-domain "$UPSTREAM_DOMAIN" >"$WORKDIR/add-upstream-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-upstream-domain.out" "$ZMS/subdomain/$PARENT_DOMAIN" \
-    "{\"name\":\"$UPSTREAM_SUBDOMAIN\",\"parent\":\"$PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
-
-zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$SOURCE_PARENT_DOMAIN" >"$WORKDIR/add-source-parent-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-source-parent-domain.out" "$ZMS/domain" \
-    "{\"name\":\"$SOURCE_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
-
-zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$SOURCE_DOMAIN" >"$WORKDIR/add-source-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-source-domain.out" "$ZMS/subdomain/$SOURCE_PARENT_DOMAIN" \
-    "{\"name\":\"$SOURCE_SUBDOMAIN\",\"parent\":\"$SOURCE_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
-
-zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$TARGET_PARENT_DOMAIN" >"$WORKDIR/add-target-parent-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-target-parent-domain.out" "$ZMS/domain" \
-    "{\"name\":\"$TARGET_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
+  || post_zms_json "$WORKDIR/add-upstream-domain.out" "$ZMS/subdomain/$UPSTREAM_PARENT_DOMAIN" \
+    "{\"name\":\"$UPSTREAM_SUBDOMAIN\",\"parent\":\"$UPSTREAM_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   add-domain "$TARGET_DOMAIN" >"$WORKDIR/add-target-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-target-domain.out" "$ZMS/subdomain/$TARGET_PARENT_DOMAIN" \
-    "{\"name\":\"$TARGET_SUBDOMAIN\",\"parent\":\"$TARGET_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
+  || post_zms_json "$WORKDIR/add-target-domain.out" "$ZMS/domain" \
+    "{\"name\":\"$TARGET_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   -d "$DOWNSTREAM_DOMAIN" \
@@ -483,7 +350,7 @@ set -eu
 WORKDIR=/dev/shm/jag-flow.example
 ZTS=https://athenz-zts-server.athenz:4443/zts/v1
 CA=/etc/ssl/certs/ca-certificates.crt
-SOURCE_DOMAIN=agentbroker.downstream
+SOURCE_DOMAIN=agentbroker
 SOURCE_ROLE_NAME=downstream-agents
 SOURCE_COMPAT_ROLE_NAME=mcp-clients
 ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")
@@ -514,7 +381,7 @@ Request parameters:
 | `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
 | `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` |
 | `audience` | `https://athenz-zts-server.athenz:4443/zts/v1` |
-| `scope` | `agentbroker.downstream:role.downstream-agents agentbroker.downstream:role.mcp-clients` |
+| `scope` | `agentbroker:role.downstream-agents agentbroker:role.mcp-clients` |
 | `subject_token` | Dex ID Token |
 | `subject_token_type` | `urn:ietf:params:oauth:token-type:id_token` |
 
@@ -525,7 +392,7 @@ Response example:
   "access_token": "<ID-JAG JWT>",
   "token_type": "N_A",
   "expires_in": 7200,
-  "scope": "agentbroker.downstream:role.downstream-agents agentbroker.downstream:role.mcp-clients",
+  "scope": "agentbroker:role.downstream-agents agentbroker:role.mcp-clients",
   "issued_token_type": "urn:ietf:params:oauth:token-type:id-jag"
 }
 ```
@@ -547,10 +414,10 @@ Decoded JWT payload example:
   "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
   "sub": "email:ext.athenz_user@athenz.io",
   "aud": "https://athenz-zts-server.athenz:4443/zts/v1",
-  "scope": "agentbroker.downstream:role.downstream-agents agentbroker.downstream:role.mcp-clients",
+  "scope": "agentbroker:role.downstream-agents agentbroker:role.mcp-clients",
   "scp": [
-    "agentbroker.downstream:role.downstream-agents",
-    "agentbroker.downstream:role.mcp-clients"
+    "agentbroker:role.downstream-agents",
+    "agentbroker:role.mcp-clients"
   ],
   "client_id": "email.downstream.agent",
   "email": "athenz_user@athenz.io",
@@ -563,8 +430,8 @@ Important checks:
 
 - `typ` is `oauth-id-jag+jwt`.
 - `sub` is mapped to `email:ext.athenz_user@athenz.io`.
-- `scope` includes `agentbroker.downstream:role.downstream-agents` and `agentbroker.downstream:role.mcp-clients`.
-- `scope` does not include `mcp.upstream:role.mcp-clients`; that target role is issued only after the Access Token=>Access Token exchange.
+- `scope` includes `agentbroker:role.downstream-agents` and `agentbroker:role.mcp-clients`.
+- `scope` does not include `mcp:role.mcp-clients`; that target role is issued only after the Access Token=>Access Token exchange.
 - The response `issued_token_type` is `urn:ietf:params:oauth:token-type:id-jag`.
 
 ## 5. Exchange ID-JAG for Athenz Access Token
@@ -628,7 +495,7 @@ Decoded JWT payload example:
 {
   "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
   "sub": "email:ext.athenz_user@athenz.io",
-  "aud": "agentbroker.downstream",
+  "aud": "agentbroker",
   "scope": "downstream-agents mcp-clients",
   "scp": [
     "downstream-agents",
@@ -645,31 +512,31 @@ Important checks:
 
 - `typ` is `at+jwt`.
 - `sub` and `uid` are `email:ext.athenz_user@athenz.io`.
-- `aud` is the source role domain, `agentbroker.downstream`.
+- `aud` is the source role domain, `agentbroker`.
 - `scope` is converted to the source-domain role names, `downstream-agents` and `mcp-clients`.
-- This token still does not grant `mcp.upstream:role.mcp-clients`; `mcp-clients` is scoped to the `agentbroker.downstream` audience in this first Access Token.
+- This token still does not grant `mcp:role.mcp-clients`; `mcp-clients` is scoped to the `agentbroker` audience in this first Access Token.
 
 ## 6. Exchange the Access Token for Another Domain/Role Access Token
 
 The previous step issued an Access Token with:
 
 - subject: `email:ext.athenz_user@athenz.io`
-- audience: `agentbroker.downstream`
+- audience: `agentbroker`
 - scope: `downstream-agents mcp-clients`
 - client: `email.downstream.agent`
 
-This step is performed by the Upstream Remote Agent. It uses the first Access Token as the `subject_token` and exchanges it for another Access Token in `mcp.upstream:role.mcp-clients`. The exchange request is authenticated with the Upstream Remote Agent Service Cert for `email.upstream.agent`.
+This step is performed by the Upstream Remote Agent. It uses the first Access Token as the `subject_token` and exchanges it for another Access Token in `mcp:role.mcp-clients`. The exchange request is authenticated with the Upstream Remote Agent Service Cert for `agentbroker.upstream.agent`.
 
 This is the standard OAuth 2.0 Token Exchange path in ZTS, not the ID-JAG JWT bearer path. This procedure uses the Access Token issued in step 5 as `subject_token` and does not send `actor_token`, so ZTS handles it as an impersonation-style access-token exchange. In that path, the Service Cert authenticates the Upstream Remote Agent, but it does not replace the source-domain authorization check. ZTS evaluates both of these permissions:
 
 | Policy action | Policy domain | Resource checked by ZTS | Purpose |
 | --- | --- | --- | --- |
-| `zts.token_source_exchange` | source domain, `agentbroker.downstream` | `agentbroker.downstream:mcp.upstream` | Allows the Upstream Remote Agent to exchange a token from the `agentbroker.downstream` audience to the `mcp.upstream` audience. |
-| `zts.token_target_exchange` | target domain, `mcp.upstream` | `mcp.upstream:agentbroker.downstream:role.mcp-clients` | Allows the Upstream Remote Agent to request the target role for tokens whose source audience is `agentbroker.downstream`. |
+| `zts.token_source_exchange` | source domain, `agentbroker` | `agentbroker:mcp` | Allows the Upstream Remote Agent to exchange a token from the `agentbroker` audience to the `mcp` audience. |
+| `zts.token_target_exchange` | target domain, `mcp` | `mcp:agentbroker:role.mcp-clients` | Allows the Upstream Remote Agent to request the target role for tokens whose source audience is `agentbroker`. |
 
-The target role must include the source Access Token subject as a ZMS role member, because ZTS verifies that the subject principal has access to the requested target role before issuing the exchanged Access Token. This ZMS membership is not the same as granting the target role in the ID-JAG token or in the first Access Token; those credentials only carry the roles requested for their own audience, and the first Access Token audience remains `agentbroker.downstream`.
+The target role must include the source Access Token subject as a ZMS role member, because ZTS verifies that the subject principal has access to the requested target role before issuing the exchanged Access Token. This ZMS membership is not the same as granting the target role in the ID-JAG token or in the first Access Token; those credentials only carry the roles requested for their own audience, and the first Access Token audience remains `agentbroker`.
 
-The target fully-qualified role is different from the source fully-qualified roles: the source token is issued from `agentbroker.downstream:role.downstream-agents` and `agentbroker.downstream:role.mcp-clients`, while the target is `mcp.upstream:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name. Since the first Access Token contains `scope=downstream-agents mcp-clients`, a request for `mcp.upstream:role.mcp-clients` passes the subset check without granting `mcp.upstream:role.mcp-clients` before the exchange. If the source Access Token only had `scope=downstream-agents`, the target request for `mcp.upstream:role.mcp-clients` would fail with `Invalid scope for token exchange` before ZTS issued the exchanged Access Token.
+The target fully-qualified role is different from the source fully-qualified roles: the source token is issued from `agentbroker:role.downstream-agents` and `agentbroker:role.mcp-clients`, while the target is `mcp:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name. Since the first Access Token contains `scope=downstream-agents mcp-clients`, a request for `mcp:role.mcp-clients` passes the subset check without granting `mcp:role.mcp-clients` before the exchange. If the source Access Token only had `scope=downstream-agents`, the target request for `mcp:role.mcp-clients` would fail with `Invalid scope for token exchange` before ZTS issued the exchanged Access Token.
 
 `zts.token_source_exchange` is not evaluated only in the delegation-style access-token exchange path. That path requires all of the following:
 
@@ -688,7 +555,7 @@ set -eu
 WORKDIR=/dev/shm/jag-flow.example
 ZTS=https://athenz-zts-server.athenz:4443/zts/v1
 CA=/etc/ssl/certs/ca-certificates.crt
-TARGET_DOMAIN=mcp.upstream
+TARGET_DOMAIN=mcp
 TARGET_ROLE_NAME=mcp-clients
 SOURCE_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")
 
@@ -714,11 +581,11 @@ Request parameters:
 | Parameter | Value |
 | --- | --- |
 | endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
-| client authentication | mTLS with the Upstream Remote Agent `email.upstream.agent` Service Cert |
+| client authentication | mTLS with the Upstream Remote Agent `agentbroker.upstream.agent` Service Cert |
 | `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
 | `requested_token_type` | `urn:ietf:params:oauth:token-type:access_token` |
-| `audience` | `mcp.upstream` |
-| `scope` | `mcp.upstream:role.mcp-clients` |
+| `audience` | `mcp` |
+| `scope` | `mcp:role.mcp-clients` |
 | `subject_token` | The first Athenz Access Token issued from the ID-JAG token |
 | `subject_token_type` | `urn:ietf:params:oauth:token-type:access_token` |
 
@@ -729,7 +596,7 @@ Response example:
   "access_token": "<Exchanged Athenz Access Token JWT>",
   "token_type": "Bearer",
   "expires_in": 7200,
-  "scope": "mcp.upstream:role.mcp-clients"
+  "scope": "mcp:role.mcp-clients"
 }
 ```
 
@@ -749,13 +616,13 @@ Decoded JWT payload example:
 {
   "iss": "athenz-zts-server-5c5969456-hnvjc",
   "sub": "email:ext.athenz_user@athenz.io",
-  "aud": "mcp.upstream",
+  "aud": "mcp",
   "scope": "mcp-clients",
   "scp": [
     "mcp-clients"
   ],
-  "client_id": "email.upstream.agent",
-  "uid": "email.upstream.agent",
+  "client_id": "agentbroker.upstream.agent",
+  "uid": "agentbroker.upstream.agent",
   "cnf": {
     "x5t#S256": "<Upstream Remote Agent certificate thumbprint>"
   },
@@ -768,10 +635,10 @@ Important checks:
 
 - `typ` is `at+jwt`.
 - `sub` remains the source Access Token subject, `email:ext.athenz_user@athenz.io`.
-- `aud` is changed from `agentbroker.downstream` to `mcp.upstream`.
-- The target full role is `mcp.upstream:role.mcp-clients`.
+- `aud` is changed from `agentbroker` to `mcp`.
+- The target full role is `mcp:role.mcp-clients`.
 - The JWT `scope` claim is `mcp-clients`, because Athenz Access Tokens carry role names in `scope` and the target role name must be a subset of the source Access Token roles.
-- `client_id` and `uid` identify the Upstream Remote Agent service principal, `email.upstream.agent`.
+- `client_id` and `uid` identify the Upstream Remote Agent service principal, `agentbroker.upstream.agent`.
 
 ## 7. JWT Decode Helper
 
@@ -825,7 +692,7 @@ jwt_part "$EXCHANGED_ACCESS_TOKEN" 2 | jq "{iss,sub,aud,scope,scp,client_id,uid,
 
 ## 8. End-to-End Script
 
-The script below runs the full flow, from preparing the ZMS domains and Remote Agent services through issuing all four tokens. It also decodes the issued JWT payloads and verifies that only the final exchanged Access Token carries the `mcp.upstream` audience with the `mcp-clients` role.
+The script below runs the full flow, from preparing the ZMS domains and Remote Agent services through issuing all four tokens. It also decodes the issued JWT payloads and verifies that only the final exchanged Access Token carries the `mcp` audience with the `mcp-clients` role.
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -841,15 +708,12 @@ ADMIN_KEY=/var/run/athenz/athenz_admin.private.pem
 ADMIN_CERT=/var/run/athenz/athenz_admin.cert.pem
 PARENT_DOMAIN=email
 DOWNSTREAM_SUBDOMAIN=downstream
-UPSTREAM_SUBDOMAIN=upstream
 DOWNSTREAM_DOMAIN=$PARENT_DOMAIN.$DOWNSTREAM_SUBDOMAIN
-UPSTREAM_DOMAIN=$PARENT_DOMAIN.$UPSTREAM_SUBDOMAIN
-SOURCE_PARENT_DOMAIN=agentbroker
-SOURCE_SUBDOMAIN=downstream
-SOURCE_DOMAIN=$SOURCE_PARENT_DOMAIN.$SOURCE_SUBDOMAIN
-TARGET_PARENT_DOMAIN=mcp
-TARGET_SUBDOMAIN=upstream
-TARGET_DOMAIN=$TARGET_PARENT_DOMAIN.$TARGET_SUBDOMAIN
+UPSTREAM_PARENT_DOMAIN=agentbroker
+UPSTREAM_SUBDOMAIN=upstream
+UPSTREAM_DOMAIN=$UPSTREAM_PARENT_DOMAIN.$UPSTREAM_SUBDOMAIN
+SOURCE_DOMAIN=$UPSTREAM_PARENT_DOMAIN
+TARGET_DOMAIN=mcp
 AGENT_SERVICE=agent
 DOWNSTREAM_AGENT=$DOWNSTREAM_DOMAIN.$AGENT_SERVICE
 UPSTREAM_AGENT=$UPSTREAM_DOMAIN.$AGENT_SERVICE
@@ -925,29 +789,19 @@ zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
     "{\"name\":\"$DOWNSTREAM_SUBDOMAIN\",\"parent\":\"$PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  add-domain "$UPSTREAM_PARENT_DOMAIN" >"$WORKDIR/add-upstream-parent-domain-cli.out" 2>&1 \
+  || post_zms_json "$WORKDIR/add-upstream-parent-domain.out" "$ZMS/domain" \
+    "{\"name\":\"$UPSTREAM_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   add-domain "$UPSTREAM_DOMAIN" >"$WORKDIR/add-upstream-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-upstream-domain.out" "$ZMS/subdomain/$PARENT_DOMAIN" \
-    "{\"name\":\"$UPSTREAM_SUBDOMAIN\",\"parent\":\"$PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
-
-zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$SOURCE_PARENT_DOMAIN" >"$WORKDIR/add-source-parent-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-source-parent-domain.out" "$ZMS/domain" \
-    "{\"name\":\"$SOURCE_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
-
-zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$SOURCE_DOMAIN" >"$WORKDIR/add-source-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-source-domain.out" "$ZMS/subdomain/$SOURCE_PARENT_DOMAIN" \
-    "{\"name\":\"$SOURCE_SUBDOMAIN\",\"parent\":\"$SOURCE_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
-
-zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$TARGET_PARENT_DOMAIN" >"$WORKDIR/add-target-parent-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-target-parent-domain.out" "$ZMS/domain" \
-    "{\"name\":\"$TARGET_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
+  || post_zms_json "$WORKDIR/add-upstream-domain.out" "$ZMS/subdomain/$UPSTREAM_PARENT_DOMAIN" \
+    "{\"name\":\"$UPSTREAM_SUBDOMAIN\",\"parent\":\"$UPSTREAM_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   add-domain "$TARGET_DOMAIN" >"$WORKDIR/add-target-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-target-domain.out" "$ZMS/subdomain/$TARGET_PARENT_DOMAIN" \
-    "{\"name\":\"$TARGET_SUBDOMAIN\",\"parent\":\"$TARGET_PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
+  || post_zms_json "$WORKDIR/add-target-domain.out" "$ZMS/domain" \
+    "{\"name\":\"$TARGET_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   -d "$DOWNSTREAM_DOMAIN" \

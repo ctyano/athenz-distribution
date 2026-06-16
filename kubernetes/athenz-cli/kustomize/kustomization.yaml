@@ -20,6 +20,10 @@ secretGenerator:
   - athenz_admin.private.pem=keys/athenz_admin.private.pem
   name: athenz-admin-keys
   type: Opaque
+configMapGenerator:
+- files:
+  - zms-cli=bin/zms-cli
+  name: zms-cli-wrapper
 images:
 - name: ghcr.io/ctyano/athenz-cli:latest
   newName: ghcr.io/ctyano/athenz-cli

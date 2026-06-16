@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+
+has_key=0
+has_cert=0
+
+for arg in "$@"; do
+    case "$arg" in
+        -key|--key|-key=*|--key=*)
+            has_key=1
+            ;;
+        -cert|--cert|-cert=*|--cert=*)
+            has_cert=1
+            ;;
+    esac
+done
+
+need_key=0
+need_cert=0
+
+if [ "$has_key" -eq 0 ] && [ -n "${ZMS_CLI_KEY_FILE:-}" ]; then
+    need_key=1
+fi
+
+if [ "$has_cert" -eq 0 ] && [ -n "${ZMS_CLI_CERT_FILE:-}" ]; then
+    need_cert=1
+fi
+
+case "${need_key}:${need_cert}" in
+    1:1)
+        exec /usr/bin/zms-cli -key "$ZMS_CLI_KEY_FILE" -cert "$ZMS_CLI_CERT_FILE" "$@"
+        ;;
+    1:0)
+        exec /usr/bin/zms-cli -key "$ZMS_CLI_KEY_FILE" "$@"
+        ;;
+    0:1)
+        exec /usr/bin/zms-cli -cert "$ZMS_CLI_CERT_FILE" "$@"
+        ;;
+    *)
+        exec /usr/bin/zms-cli "$@"
+        ;;
+esac

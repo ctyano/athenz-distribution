@@ -33,3 +33,6 @@ configMapGenerator:
   - name: oauth2-envoy-config
     files:
       - envoy.yaml=envoy/config.yaml
+  - name: athenz-user-cert-config
+    files:
+      - config.yaml=athenz-user-cert/config.yaml

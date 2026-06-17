@@ -109,3 +109,4 @@ spec:
             - name: athenz-user-cert-config
               mountPath: /root/.athenz/config.yaml
               subPath: config.yaml
+              readOnly: true

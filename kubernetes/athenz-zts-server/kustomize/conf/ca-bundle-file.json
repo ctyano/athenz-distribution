@@ -1,0 +1,9 @@
+{
+  "certBundles": [
+    {
+      "name": "athenz",
+      "filename": "/etc/ssl/certs/ca-certificates.crt",
+      "type": "x509"
+    }
+  ]
+}

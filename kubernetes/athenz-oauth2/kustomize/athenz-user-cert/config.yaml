@@ -2,7 +2,7 @@ signer:
   name: zts
 
 athenz:
-  cn_mode: external
+  cn_mode: user
   user_domain: user
   external_id_domain: email
 

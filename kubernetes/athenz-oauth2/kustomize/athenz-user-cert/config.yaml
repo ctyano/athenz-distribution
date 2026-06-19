@@ -1,0 +1,22 @@
+signer:
+  name: zts
+
+athenz:
+  cn_mode: user
+  user_domain: user
+  external_id_domain: email
+
+endpoint: https://athenz-zts-server.athenz:4443/zts/v1/usercert
+ca_endpoint: https://athenz-zts-server.athenz:4443/zts/v1/cacerts/athenz
+signer_tls_ca_path: /etc/ssl/certs/ca-certificates.crt
+
+oidc:
+  issuer: http://127.0.0.1:5556/dex
+  client_id: athenz-user-cert
+  client_secret: athenz-user-cert
+  scopes: openid email profile
+  listen_address: :8080
+  external_id_claim: email
+
+zts:
+  timeout: 10

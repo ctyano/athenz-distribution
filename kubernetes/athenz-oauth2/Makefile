@@ -76,9 +76,9 @@ register-athenz-oauth2:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-c /etc/ssl/certs/ca-certificates.crt \
 			-d email \
-			add-member \
-			admin \
-			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
+			set-external-member-validator \
+			com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+	sleep 1
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		zms-cli \
 			-z https://athenz-zms-server.athenz:4443/zms/v1 \
@@ -86,8 +86,9 @@ register-athenz-oauth2:
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-c /etc/ssl/certs/ca-certificates.crt \
 			-d email \
-			set-external-member-validator \
-			com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+			add-member \
+			admin \
+			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
 
 test-athenz-oauth2:
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 &

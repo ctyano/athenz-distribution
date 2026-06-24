@@ -40,6 +40,7 @@ configMapGenerator:
   - zts.properties=conf/zts.properties
   - logback.xml=conf/logback.xml
   - ca-bundle-file.json=conf/ca-bundle-file.json
+  - oauth_provider_config.json=conf/oauth_provider_config.json
   name: athenz-zts-conf
 images:
 - name: ghcr.io/ctyano/athenz-plugins:latest

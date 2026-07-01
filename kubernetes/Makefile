@@ -45,6 +45,7 @@ clean-certificates:
 clean-namespace:
 	kubectl delete namespace athenz ||:
 	kubectl delete namespace crypki ||:
+	kubectl delete namespace vault ||:
 
 clean: clean-namespace clean-certificates
 	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
@@ -133,6 +134,7 @@ kind-load-images:
 	fi
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
+		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
@@ -175,6 +177,18 @@ deploy-crypki-softhsm: copy-crypki-certificates-to-kustomization setup-crypki-so
 
 test-crypki-softhsm:
 	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
+
+setup-vault:
+	@$(MAKE) -C vault setup-vault
+
+deploy-vault: setup-vault
+	@$(MAKE) -C vault deploy-vault
+
+test-vault:
+	@$(MAKE) -C vault test-vault
+
+test-vault-pki:
+	@$(MAKE) -C vault test-vault-pki
 
 setup-athenz-oauth2:
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2

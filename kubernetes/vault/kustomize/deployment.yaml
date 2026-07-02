@@ -73,6 +73,9 @@ spec:
             requests:
               memory: 128Mi
               cpu: 100m
+          volumeMounts:
+            - name: vault-bootstrap
+              mountPath: /vault/bootstrap
         - name: vault-bootstrap
           image: docker.io/hashicorp/vault:latest
           imagePullPolicy: IfNotPresent
@@ -126,7 +129,7 @@ spec:
             - -l
             - debug
           ports:
-            - name: http
+            - name: envoy-http
               containerPort: 10000
               protocol: TCP
           resources:

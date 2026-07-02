@@ -4,6 +4,39 @@ This component deploys [HashiCorp Vault](https://www.vaultproject.io/) as a PKI 
 
 [![](https://img.plantuml.biz/plantuml/svg/VPJDJjj0483l-nIZzDQIEa6eL1mgGd0G9I9HRAXQMK8JUsflRUzQk-j0g7hj0_GH-oGTsoaaW90lrkutF_lDsiVMeN5rMGYRIrMXmHAM6EUfqRLAnhhG1jvC_ERP8c9TLbgHSl1J09neav3Pi0S7X_lZWsRrQHR_msGmcV3EH2iNo7k2uRxu9GJ6ZhT7IIcL41L7OKhGkwYNP1GviZ0kQkl8zDfY3y0AwyA1mf8ihr6t2rkjzQvR8Y2p8XEfIXi77_S7WqYDgcgX2m8FvXVdFK0BrwEhQVWq_aHhPvt1AbA1J2X6pj9L7K-xi9FPx5cKhrPw3NEZxzQReiF1eAawHsjTnaRIh0tsBwzdNvz6eyj8tVVZGaRgb9PrweLaNSjpqPPEqE4IBIkWidBhKybj6JxEZKmYPIasvFYrEzPioY7iUCjRL-5LSQCE-HO6aGfrJggLA1kMa_BoYwR7P7YigMfaVyOLmhoeKwaUTRzxq1sSdrtwYsUj-NSyPeN52orjlDIMJ3_cGf4wquqHBlKbX57jEgTNWRyO-ukmJSt9sri5_VwdRi9m13dVgzWLW5LLhA6Vyu9rkkJhA9ffxh1IIRS7DKl5Oe-xKTzbMfjjS3PbZExQCRFuX7kLM5ZHPMYGbZs27GTW29Er49s6dPBpMH22jnfwo4VokCbcibwXMUIhU9LBpx9yhnFr4dlcFw8ntiGPSix_mbgolP7FclXnwpODl0uR_bnYxBgGrjPahEYWxIwgviDe-RVmz_SV_WSSlX_mCpnglat18zt1CrRlCeWpYdDnJ2hXNzK_)](https://editor.plantuml.com/uml/VPJDJjj0483l-nIZzDQIEa6eL1mgGd0G9I9HRAXQMK8JUsflRUzQk-j0g7hj0_GH-oGTsoaaW90lrkutF_lDsiVMeN5rMGYRIrMXmHAM6EUfqRLAnhhG1jvC_ERP8c9TLbgHSl1J09neav3Pi0S7X_lZWsRrQHR_msGmcV3EH2iNo7k2uRxu9GJ6ZhT7IIcL41L7OKhGkwYNP1GviZ0kQkl8zDfY3y0AwyA1mf8ihr6t2rkjzQvR8Y2p8XEfIXi77_S7WqYDgcgX2m8FvXVdFK0BrwEhQVWq_aHhPvt1AbA1J2X6pj9L7K-xi9FPx5cKhrPw3NEZxzQReiF1eAawHsjTnaRIh0tsBwzdNvz6eyj8tVVZGaRgb9PrweLaNSjpqPPEqE4IBIkWidBhKybj6JxEZKmYPIasvFYrEzPioY7iUCjRL-5LSQCE-HO6aGfrJggLA1kMa_BoYwR7P7YigMfaVyOLmhoeKwaUTRzxq1sSdrtwYsUj-NSyPeN52orjlDIMJ3_cGf4wquqHBlKbX57jEgTNWRyO-ukmJSt9sri5_VwdRi9m13dVgzWLW5LLhA6Vyu9rkkJhA9ffxh1IIRS7DKl5Oe-xKTzbMfjjS3PbZExQCRFuX7kLM5ZHPMYGbZs27GTW29Er49s6dPBpMH22jnfwo4VokCbcibwXMUIhU9LBpx9yhnFr4dlcFw8ntiGPSix_mbgolP7FclXnwpODl0uR_bnYxBgGrjPahEYWxIwgviDe-RVmz_SV_WSSlX_mCpnglat18zt1CrRlCeWpYdDnJ2hXNzK_)
 
+## Usage
+
+### Deploy
+
+```sh
+make -C kubernetes deploy-vault
+# or from project root:
+make deploy-kubernetes-vault
+```
+
+### Access Vault UI
+
+```sh
+kubectl -n vault port-forward service/vault 8200:8200
+```
+
+Open [http://localhost:8200](http://localhost:8200) in your browser and log in with token `root`.
+
+### Test
+
+```sh
+make -C kubernetes test-vault
+make -C kubernetes test-vault-pki
+```
+
+### Clean
+
+```sh
+make -C kubernetes clean-vault
+# or from project root:
+make clean-kubernetes-vault
+```
+
 ## Additional resources
 
 - [Vault Documentation](https://developer.hashicorp.com/vault/docs)

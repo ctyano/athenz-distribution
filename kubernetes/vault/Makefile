@@ -71,7 +71,7 @@ test-vault:
 test-vault-pki:
 	@echo "Testing Vault PKI signing via AppRole authentication..."
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
-	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- \
+	kubectl -n vault exec $(VAULT_POD) -c vault -- \
 		sh -c "VAULT_TOKEN=$$(vault write -format=json auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id) | jq -r .auth.client_token) && \
 		curl -sf --header X-Vault-Token:\$$VAULT_TOKEN --request POST --data '{}' http://127.0.0.1:8200/v1/pki/sign/athenz 2>&1 | jq -r .errors[0] && \
 		echo 'AppRole authenticated, PKI endpoint accessible' || \

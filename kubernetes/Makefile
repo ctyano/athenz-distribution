@@ -184,6 +184,9 @@ setup-vault:
 deploy-vault: setup-vault
 	@$(MAKE) -C vault deploy-vault
 
+clean-vault:
+	@$(MAKE) -C vault clean-vault
+
 test-vault:
 	@$(MAKE) -C vault test-vault
 

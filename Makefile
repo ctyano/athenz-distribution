@@ -404,6 +404,9 @@ generate-certificates: generate-ca generate-zms generate-zts generate-admin gene
 clean-kubernetes-athenz: clean-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean
 
+clean-kubernetes-vault:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean-vault
+
 load-docker-images: load-docker-images-internal load-docker-images-external
 
 load-docker-images-internal:
@@ -463,6 +466,9 @@ test-kubernetes-athenz-oauth2:
 
 athenzusercert:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes athenz-user-cert
+
+deploy-kubernetes-vault:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-vault deploy-vault
 
 deploy-kubernetes-athenz: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz

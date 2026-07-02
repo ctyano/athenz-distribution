@@ -57,3 +57,5 @@ vault write -f -field=secret_id auth/approle/role/athenz/secret-id > /vault/boot
 echo "Vault bootstrap completed"
 echo "role_id: $(cat /vault/bootstrap/role_id)"
 echo "secret_id: $(cat /vault/bootstrap/secret_id)"
+
+sleep infinity

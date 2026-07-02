@@ -18,5 +18,5 @@ spec:
       protocol: TCP
     - name: envoy
       port: 80
-      targetPort: http
+      targetPort: envoy-http
       protocol: TCP

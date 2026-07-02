@@ -426,6 +426,7 @@ load-docker-images-external:
 	docker pull $(DOCKERIO_REGISTRY)/dexidp/dex:latest
 	docker pull $(DOCKERIO_REGISTRY)/ealen/echo-server:latest
 	docker pull $(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest
+	docker pull $(DOCKERIO_REGISTRY)/hashicorp/vault:latest
 	docker pull $(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest
 	docker pull $(DOCKERIO_REGISTRY)/cfssl/cfssl:latest
 	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest

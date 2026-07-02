@@ -42,27 +42,42 @@ XPLATFORM_ARGS := --platform=$(XPLATFORMS)
 
 BUILD_ARG := --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)'
 
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+
+ifeq ($(QUEYIO_REGISTRY),)
+QUEYIO_REGISTRY=quay.io
+endif
+
 ifeq ($(DOCKER_REGISTRY_OWNER),)
 DOCKER_REGISTRY_OWNER=ctyano
 endif
 
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/$(DOCKER_REGISTRY_OWNER)/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/$(DOCKER_REGISTRY_OWNER)/
 endif
 
 ifeq ($(DOCKER_REGISTRY_MIRROR),)
-DOCKER_REGISTRY_MIRROR=ghcr.io/athenz-community/
+DOCKER_REGISTRY_MIRROR=$(GHCR_REGISTRY)/athenz-community/
 endif
 
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
+
+export DOCKERIO_REGISTRY GHCR_REGISTRY QUEYIO_REGISTRY
+export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
 
 ifeq ($(DOCKER_CACHE),)
 DOCKER_CACHE=false
 endif
 
-JDK_IMAGE := docker.io/library/openjdk:22-slim-bullseye
+JDK_IMAGE := $(DOCKERIO_REGISTRY)/library/openjdk:22-slim-bullseye
 
 ifeq ($(GOOS),)
 GOOS=$(shell go env GOOS | sed -e "s/'//g")
@@ -405,17 +420,23 @@ load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest
-	docker pull docker.io/dexidp/dex:latest
-	docker pull docker.io/ealen/echo-server:latest
-	docker pull docker.io/envoyproxy/envoy:v1.34-latest
-	docker pull docker.io/ghostunnel/ghostunnel:latest
-	docker pull docker.io/openpolicyagent/kube-mgmt:latest
-	docker pull docker.io/openpolicyagent/opa:latest-static
-	docker pull docker.io/openpolicyagent/opa:0.66.0-static
-	docker pull docker.io/portainer/kubectl-shell:latest
-	docker pull docker.io/tatyano/authorization-proxy:latest
-	docker pull quay.io/keycloak/keycloak:26.5.5
-	docker pull docker.io/library/postgres:alpine
+	docker pull $(DOCKERIO_REGISTRY)/dexidp/dex:latest
+	docker pull $(DOCKERIO_REGISTRY)/ealen/echo-server:latest
+	docker pull $(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest
+	docker pull $(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest
+	docker pull $(DOCKERIO_REGISTRY)/cfssl/cfssl:latest
+	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest
+	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-envoy
+	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static
+	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static
+	docker pull $(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest
+	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
+		docker pull $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
+	else \
+		docker pull $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
+	fi
+	docker pull $(QUEYIO_REGISTRY)/keycloak/keycloak:26.5.5
+	docker pull $(DOCKERIO_REGISTRY)/library/postgres:alpine
 
 deploy-kubernetes-in-docker:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup

@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUEYIO_REGISTRY),)
+QUEYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
 clean-certificates:
@@ -180,6 +189,12 @@ kustomize-edit-crypki-softhsm-image:
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/crypki-softhsm:latest=$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
 	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
+	) \
+	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/ghostunnel/ghostunnel:latest=$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 	) \
 	fi
 

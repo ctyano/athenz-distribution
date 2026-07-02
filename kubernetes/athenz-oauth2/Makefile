@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUEYIO_REGISTRY),)
+QUEYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
 clean-athenz-oauth2:
@@ -62,6 +71,12 @@ kustomize-edit-athenz-oauth2-image:
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/athenz-user-cert:latest=$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
 	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
+	) \
+	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/dexidp/dex:latest=$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
 	) \
 	fi
 

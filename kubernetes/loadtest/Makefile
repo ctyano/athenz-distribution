@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUEYIO_REGISTRY),)
+QUEYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY := ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL := ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(PUSH),)
 PUSH := false

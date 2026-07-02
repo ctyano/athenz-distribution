@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUEYIO_REGISTRY),)
+QUEYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
 clean-athenz-authorizer:
@@ -128,6 +137,13 @@ kustomize-edit-athenz-authorizer-image:
 	( \
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+	) \
+	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/envoyproxy/envoy:v1.34-latest=$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
+	&& kustomize edit set image docker.io/ealen/echo-server:latest=$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
 	) \
 	fi
 

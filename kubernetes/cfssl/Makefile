@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUEYIO_REGISTRY),)
+QUEYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
 clean-certificates:
@@ -141,10 +150,15 @@ kustomize-edit-cfssl-image:
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
 	) \
 	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/cfssl/cfssl:latest=$(DOCKERIO_REGISTRY)/cfssl/cfssl:latest \
+	) \
+	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/cfssl:latest=$(DOCKER_REGISTRY_EXTERNAL)cfssl:latest \
 	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
 	) \
 	fi

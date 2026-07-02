@@ -132,6 +132,12 @@ spec:
             - name: envoy-http
               containerPort: 10000
               protocol: TCP
+            - name: envoy-dex
+              containerPort: 5556
+              protocol: TCP
+            - name: envoy-keycloak
+              containerPort: 18080
+              protocol: TCP
           resources:
             limits:
               memory: 128Mi

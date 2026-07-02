@@ -54,6 +54,56 @@ vault write auth/approle/role/athenz \
 vault read -field=role_id auth/approle/role/athenz/role-id > /vault/bootstrap/role_id
 vault write -f -field=secret_id auth/approle/role/athenz/secret-id > /vault/bootstrap/secret_id
 
+echo "Configuring OIDC auth methods..."
+
+# ----- Dex (default) -----
+vault auth enable -path=dex oidc 2>/dev/null || echo "OIDC auth at dex already enabled"
+
+vault write auth/dex/config \
+  oidc_discovery_url="http://127.0.0.1:5556/dex" \
+  oidc_client_id="vault" \
+  oidc_client_secret="vault" \
+  default_role="dex" \
+  redirect_addr="http://localhost:8200"
+
+vault write auth/dex/role/dex \
+  user_claim="email" \
+  oidc_scopes="openid,email" \
+  allowed_redirect_uris="http://localhost:8200/v1/auth/dex/oidc/callback" \
+  allowed_redirect_uris="http://127.0.0.1:8200/v1/auth/dex/oidc/callback" \
+  allowed_redirect_uris="http://localhost:8200/ui/vault/auth/dex/oidc/callback" \
+  allowed_redirect_uris="http://127.0.0.1:8200/ui/vault/auth/dex/oidc/callback" \
+  policies="default" \
+  listing_visibility="unauth"
+
+vault auth tune -listing-visibility=unauth dex/ 2>/dev/null || echo "Dex listing visibility already set"
+
+echo "Dex OIDC configured"
+
+# ----- Keycloak (alternative) -----
+vault auth enable -path=keycloak oidc 2>/dev/null || echo "OIDC auth at keycloak already enabled"
+
+vault write auth/keycloak/config \
+  oidc_discovery_url="http://127.0.0.1:18080/realms/athenz" \
+  oidc_client_id="vault" \
+  oidc_client_secret="vault" \
+  default_role="keycloak" \
+  redirect_addr="http://localhost:8200"
+
+vault write auth/keycloak/role/keycloak \
+  user_claim="email" \
+  oidc_scopes="openid,email" \
+  allowed_redirect_uris="http://localhost:8200/v1/auth/keycloak/oidc/callback" \
+  allowed_redirect_uris="http://127.0.0.1:8200/v1/auth/keycloak/oidc/callback" \
+  allowed_redirect_uris="http://localhost:8200/ui/vault/auth/keycloak/oidc/callback" \
+  allowed_redirect_uris="http://127.0.0.1:8200/ui/vault/auth/keycloak/oidc/callback" \
+  policies="default" \
+  listing_visibility="unauth"
+
+vault auth tune -listing-visibility=unauth keycloak/ 2>/dev/null || echo "Keycloak listing visibility already set"
+
+echo "Keycloak OIDC configured"
+
 echo "Vault bootstrap completed"
 echo "role_id: $(cat /vault/bootstrap/role_id)"
 echo "secret_id: $(cat /vault/bootstrap/secret_id)"

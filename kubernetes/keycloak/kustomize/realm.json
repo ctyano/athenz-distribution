@@ -24,6 +24,27 @@
       }
     },
     {
+      "clientId": "vault",
+      "name": "HashiCorp Vault",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "vault",
+      "redirectUris": [
+        "http://localhost:8200/v1/auth/keycloak/oidc/callback",
+        "http://127.0.0.1:8200/v1/auth/keycloak/oidc/callback",
+        "http://localhost:8200/ui/vault/auth/keycloak/oidc/callback",
+        "http://127.0.0.1:8200/ui/vault/auth/keycloak/oidc/callback"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
       "clientId": "realm-management",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",

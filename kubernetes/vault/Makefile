@@ -68,6 +68,19 @@ test-vault:
 	@echo "**************************************"
 	@echo ""
 
+port-forward:
+	kubectl -n vault port-forward service/vault 8200:8200 &
+	kubectl -n athenz port-forward service/oauth2 5556:5556 &
+
+port-forward-vault:
+	kubectl -n vault port-forward service/vault 8200:8200
+
+port-forward-dex:
+	kubectl -n athenz port-forward service/oauth2 5556:5556
+
+port-forward-keycloak:
+	kubectl -n keycloak port-forward service/keycloakx-http 18080:80
+
 test-vault-pki:
 	@echo "Testing Vault PKI signing via AppRole authentication..."
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))

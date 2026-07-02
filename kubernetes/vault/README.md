@@ -22,6 +22,66 @@ kubectl -n vault port-forward service/vault 8200:8200
 
 Open [http://localhost:8200](http://localhost:8200) in your browser and log in with token `root`.
 
+### OIDC Login (Dex — default)
+
+> **Note:** Vault 2.0 changed the OIDC `auth_url` endpoint from GET to POST (requires `redirect_uri`).
+> The Vault UI currently attempts to read role details before initiating login,
+> which fails for unauthenticated users. Use the helper script below instead.
+
+Port-forward Vault and Dex, then run the login script.
+
+```sh
+# Terminal 1: port-forward both
+make -C kubernetes/vault port-forward
+
+# Terminal 2: run login script
+kubernetes/vault/kustomize/conf/oidc-login.sh
+```
+
+This will open your browser to the Dex login page. Sign in as `athenz_admin@athenz.io` / `password`.
+After authenticating, you will be redirected back to Vault with an active session.
+
+Alternatively, use curl directly:
+
+```sh
+AUTH_URL=$(curl -sf -X POST \
+  -d "role=dex&redirect_uri=http://localhost:8200/v1/auth/dex/oidc/callback" \
+  "http://127.0.0.1:8200/v1/auth/dex/oidc/auth_url" | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['data']['auth_url'])")
+echo "$AUTH_URL"
+open "$AUTH_URL"   # macOS
+# xdg-open "$AUTH_URL"   # Linux
+```
+
+### OIDC Login (Keycloak — alternative)
+
+Port-forward Vault and Keycloak:
+
+```sh
+# Terminal 1
+kubectl -n vault port-forward service/vault 8200:8200
+
+# Terminal 2
+kubectl -n keycloak port-forward service/keycloakx-http 18080:80
+```
+
+Then use curl to initiate login:
+
+```sh
+AUTH_URL=$(curl -sf -X POST \
+  -d "role=keycloak&redirect_uri=http://localhost:8200/v1/auth/keycloak/oidc/callback" \
+  "http://127.0.0.1:8200/v1/auth/keycloak/oidc/auth_url" | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['data']['auth_url'])")
+open "$AUTH_URL"   # macOS
+```
+
+To switch from Dex to Keycloak as the default OIDC provider, change the Vault bootstrap script:
+
+```
+# In bootstrap.sh, swap the primary auth mount:
+default_role="keycloak"   # was: default_role="dex"
+```
+
 ### Test
 
 ```sh

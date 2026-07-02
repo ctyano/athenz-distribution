@@ -54,6 +54,13 @@ vault write auth/approle/role/athenz \
 vault read -field=role_id auth/approle/role/athenz/role-id > /vault/bootstrap/role_id
 vault write -f -field=secret_id auth/approle/role/athenz/secret-id > /vault/bootstrap/secret_id
 
+echo "Creating admin policy..."
+vault policy write admin - <<'EOF'
+path "*" {
+  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+}
+EOF
+
 echo "Configuring OIDC auth methods..."
 
 # ----- Dex (default) -----
@@ -73,7 +80,7 @@ vault write auth/dex/role/dex \
   allowed_redirect_uris="http://127.0.0.1:8200/v1/auth/dex/oidc/callback" \
   allowed_redirect_uris="http://localhost:8200/ui/vault/auth/dex/oidc/callback" \
   allowed_redirect_uris="http://127.0.0.1:8200/ui/vault/auth/dex/oidc/callback" \
-  policies="default" \
+  policies="admin" \
   listing_visibility="unauth"
 
 vault auth tune -listing-visibility=unauth dex/ 2>/dev/null || echo "Dex listing visibility already set"
@@ -97,7 +104,7 @@ vault write auth/keycloak/role/keycloak \
   allowed_redirect_uris="http://127.0.0.1:8200/v1/auth/keycloak/oidc/callback" \
   allowed_redirect_uris="http://localhost:8200/ui/vault/auth/keycloak/oidc/callback" \
   allowed_redirect_uris="http://127.0.0.1:8200/ui/vault/auth/keycloak/oidc/callback" \
-  policies="default" \
+  policies="admin" \
   listing_visibility="unauth"
 
 vault auth tune -listing-visibility=unauth keycloak/ 2>/dev/null || echo "Keycloak listing visibility already set"

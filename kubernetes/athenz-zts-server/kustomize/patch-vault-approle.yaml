@@ -12,6 +12,17 @@ spec:
             optional: true
       containers:
         - name: athenz-zts-server
+          env:
+            - name: VAULT_APPROLE_ROLE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: vault-approle
+                  key: role_id
+            - name: VAULT_APPROLE_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: vault-approle
+                  key: secret_id
           volumeMounts:
             - name: vault-approle
               mountPath: /var/run/athenz/vault

@@ -75,6 +75,9 @@ fi
 [ ! -z "${ZTS_EC_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key=${ZTS_EC_PRIVATE_KEY}"
 [ ! -z "${ZTS_EC_PRIVATE_KEY_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.auth.private_key_store.private_ec_key_id=${ZTS_EC_PRIVATE_KEY_ID}"
 [ ! -z "${ZTS_SELF_SIGNER_PRIVATE_KEY}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.self_signer_private_key_fname=${ZTS_SELF_SIGNER_PRIVATE_KEY}"
+# system properties for Vault AppRole credentials
+[ ! -z "${VAULT_APPROLE_ROLE_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.vault.approle_role_id=${VAULT_APPROLE_ROLE_ID}"
+[ ! -z "${VAULT_APPROLE_SECRET_ID}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.vault.approle_secret_id=${VAULT_APPROLE_SECRET_ID}"
 
 ZTS_CLASSPATH="${CLASSPATH}:${USER_CLASSPATH}"
 ZTS_BOOTSTRAP_CLASS="com.yahoo.athenz.container.AthenzJettyContainer"

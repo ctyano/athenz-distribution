@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: athenz-zts-server
+spec:
+  template:
+    spec:
+      volumes:
+        - name: vault-approle
+          secret:
+            secretName: vault-approle
+            optional: true
+      containers:
+        - name: athenz-zts-server
+          volumeMounts:
+            - name: vault-approle
+              mountPath: /var/run/athenz/vault
+              readOnly: true

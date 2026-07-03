@@ -1,0 +1,229 @@
+name: Test running on Kubernetes Cluster for Vault User Authentication
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '.gemini/**'
+      - '*.md'
+      - 'docs/**'
+
+env:
+  DOCKER_REGISTRY_URL: ghcr.io
+  GITHUB_REPOSITORY: AthenZ/athenz
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      -
+        name: GitHub Environment Variables Action
+        id: env
+        uses: FranzDiebold/github-env-vars-action@v2
+
+      -
+        name: Set Default Environment Variables
+        id: default_env
+        run: |
+          [[ "${{ env.DOCKER_REGISTRY_URL}}" = "" ]] && echo "DOCKER_REGISTRY_URL=docker.io" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_OWNER }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_IMAGE }}" = "" ]] && echo "DOCKER_REGISTRY_IMAGE=${{ env.CI_REPOSITORY_NAME }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
+
+      -
+        name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      -
+        name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
+        id: login
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.DOCKER_REGISTRY_URL }}
+          username: ${{ env.DOCKER_REGISTRY_OWNER }}
+          password: ${{ env.DOCKER_REGISTRY_TOKEN }}
+          logout: true
+
+      -
+        name: Setup Golang
+        id: setup-go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          check-latest: true
+
+      -
+        name: Set Golang env
+        id: go-env
+        run: |
+          go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
+
+      -
+        name: Resolve Athenz version
+        id: resolve-athenz-version
+        run: |
+          if [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
+            CURRENT_VERSION="${{ github.event.inputs.target_version }}"
+          else
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
+                | jq -r .[].tag_name \
+                | grep -E "^v?[0-9]+\.[0-9]+\.[0-9]+" \
+                | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
+                | sort -ruV \
+                | head -n1 \
+            )"
+          fi
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest \
+              | jq -r .tag_name \
+              | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
+              | sort -ruV \
+              | head -n1 \
+            )"
+          fi
+          CURRENT_VERSION="$(echo "${CURRENT_VERSION}" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            echo "No valid Athenz version found" >&2
+            exit 1
+          fi
+          echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          echo "version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+
+      -
+        name: Select Java version
+        id: select-java-version
+        run: |
+          if [[ $(printf '%s\n' "1.12.0" "${VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
+            JAVA_VERSION=17
+          else
+            JAVA_VERSION=11
+          fi
+          echo "JAVA_VERSION=${JAVA_VERSION}" >> $GITHUB_ENV
+          echo "java-version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
+
+      -
+        name: Setup Java
+        id: setup-java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ steps.select-java-version.outputs.java-version }}
+
+      -
+        name: Create KinD Cluster
+        id: kind
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
+
+      -
+        name: Build Docker container images
+        id: build
+        run: |
+          set -ex
+          VERSION=${VERSION} make build
+
+      -
+        name: Pull container images
+        id: pull
+        run: |
+          set -ex
+          make load-docker-images-external
+
+      -
+        name: Load container images to KinD cluster
+        id: load
+        run: |
+          set -ex
+          df -h
+          make load-kubernetes-images
+
+      -
+        name: Deploy Application for vault
+        id: deploy-vault
+        run: |
+          make deploy-kubernetes-vault
+
+      -
+        name: Run Tests for vault
+        id: test-vault
+        run: |
+          make test-kubernetes-vault-pki
+
+      -
+        name: Switch configuration to use vault
+        id: switch
+        run: |
+          make use-kubernetes-vault
+
+      -
+        name: Deploy Application
+        id: deploy
+        run: |
+          set -ex
+          make deploy-kubernetes-athenz
+
+      -
+        name: Run Tests
+        id: test
+        run: |
+          make check-kubernetes-athenz test-kubernetes-athenz
+
+      -
+        name: Deploy Application for athenz-identityprovider
+        id: deploy-identityprovider
+        run: |
+          make deploy-kubernetes-athenz-identityprovider
+
+      -
+        name: Run Tests for athenz-identityprovider with vault
+        id: test-identityprovider
+        run: |
+          make test-kubernetes-vault-identityprovider
+
+      -
+        name: Deploy Application for athenz-workloads
+        id: deploy-workloads
+        run: |
+          make deploy-kubernetes-athenz-workloads
+
+      -
+        name: Deploy Application for athenz-oauth2
+        id: deploy-oauth2
+        run: |
+          make deploy-kubernetes-athenz-oauth2
+
+      -
+        name: Run Tests for athenz-oauth2
+        id: test-oauth2
+        run: |
+          make test-kubernetes-athenz-oauth2

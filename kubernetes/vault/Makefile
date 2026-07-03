@@ -68,3 +68,57 @@ test-vault-pki:
 		echo 'AppRole authenticated, PKI endpoint accessible'"
 	@echo "Vault PKI signing endpoint verified"
 	@echo ""
+
+setup-vault-credentials:
+	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
+	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/role_id > /tmp/vault_role_id
+	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/secret_id > /tmp/vault_secret_id
+	kubectl create secret generic vault-approle \
+		-n athenz \
+		--from-file=role_id=/tmp/vault_role_id \
+		--from-file=secret_id=/tmp/vault_secret_id \
+		--dry-run=client -o yaml | kubectl apply -f -
+	rm -f /tmp/vault_role_id /tmp/vault_secret_id
+	@echo ""
+	@echo "**************************************"
+	@echo "***  Vault credentials provisioned ***"
+	@echo "**************************************"
+	@echo ""
+
+test-vault-identityprovider:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/identityprovider-deployment \
+	|| ( \
+		printf "\n\n** identityprovider-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/identityprovider-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment identityprovider-deployment ||:; \
+		exit 1; \
+	)
+	SLEEP_SECONDS=5; \
+	WAITING_THRESHOLD=60; \
+	i=0; \
+	while true; do \
+		printf "\n***** Waiting for identity provisioning ($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
+		( \
+		kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
+			ls -alF /var/run/athenz/tls.key /var/run/athenz/tls.crt /var/run/athenz/ca.crt \
+		) \
+		&& break \
+		|| echo "Waiting for Identity Provisioning..."; \
+		sleep $${SLEEP_SECONDS}; \
+		i=$$(( i + 1 )); \
+		if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+			printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+			kubectl -n athenz get all | grep -E "pod/identityprovider-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
+			kubectl -n athenz get all | grep -E "pod/athenz-zts-server-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n athenz logs %% -c athenz-zts-server ||:; \
+			kubectl -n athenz get all; \
+			exit 1; \
+		fi; \
+	done
+	kubectl -n athenz get all
+	@echo ""
+	@echo "**************************************"
+	@echo "**  Identity provisioning successful *"
+	@echo "**************************************"
+	@echo ""

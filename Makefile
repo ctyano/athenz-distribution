@@ -458,6 +458,13 @@ use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
 
+use-kubernetes-vault: test-kubernetes-vault-pki
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer-vault
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+
+test-kubernetes-vault-pki:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-vault-pki
+
 deploy-kubernetes-athenz-oauth2: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-oauth2
@@ -470,6 +477,17 @@ athenzusercert:
 
 deploy-kubernetes-vault:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-vault deploy-vault
+
+deploy-kubernetes-vault-userauth: generate-certificates deploy-kubernetes-vault
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-vault-pki
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer-vault
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes check-athenz test-athenz
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-identityprovider deploy-athenz-identityprovider
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+
+test-kubernetes-vault-identityprovider:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-vault-identityprovider
 
 deploy-kubernetes-athenz: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz

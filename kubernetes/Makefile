@@ -50,6 +50,8 @@ clean-namespace:
 clean: clean-namespace clean-certificates
 	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
 		$(MAKE) clean-patch-athenz-zts ||:
+	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
+		$(MAKE) clean-patch-athenz-zts-vault ||:
 
 copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
@@ -111,9 +113,28 @@ patch-athenz-zts:
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 
+clean-patch-athenz-zts-vault:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" \
+		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+	$(SED_INPLACE) '/^- patch-vault-approle.yaml/d' athenz-zts-server/kustomize/kustomization.yaml
+	$(SED_INPLACE) '/^patchesStrategicMerge:/d' athenz-zts-server/kustomize/kustomization.yaml
+
+patch-athenz-zts-vault:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
+		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+	@if ! grep -q "patch-vault-approle.yaml" "athenz-zts-server/kustomize/kustomization.yaml"; then \
+		printf '\npatchesStrategicMerge:\n- patch-vault-approle.yaml\n' >> athenz-zts-server/kustomize/kustomization.yaml; \
+	fi
+
 switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) -C crypki-softhsm generate-certificates
 	@$(MAKE) overwrite-certificates-with-crypki
+
+switch-athenz-zts-cert-signer-vault: patch-athenz-zts-vault setup-vault-credentials
 
 kind-setup:
 	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
@@ -192,6 +213,12 @@ test-vault:
 
 test-vault-pki:
 	@$(MAKE) -C vault test-vault-pki
+
+setup-vault-credentials:
+	@$(MAKE) -C vault setup-vault-credentials
+
+test-vault-identityprovider:
+	@$(MAKE) -C vault test-vault-identityprovider
 
 setup-athenz-oauth2:
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2

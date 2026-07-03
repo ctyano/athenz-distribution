@@ -1,4 +1,4 @@
-name: Test running on Kubernetes Cluster for Vault User Authentication
+name: Test running on Kubernetes Cluster for Vault Certificate Provisioning
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -11,10 +11,13 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '.gemini/**'
-      - '*.md'
-      - 'docs/**'
+    paths:
+      - '.github/workflows/test-kubernetes-vault.yaml'
+      - 'kubernetes/vault/**'
+      - 'kubernetes/Makefile'
+      - 'Makefile'
+      - 'kubernetes/athenz-zts-server/kustomize/patch-vault-approle.yaml'
+      - 'kubernetes/athenz-zts-server/kustomize/conf/zts.properties'
 
 env:
   DOCKER_REGISTRY_URL: ghcr.io

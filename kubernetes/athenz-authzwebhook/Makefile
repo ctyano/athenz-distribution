@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -160,14 +160,21 @@ deploy-athenz-authzwebhook: kustomize-edit-athenz-authzwebhook-image
 	kubectl apply -k kustomize
 
 test-athenz-authzwebhook:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/authzwebhook-deployment \
+	|| ( \
+		printf "\n\n** authzwebhook-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/authzwebhook-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment authzwebhook-deployment ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep authzwebhook | grep -E "0/1" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/authzwebhook-deployment -it -c sia -- \
 		ls \
 		-alF \

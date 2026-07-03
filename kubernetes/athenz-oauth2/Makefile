@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -106,6 +106,15 @@ register-athenz-oauth2:
 			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
 
 test-athenz-oauth2:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/oauth2-deployment \
+	|| ( \
+		printf "\n\n** oauth2-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/oauth2-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment oauth2-deployment ||:; \
+		exit 1; \
+	)
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 &
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 10000:10000 &
 	SLEEP_SECONDS=5; \
@@ -114,8 +123,6 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep oauth2 | grep -E "0/1" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c dex -- \
 	    nc -vz 127.0.0.1 5556 \
 	&& \

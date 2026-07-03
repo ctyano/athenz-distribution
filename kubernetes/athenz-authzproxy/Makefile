@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -153,7 +153,6 @@ kustomize-edit-athenz-authzproxy-image:
 	cd kustomize \
 	&& kustomize edit set image docker.io/envoyproxy/envoy:v1.34-latest=$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
 	&& kustomize edit set image docker.io/ealen/echo-server:latest=$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
-	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=$(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest \
 	) \
 	fi
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
@@ -161,20 +160,32 @@ kustomize-edit-athenz-authzproxy-image:
 	cd kustomize \
 	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=$(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest \
 	) \
+	elif [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/athenz/authorization-proxy:latest=$(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest \
+	) \
 	fi
 
 deploy-athenz-authzproxy: kustomize-edit-athenz-authzproxy-image
 	kubectl apply -k kustomize
 
 test-athenz-authzproxy:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/authzproxy-deployment \
+	|| ( \
+		printf "\n\n** authzproxy-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/authzproxy-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment authzproxy-deployment ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep authzproxy | grep -E "0/1" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/authzproxy-deployment -it -c sia -- \
 		ls \
 		-alF \

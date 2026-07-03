@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -32,10 +32,10 @@ clean-keycloak:
 	kubectl delete namespace keycloak
 
 kustomize-edit-keycloak-image:
-	if [ "$(QUEYIO_REGISTRY)" != "quay.io" ]; then \
+	if [ "$(QUAYIO_REGISTRY)" != "quay.io" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image quay.io/keycloak/keycloak:26.5.5=$(QUEYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+	&& kustomize edit set image quay.io/keycloak/keycloak:26.5.5=$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
 	) \
 	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \

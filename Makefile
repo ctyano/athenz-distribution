@@ -50,8 +50,8 @@ ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
 
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 
 ifeq ($(DOCKER_REGISTRY_OWNER),)
@@ -70,7 +70,7 @@ ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
-export DOCKERIO_REGISTRY GHCR_REGISTRY QUEYIO_REGISTRY
+export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
 export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
 
 ifeq ($(DOCKER_CACHE),)
@@ -435,7 +435,7 @@ load-docker-images-external:
 	else \
 		docker pull $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
 	fi
-	docker pull $(QUEYIO_REGISTRY)/keycloak/keycloak:26.5.5
+	docker pull $(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
 	docker pull $(DOCKERIO_REGISTRY)/library/postgres:alpine
 
 deploy-kubernetes-in-docker:

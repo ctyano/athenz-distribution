@@ -10,8 +10,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -19,7 +19,7 @@ endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
-export DOCKERIO_REGISTRY GHCR_REGISTRY QUEYIO_REGISTRY
+export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
 export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
 
 install-kustomize:
@@ -154,7 +154,7 @@ kind-load-images:
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
-		$(QUEYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
@@ -282,21 +282,20 @@ setup-athenz-grpc-authorizer: kustomize-edit-athenz-grpc-authorizer-image
 	kubectl apply -k athenz-grpc-authorizer
 
 check-athenz:
-	SLEEP_SECONDS=5; \
-WAITING_THRESHOLD=300; \
-i=0; \
-while [ $$(( $$(kubectl -n athenz get all | grep -E "athenz-db-|athenz-zms-server-|athenz-zts-server-|athenz-ui-|athenz-cli-" | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-	sleep $${SLEEP_SECONDS}; \
-	i=$$(( i + 1 )); \
-	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
-		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
+	WAITING_TIMEOUT=300s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} \
+		deployment/athenz-cli \
+		deployment/athenz-zms-server \
+		deployment/athenz-zts-server \
+		deployment/athenz-ui \
+	&& kubectl -n athenz rollout status statefulset/athenz-db --timeout=$${WAITING_TIMEOUT} \
+	|| ( \
+		printf "\n\n** Athenz deployment did not become ready within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all; \
+		kubectl -n athenz logs -l app.kubernetes.io/name=athenz-ui --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe pod -l app.kubernetes.io/name=athenz-ui ||:; \
 		exit 1; \
-	fi; \
-done
+	)
 	kubectl -n athenz get all
 	@echo ""
 	@echo "**************************************"

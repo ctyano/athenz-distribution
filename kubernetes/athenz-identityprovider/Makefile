@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -305,14 +305,21 @@ kustomize-edit-athenz-identityprovider-image:
 
 deploy-athenz-identityprovider: submodule-initialize kustomize-edit-athenz-identityprovider-image
 	kubectl apply -k kustomize
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/identityprovider-deployment \
+	|| ( \
+		printf "\n\n** identityprovider-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/identityprovider-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment identityprovider-deployment ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment-" | grep -Ev "Running" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \
 		-alF \
@@ -340,14 +347,21 @@ test-athenz-identityprovider-openpolicyagent-coverage:
 	opa test -cv --v0-compatible kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
 test-athenz-identityprovider:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/identityprovider-deployment \
+	|| ( \
+		printf "\n\n** identityprovider-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/identityprovider-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment identityprovider-deployment ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment" | grep -Ev "Running" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \
 		-alF \

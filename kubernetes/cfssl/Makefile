@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -167,14 +167,21 @@ deploy-cfssl: kustomize-edit-cfssl-image
 	kubectl apply -k kustomize
 
 test-cfssl:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n cfssl wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/cfssl \
+	|| ( \
+		printf "\n\n** cfssl deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n cfssl get all; \
+		kubectl -n cfssl logs deployment/cfssl --all-containers=true --tail=200 ||:; \
+		kubectl -n cfssl describe deployment cfssl ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for cfssl($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n cfssl get all | grep cfssl | grep -E "0/1" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n cfssl exec deployment/cfssl -it -c athenz-cli -- \
 		curl \
 			-s \

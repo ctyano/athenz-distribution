@@ -4,8 +4,8 @@ endif
 ifeq ($(GHCR_REGISTRY),)
 GHCR_REGISTRY=ghcr.io
 endif
-ifeq ($(QUEYIO_REGISTRY),)
-QUEYIO_REGISTRY=quay.io
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
 endif
 ifeq ($(DOCKER_REGISTRY),)
 DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
@@ -202,14 +202,21 @@ deploy-crypki-softhsm: kustomize-edit-crypki-softhsm-image
 	kubectl apply -k kustomize
 
 test-crypki-softhsm:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n crypki wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/crypki-softhsm \
+	|| ( \
+		printf "\n\n** crypki-softhsm deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n crypki get all; \
+		kubectl -n crypki logs deployment/crypki-softhsm --all-containers=true --tail=200 ||:; \
+		kubectl -n crypki describe deployment crypki-softhsm ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for crypki($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n crypki get all | grep crypki-softhsm | grep -E "0/1" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
 			-s \

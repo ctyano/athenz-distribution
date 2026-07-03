@@ -180,6 +180,7 @@ jobs:
         name: Run Tests for vault
         id: test-vault
         run: |
+          make check-kubernetes-vault
           make test-kubernetes-vault-pki
 
       -

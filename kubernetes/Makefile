@@ -211,6 +211,9 @@ clean-vault:
 test-vault:
 	@$(MAKE) -C vault test-vault
 
+check-vault:
+	@$(MAKE) -C vault test-vault
+
 test-vault-pki:
 	@$(MAKE) -C vault test-vault-pki
 

@@ -47,7 +47,7 @@ vault write auth/approle/role/athenz \
   secret_id_ttl=0 \
   token_ttl=0 \
   token_max_ttl=0 \
-  policies=default >/dev/null
+  policies=athenz >/dev/null
 
 vault read -field=role_id auth/approle/role/athenz/role-id > /vault/bootstrap/role_id
 vault write -f -field=secret_id auth/approle/role/athenz/secret-id > /vault/bootstrap/secret_id
@@ -56,6 +56,16 @@ echo "Creating admin policy..."
 vault policy write admin - <<'EOF'
 path "*" {
   capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+}
+EOF
+
+echo "Creating athenz policy..."
+vault policy write athenz - <<'EOF'
+path "pki/issue/athenz" {
+  capabilities = ["create", "update"]
+}
+path "pki/sign/athenz" {
+  capabilities = ["create", "update"]
 }
 EOF
 

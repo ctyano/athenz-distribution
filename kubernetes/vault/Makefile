@@ -79,8 +79,7 @@ setup-vault-credentials:
 	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'while [ ! -f /vault/bootstrap/role_id ]; do sleep 1; done'
 	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/role_id > /tmp/vault_role_id
 	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/secret_id > /tmp/vault_secret_id
-	kubectl create secret generic vault-approle \
-		-n athenz \
+	kubectl -n athenz create secret generic vault-approle \
 		--from-file=role_id=/tmp/vault_role_id \
 		--from-file=secret_id=/tmp/vault_secret_id \
 		--dry-run=client -o yaml | kubectl apply -f -

@@ -64,8 +64,8 @@ test-vault-pki:
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
 	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- sh -c 'while [ ! -f /vault/bootstrap/role_id ]; do sleep 1; done'
 	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- \
-		sh -c "VAULT_TOKEN=$$(vault write -field=token auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id)) && \
-		VAULT_TOKEN=$$VAULT_TOKEN vault write pki/sign/athenz csr=@/dev/null 2>&1 | grep -q 'missing csr' && \
+		sh -c "VAULT_TOKEN=\$\$(vault write -field=token auth/approle/login role_id=\$\$(cat /vault/bootstrap/role_id) secret_id=\$\$(cat /vault/bootstrap/secret_id)) && \
+		VAULT_TOKEN=\$$VAULT_TOKEN vault write pki/sign/athenz csr=@/dev/null 2>&1 | grep -q 'missing csr' && \
 		echo 'AppRole authenticated, PKI endpoint accessible'"
 	@echo "Vault PKI signing endpoint verified"
 	@echo ""

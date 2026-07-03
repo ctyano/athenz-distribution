@@ -283,12 +283,11 @@ setup-athenz-grpc-authorizer: kustomize-edit-athenz-grpc-authorizer-image
 
 check-athenz:
 	WAITING_TIMEOUT=300s; \
-	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} \
-		deployment/athenz-cli \
-		deployment/athenz-zms-server \
-		deployment/athenz-zts-server \
-		deployment/athenz-ui \
-	&& kubectl -n athenz rollout status statefulset/athenz-db --timeout=$${WAITING_TIMEOUT} \
+	kubectl -n athenz rollout status statefulset/athenz-db --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-cli --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-zms-server --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-ui --timeout=$${WAITING_TIMEOUT} \
 	|| ( \
 		printf "\n\n** Athenz deployment did not become ready within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all; \

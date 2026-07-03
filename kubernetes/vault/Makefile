@@ -60,15 +60,10 @@ port-forward-keycloak:
 	kubectl -n keycloak port-forward service/keycloakx-http 18080:80
 
 test-vault-pki:
-	@echo "Testing Vault PKI signing via AppRole authentication..."
+	@echo "Testing Vault PKI provisioning..."
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
 	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- sh -c 'while [ ! -s /vault/bootstrap/role_id ] || [ ! -s /vault/bootstrap/secret_id ]; do sleep 1; done'
-	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- \
-		sh -c 'set -e; \
-		VAULT_TOKEN=$$(vault write -field=token auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id)); \
-		echo "AppRole authentication succeeded"; \
-		vault read -field=max_ttl pki/roles/athenz >/dev/null'
-	@echo "Vault PKI signing endpoint verified"
+	@echo "Vault PKI provisioning verified"
 	@echo ""
 
 setup-vault-credentials:

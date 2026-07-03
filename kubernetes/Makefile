@@ -4,9 +4,23 @@ ifeq ($(UNAME_S),Darwin)
 	SED_INPLACE = sed -i ''
 endif
 
-ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
 endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
+endif
+ifeq ($(DOCKER_REGISTRY),)
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
+endif
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
+endif
+export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
+export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
 
 install-kustomize:
 	which kustomize \
@@ -119,7 +133,7 @@ kind-load-images:
 	fi
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 	kind load docker-image \
-		docker.io/ghostunnel/ghostunnel:latest \
+		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
@@ -131,18 +145,24 @@ kind-load-images:
 		$(DOCKER_REGISTRY)athenz-cli:latest \
 		$(DOCKER_REGISTRY)athenz-ui:latest
 	kind load docker-image \
-		docker.io/ealen/echo-server:latest \
-		docker.io/dexidp/dex:latest \
-		docker.io/envoyproxy/envoy:v1.34-latest \
-		docker.io/openpolicyagent/kube-mgmt:latest \
-		docker.io/openpolicyagent/opa:latest-static \
-		docker.io/openpolicyagent/opa:0.66.0-static \
-		docker.io/portainer/kubectl-shell:latest \
-		quay.io/keycloak/keycloak:26.5.5 \
-		docker.io/library/postgres:alpine \
+		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
+		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
+		$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
+		$(DOCKERIO_REGISTRY)/cfssl/cfssl:latest \
+		$(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest \
+		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-envoy \
+		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
+		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
+		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
+		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
-		docker.io/tatyano/authorization-proxy:latest
+		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
+	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
+		kind load docker-image $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
+	else \
+		kind load docker-image $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
+	fi
 
 kind-shutdown:
 	kind delete cluster
@@ -234,6 +254,12 @@ kustomize-edit-athenz-ui-image: install-kustomize
 	&& kustomize edit set image ghcr.io/ctyano/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:latest \
 	) \
 	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd athenz-ui/kustomize \
+	&& kustomize edit set image docker.io/ghostunnel/ghostunnel:latest=$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
+	) \
+	fi
 
 setup-athenz-ui: setup-athenz-zms-server kustomize-edit-athenz-ui-image
 	kubectl apply -k athenz-ui/kustomize
@@ -242,22 +268,33 @@ setup-athenz: setup-athenz-db setup-athenz-cli setup-athenz-zms-server setup-ath
 
 deploy-athenz: copy-certificates-to-kustomization setup-athenz
 
+kustomize-edit-athenz-grpc-authorizer-image: install-kustomize
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd athenz-grpc-authorizer \
+	&& kustomize edit set image docker.io/openpolicyagent/opa:latest-envoy=$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-envoy \
+	&& kustomize edit set image docker.io/envoyproxy/envoy:v1.34-latest=$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
+	&& kustomize edit set image docker.io/ealen/echo-server:latest=$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
+	) \
+	fi
+
+setup-athenz-grpc-authorizer: kustomize-edit-athenz-grpc-authorizer-image
+	kubectl apply -k athenz-grpc-authorizer
+
 check-athenz:
-	SLEEP_SECONDS=5; \
-WAITING_THRESHOLD=300; \
-i=0; \
-while [ $$(( $$(kubectl -n athenz get all | grep -E "athenz-db-|athenz-zms-server-|athenz-zts-server-|athenz-ui-|athenz-cli-" | grep -E "0/1" | wc -l) )) -ne 0 ]; do \
-	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-	sleep $${SLEEP_SECONDS}; \
-	i=$$(( i + 1 )); \
-	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz logs %% --all-containers=true ||:; \
-		kubectl -n athenz get all | grep -E "pod/.*0/1" | sed -e 's/^\(pod\/[^ ]*\) *0\/1.*/\1/g' | xargs -I%% kubectl -n athenz describe %% ||:; \
+	WAITING_TIMEOUT=300s; \
+	kubectl -n athenz rollout status statefulset/athenz-db --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-cli --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-zms-server --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=$${WAITING_TIMEOUT} \
+	&& kubectl -n athenz rollout status deployment/athenz-ui --timeout=$${WAITING_TIMEOUT} \
+	|| ( \
+		printf "\n\n** Athenz deployment did not become ready within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all; \
+		kubectl -n athenz logs -l app.kubernetes.io/name=athenz-ui --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe pod -l app.kubernetes.io/name=athenz-ui ||:; \
 		exit 1; \
-	fi; \
-done
+	)
 	kubectl -n athenz get all
 	@echo ""
 	@echo "**************************************"

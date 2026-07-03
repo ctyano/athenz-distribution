@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
 submodule-initialize:
@@ -277,29 +286,40 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 	| tee -a kustomize/secret.yaml
 
 kustomize-edit-athenz-identityprovider-image:
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
-	( \
-	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	) \
-	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
 	( \
 	cd kustomize \
 	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 	) \
 	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/openpolicyagent/opa:0.66.0-static=$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
+	&& kustomize edit set image docker.io/openpolicyagent/kube-mgmt:latest=$(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest \
+	&& kustomize edit set image docker.io/portainer/kubectl-shell:latest=$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
+	&& kustomize edit set image docker.io/envoyproxy/envoy:v1.34-latest=$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
+	&& kustomize edit set image docker.io/ealen/echo-server:latest=$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
+	) \
+	fi
 
 deploy-athenz-identityprovider: submodule-initialize kustomize-edit-athenz-identityprovider-image
 	kubectl apply -k kustomize
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/identityprovider-deployment \
+	|| ( \
+		printf "\n\n** identityprovider-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/identityprovider-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment identityprovider-deployment ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment-" | grep -Ev "Running" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \
 		-alF \
@@ -327,14 +347,21 @@ test-athenz-identityprovider-openpolicyagent-coverage:
 	opa test -cv --v0-compatible kustomize/athenz-identityprovider-policy/{policy,test}/*.rego kustomize/athenz-identityprovider-policy/{policy,test}/*.yaml
 
 test-athenz-identityprovider:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/identityprovider-deployment \
+	|| ( \
+		printf "\n\n** identityprovider-deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/identityprovider-deployment --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment identityprovider-deployment ||:; \
+		exit 1; \
+	)
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=60; \
 i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "pod/identityprovider-deployment" | grep -Ev "Running" | wc -l) )) -eq 0 \
-	&& \
 	kubectl -n athenz exec deployment/identityprovider-deployment -it -c sia -- \
 		ls \
 		-alF \

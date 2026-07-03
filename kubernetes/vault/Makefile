@@ -64,9 +64,13 @@ test-vault-pki:
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
 	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- sh -c 'while [ ! -s /vault/bootstrap/role_id ] || [ ! -s /vault/bootstrap/secret_id ]; do sleep 1; done'
 	kubectl -n vault exec $(VAULT_POD) -c vault-bootstrap -- \
-		sh -c 'VAULT_TOKEN=$$(vault write -field=token auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id)) && \
-		VAULT_TOKEN=$$VAULT_TOKEN vault write pki/sign/athenz csr=@/dev/null 2>&1 | grep -q "missing csr" && \
-		echo "AppRole authenticated, PKI endpoint accessible"'
+		sh -c 'set -e; \
+		VAULT_TOKEN=$$(vault write -field=token auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id)); \
+		OUTPUT=$$(VAULT_TOKEN=$$VAULT_TOKEN vault write pki/sign/athenz csr=@/dev/null 2>&1 || true); \
+		echo "Vault output: $$OUTPUT"; \
+		if echo "$$OUTPUT" | grep -q "missing csr"; then \
+			echo "AppRole authenticated, PKI endpoint accessible"; \
+		else exit 1; fi'
 	@echo "Vault PKI signing endpoint verified"
 	@echo ""
 

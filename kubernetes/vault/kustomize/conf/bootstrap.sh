@@ -67,6 +67,9 @@ path "pki/issue/athenz" {
 path "pki/sign/athenz" {
   capabilities = ["create", "update"]
 }
+path "pki/roles/athenz" {
+  capabilities = ["read", "list"]
+}
 EOF
 
 echo "Configuring OIDC auth methods..."

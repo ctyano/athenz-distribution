@@ -38,29 +38,7 @@ deploy-vault: kustomize-edit-vault-image
 	kubectl apply -k kustomize
 
 test-vault:
-	SLEEP_SECONDS=5; \
-	WAITING_THRESHOLD=120; \
-	i=0; \
-	while true; do \
-		printf "\n***** Waiting for vault($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-		( \
-		test $$(( $$(kubectl -n vault get all | grep vault | grep -E "0/1" | wc -l) )) -eq 0 \
-		&& \
-		kubectl -n vault exec deployment/vault -c athenz-cli -- \
-			curl -s --fail http://127.0.0.1:8200/v1/sys/health \
-		) \
-		&& break \
-		|| echo "Waiting for Vault..."; \
-		sleep $${SLEEP_SECONDS}; \
-		i=$$(( i + 1 )); \
-		if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-			printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-			kubectl -n vault get all | grep -E "pod/vault-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n vault logs %% --all-containers=true ||:; \
-			kubectl -n vault get all | grep -E "pod/vault-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n vault describe %% ||:; \
-			kubectl -n vault get all; \
-			exit 1; \
-		fi; \
-	done
+	kubectl -n vault rollout status deployment/vault --timeout=120s
 	kubectl -n vault get all
 	@echo ""
 	@echo "**************************************"
@@ -85,9 +63,8 @@ test-vault-pki:
 	@echo "Testing Vault PKI signing via AppRole authentication..."
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
 	kubectl -n vault exec $(VAULT_POD) -c vault -- \
-		sh -c "VAULT_TOKEN=$$(vault write -format=json auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id) | jq -r .auth.client_token) && \
-		curl -sf --header X-Vault-Token:\$$VAULT_TOKEN --request POST --data '{}' http://127.0.0.1:8200/v1/pki/sign/athenz 2>&1 | jq -r .errors[0] && \
-		echo 'AppRole authenticated, PKI endpoint accessible' || \
-		vault write -format=json pki/sign/athenz csr=@/dev/stdin ttl=60m < /dev/null 2>&1 | jq '.data.certificate'" || true
+		sh -c "VAULT_TOKEN=$$(vault write -field=token auth/approle/login role_id=$$(cat /vault/bootstrap/role_id) secret_id=$$(cat /vault/bootstrap/secret_id)) && \
+		VAULT_TOKEN=$$VAULT_TOKEN vault write pki/sign/athenz csr=@/dev/null 2>&1 | grep -q 'missing csr' && \
+		echo 'AppRole authenticated, PKI endpoint accessible'"
 	@echo "Vault PKI signing endpoint verified"
 	@echo ""

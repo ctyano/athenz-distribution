@@ -114,10 +114,10 @@ spec:
               value: https://athenz-zts-server.athenz:4443/zts/v1
           resources:
             limits:
-              memory: 1Gi
-              cpu: 1
+              memory: 128Mi
+              cpu: 100m
             requests:
-              memory: 256Mi
+              memory: 64Mi
               cpu: 50m
         - name: envoy
           image: ghcr.io/ctyano/certsigner-envoy:latest

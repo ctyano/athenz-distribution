@@ -1,8 +1,17 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY := ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL := ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(PUSH),)
 PUSH := false
@@ -31,24 +40,15 @@ deploy-athenz-loadtest: kustomize-edit-athenz-loadtest-image
 	kubectl apply -k kustomize
 
 test-athenz-loadtest:
-	SLEEP_SECONDS=5; \
-WAITING_THRESHOLD=60; \
-i=0; \
-while true; do \
-	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-	( \
-	test $$(( $$(kubectl -n athenz get all | grep -E "0/1" | wc -l) )) -eq 0 \
-	) \
-	&& break \
-	|| echo "Waiting for the Pod to be ready..."; \
-	sleep $${SLEEP_SECONDS}; \
-	i=$$(( i + 1 )); \
-	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+	WAITING_TIMEOUT=60s; \
+	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/vegeta \
+	|| ( \
+		printf "\n\n** vegeta deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all; \
+		kubectl -n athenz logs deployment/vegeta --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe deployment vegeta ||:; \
 		exit 1; \
-	fi; \
-done
+	)
 	kubectl -n athenz get all
 	@echo ""
 	@echo "**************************************"

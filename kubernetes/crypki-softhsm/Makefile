@@ -1,14 +1,64 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
 endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
-DOCKER_REGISTRY_EXTERNAL=ghcr.io/ctyano/
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
 clean-certificates:
 	rm -rf kustomize/keys kustomize/certs
 
-generate-ca:
+wait-crypki-softhsm:
+	WAITING_TIMEOUT=60s; \
+	kubectl -n crypki rollout status deployment/crypki-softhsm --timeout=$${WAITING_TIMEOUT} \
+	|| ( \
+		printf "\n\n** crypki-softhsm deployment did not finish rolling out within $${WAITING_TIMEOUT} **\n\n"; \
+		kubectl -n crypki get all; \
+		kubectl -n crypki logs deployment/crypki-softhsm --all-containers=true --tail=200 ||:; \
+		kubectl -n crypki describe deployment crypki-softhsm ||:; \
+		exit 1; \
+	)
+	SLEEP_SECONDS=5; \
+WAITING_THRESHOLD=60; \
+i=0; \
+while true; do \
+	printf "\n***** Waiting for crypki service($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
+	( \
+	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
+		curl \
+			-s \
+			--fail \
+			--cert \
+			/opt/crypki/tls-crt/client.crt \
+			--key \
+			/opt/crypki/tls-crt/client.key \
+			--cacert \
+			/opt/crypki/tls-crt/ca.crt \
+			https://crypki-softhsm.crypki/ruok \
+	) \
+	&& break \
+	|| echo "Waiting for Crypki SoftHSM service..."; \
+	sleep $${SLEEP_SECONDS}; \
+	i=$$(( i + 1 )); \
+	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
+		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
+		kubectl -n crypki get all | grep -E "pod/crypki-softhsm-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n crypki logs %% --all-containers=true ||:; \
+		kubectl -n crypki get all | grep -E "pod/crypki-softhsm-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n crypki describe %% ||:; \
+		kubectl -n crypki get all; \
+		exit 1; \
+	fi; \
+done
+
+generate-ca: wait-crypki-softhsm
 	mkdir kustomize/keys kustomize/certs ||:
 	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
 		curl \
@@ -182,45 +232,17 @@ kustomize-edit-crypki-softhsm-image:
 	&& kustomize edit set image ghcr.io/ctyano/certsigner-envoy:latest=$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
 	) \
 	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/ghostunnel/ghostunnel:latest=$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
+	) \
+	fi
 
 deploy-crypki-softhsm: kustomize-edit-crypki-softhsm-image
 	kubectl apply -k kustomize
 
-test-crypki-softhsm:
-	SLEEP_SECONDS=5; \
-WAITING_THRESHOLD=60; \
-i=0; \
-while true; do \
-	printf "\n***** Waiting for crypki($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
-	( \
-	test $$(( $$(kubectl -n crypki get all | grep crypki-softhsm | grep -E "0/1" | wc -l) )) -eq 0 \
-	&& \
-	kubectl -n crypki exec deployment/crypki-softhsm -it -c athenz-cli -- \
-		curl \
-			-s \
-			--fail \
-			--cert \
-			/opt/crypki/tls-crt/client.crt \
-			--key \
-			/opt/crypki/tls-crt/client.key \
-			--cacert \
-			/opt/crypki/tls-crt/ca.crt \
-			--resolve \
-			localhost:4443:127.0.0.1 \
-			https://localhost:4443/ruok \
-	) \
-	&& break \
-	|| echo "Waiting for Crypki SoftHSM Server..."; \
-	sleep $${SLEEP_SECONDS}; \
-	i=$$(( i + 1 )); \
-	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \
-		printf "\n\n** Waiting ($$(( $$i * $${SLEEP_SECONDS} ))s) reached to threshold($${WAITING_THRESHOLD}s) **\n\n"; \
-		kubectl -n crypki get all | grep -E "pod/crypki-softhsm-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n crypki logs %% --all-containers=true ||:; \
-		kubectl -n crypki get all | grep -E "pod/crypki-softhsm-" | sed -e 's/^\(pod\/[^ ]*\) *[0-9]\/[0-9].*/\1/g' | xargs -I%% kubectl -n crypki describe %% ||:; \
-		kubectl -n crypki get all; \
-		exit 1; \
-	fi; \
-done
+test-crypki-softhsm: wait-crypki-softhsm
 	kubectl -n crypki get all
 	@echo ""
 	@echo "**************************************"

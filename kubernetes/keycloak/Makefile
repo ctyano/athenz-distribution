@@ -1,8 +1,20 @@
+ifeq ($(DOCKERIO_REGISTRY),)
+DOCKERIO_REGISTRY=docker.io
+endif
+ifeq ($(GHCR_REGISTRY),)
+GHCR_REGISTRY=ghcr.io
+endif
+ifeq ($(QUAYIO_REGISTRY),)
+QUAYIO_REGISTRY=quay.io
+endif
 ifeq ($(DOCKER_REGISTRY),)
-DOCKER_REGISTRY=ghcr.io/ctyano/
+DOCKER_REGISTRY=$(GHCR_REGISTRY)/ctyano/
+endif
+ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
+DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
-.PHONY: clean-keycloak deploy-keycloak test-keycloak
+.PHONY: clean-keycloak deploy-keycloak kustomize-edit-keycloak-image test-keycloak
 
 KEYCLOAK_NAMESPACE ?= keycloak
 KEYCLOAK_RELEASE ?= keycloakx
@@ -19,7 +31,21 @@ KEYCLOAK_HEALTH_SLEEP_SECONDS ?= 5
 clean-keycloak:
 	kubectl delete namespace keycloak
 
-deploy-keycloak:
+kustomize-edit-keycloak-image:
+	if [ "$(QUAYIO_REGISTRY)" != "quay.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image quay.io/keycloak/keycloak:26.5.5=$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+	) \
+	fi
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image docker.io/library/postgres:alpine=$(DOCKERIO_REGISTRY)/library/postgres:alpine \
+	) \
+	fi
+
+deploy-keycloak: kustomize-edit-keycloak-image
 	kustomize build --enable-helm ./kustomize | kubectl apply -f -
 
 test-keycloak:

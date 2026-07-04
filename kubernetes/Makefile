@@ -41,6 +41,7 @@ clean-certificates:
 	rm -rf athenz-client/kustomize/{keys,certs}
 	rm -rf crypki-softhsm/kustomize/{keys,certs}
 	rm -rf athenz-oauth2/kustomize/{keys,certs}
+	rm -rf vault/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -49,7 +50,7 @@ clean-namespace:
 
 clean: clean-namespace clean-certificates
 	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
-		$(MAKE) clean-patch-athenz-zts ||:
+		$(MAKE) clean-patch-athenz-zts-crypki ||:
 	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
 		$(MAKE) clean-patch-athenz-zts-vault ||:
 
@@ -73,6 +74,19 @@ copy-certificates-to-kustomization:
 	cp -r ../keys ../certs athenz-oauth2/kustomize/ && \
 	echo "APPLIED copy-certificates-to-kustomization" \
 	)
+
+overwrite-certificates-with-vault:
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-cli/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-zms-server/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-zts-server/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-ui/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-identityprovider/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-oauth2/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-authorizer/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-authzenvoy/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-authzwebhook/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-authzproxy/kustomize/
+	cp -r vault/kustomize/keys vault/kustomize/certs athenz-client/kustomize/
 
 overwrite-certificates-with-crypki:
 	cp -r crypki-softhsm/kustomize/keys crypki-softhsm/kustomize/certs athenz-cli/kustomize/
@@ -101,13 +115,13 @@ replace-system-properties:
 		echo "Key '$(KEY)' not found in $(FILE)"; \
 	fi
 
-clean-patch-athenz-zts:
+clean-patch-athenz-zts-crypki:
 	@$(MAKE) replace-system-properties \
 		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 
-patch-athenz-zts:
+patch-athenz-zts-crypki:
 	@$(MAKE) replace-system-properties \
 		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" \
@@ -130,11 +144,13 @@ patch-athenz-zts-vault:
 		printf '\npatchesStrategicMerge:\n- patch-vault-approle.yaml\n' >> athenz-zts-server/kustomize/kustomization.yaml; \
 	fi
 
-switch-athenz-zts-cert-signer: patch-athenz-zts
+switch-athenz-zts-cert-signer: patch-athenz-zts-crypki
 	@$(MAKE) -C crypki-softhsm generate-certificates
 	@$(MAKE) overwrite-certificates-with-crypki
 
 switch-athenz-zts-cert-signer-vault: patch-athenz-zts-vault setup-vault-credentials
+	@$(MAKE) overwrite-certificates-with-vault
+	kubectl apply -k athenz-zts-server/kustomize
 	kubectl -n athenz rollout restart deployment/athenz-zts-server
 	kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=120s
 
@@ -218,6 +234,9 @@ check-vault:
 
 test-vault-pki:
 	@$(MAKE) -C vault test-vault-pki
+
+generate-vault-certificates:
+	@$(MAKE) -C vault generate-certificates
 
 setup-vault-credentials:
 	@$(MAKE) -C vault setup-vault-credentials

@@ -136,7 +136,8 @@ while true; do \
 			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
 			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
 			-oidc-user athenz_admin@athenz.io \
-			-oidc-password-stdin \
+			-oidc-password-stdin; \
+			openssl x509 -in ~/.athenz/user.cert.pem -noout -text \
 		" \
 	) \
 	&& break \

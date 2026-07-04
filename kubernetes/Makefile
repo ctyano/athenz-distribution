@@ -135,6 +135,8 @@ switch-athenz-zts-cert-signer: patch-athenz-zts
 	@$(MAKE) overwrite-certificates-with-crypki
 
 switch-athenz-zts-cert-signer-vault: patch-athenz-zts-vault setup-vault-credentials
+	kubectl -n athenz rollout restart deployment/athenz-zts-server
+	kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=120s
 
 kind-setup:
 	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)

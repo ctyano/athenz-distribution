@@ -184,17 +184,17 @@ jobs:
           make test-kubernetes-vault-pki
 
       -
-        name: Switch configuration to use vault
-        id: switch
-        run: |
-          make use-kubernetes-vault
-
-      -
         name: Deploy Application
         id: deploy
         run: |
           set -ex
           make deploy-kubernetes-athenz
+
+      -
+        name: Switch configuration to use vault
+        id: switch
+        run: |
+          make use-kubernetes-vault
 
       -
         name: Run Tests

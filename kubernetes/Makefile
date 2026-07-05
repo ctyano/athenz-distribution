@@ -145,14 +145,12 @@ patch-athenz-zts-vault:
 	fi
 
 switch-athenz-zts-cert-signer: patch-athenz-zts-crypki
-	@$(MAKE) -C crypki-softhsm generate-certificates
+	@$(MAKE) generate-crypki-certificates
 	@$(MAKE) overwrite-certificates-with-crypki
 
 switch-athenz-zts-cert-signer-vault: patch-athenz-zts-vault setup-vault-credentials
+	@$(MAKE) generate-vault-certificates
 	@$(MAKE) overwrite-certificates-with-vault
-	kubectl apply -k athenz-zts-server/kustomize
-	kubectl -n athenz rollout restart deployment/athenz-zts-server
-	kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=120s
 
 kind-setup:
 	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
@@ -216,6 +214,9 @@ deploy-crypki-softhsm: copy-crypki-certificates-to-kustomization setup-crypki-so
 
 test-crypki-softhsm:
 	@$(MAKE) -C crypki-softhsm test-crypki-softhsm
+
+generate-crypki-certificates:
+	@$(MAKE) -C crypki-softhsm generate-certificates
 
 setup-vault:
 	@$(MAKE) -C vault setup-vault

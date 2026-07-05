@@ -25,6 +25,7 @@ vault write pki/config/urls \
 
 vault write pki/roles/athenz \
   allow_any_name=true \
+  enforce_hostnames=false \
   max_ttl=43200m >/dev/null
 
 vault secrets list | grep -q "^rootca/" || vault secrets enable -path=rootca pki

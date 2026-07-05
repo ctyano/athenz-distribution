@@ -357,7 +357,11 @@ check-athenz:
 	|| ( \
 		printf "\n\n** Athenz deployment did not become ready within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all; \
+		kubectl -n athenz logs -l app.kubernetes.io/name=athenz-zms-server --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz logs -l app.kubernetes.io/name=athenz-zts-server --all-containers=true --tail=200 ||:; \
 		kubectl -n athenz logs -l app.kubernetes.io/name=athenz-ui --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz describe pod -l app.kubernetes.io/name=athenz-zms-server ||:; \
+		kubectl -n athenz describe pod -l app.kubernetes.io/name=athenz-zts-server ||:; \
 		kubectl -n athenz describe pod -l app.kubernetes.io/name=athenz-ui ||:; \
 		exit 1; \
 	)

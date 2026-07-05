@@ -270,7 +270,7 @@ jobs:
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
-        name: Deploy Applicationfor athenz-identityprovider
+        name: Deploy Application for athenz-identityprovider
         id: deploy-identityprovider
         run: |
           make deploy-kubernetes-athenz-identityprovider

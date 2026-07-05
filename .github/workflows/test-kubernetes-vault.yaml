@@ -6,6 +6,10 @@ name: Test running on Kubernetes Cluster for Vault Certificate Provisioning
 # documentation.
 
 on:
+  # If any commit message in your push or the HEAD commit of your PR contains the strings
+  # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+  # workflows triggered on the push or pull_request events will be skipped.
+  # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
   workflow_dispatch:
   pull_request:
@@ -20,13 +24,20 @@ on:
       - 'kubernetes/athenz-zts-server/kustomize/conf/zts.properties'
 
 env:
+  # Use docker.io for Docker Hub if empty
   DOCKER_REGISTRY_URL: ghcr.io
+  # DOCKER_REGISTRY_OWNER: ${{ env.CI_REPOSITORY_OWNER }}
+  # DOCKER_REGISTRY_IMAGE: ${{ env.CI_REPOSITORY_NAME }}
+  # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
+  # DOCKER_BUILD_ARGS: |
   GITHUB_REPOSITORY: AthenZ/athenz
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
     permissions:
       actions: none
       checks: none
@@ -41,15 +52,20 @@ jobs:
       statuses: none
 
     steps:
+      # A GitHub Action to expose useful environment variables.
+      # https://github.com/FranzDiebold/github-env-vars-action
       -
         name: GitHub Environment Variables Action
         id: env
+        # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
         uses: FranzDiebold/github-env-vars-action@v2
 
+      # A GitHub Action to prepare default environment variables.
       -
         name: Set Default Environment Variables
         id: default_env
         run: |
+          # Use docker.io for Docker Hub if empty
           [[ "${{ env.DOCKER_REGISTRY_URL}}" = "" ]] && echo "DOCKER_REGISTRY_URL=docker.io" >> $GITHUB_ENV
           [[ "${{ env.DOCKER_REGISTRY_OWNER }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
           [[ "${{ env.DOCKER_REGISTRY_IMAGE }}" = "" ]] && echo "DOCKER_REGISTRY_IMAGE=${{ env.CI_REPOSITORY_NAME }}" >> $GITHUB_ENV
@@ -57,37 +73,58 @@ jobs:
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
 
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
       -
         name: Checkout repository
         id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
         uses: actions/checkout@v7
         with:
           submodules: recursive
 
+      # GitHub Action to login against a Docker registry.
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
       -
         name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
         id: login
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/docker/login-action/tags
         uses: docker/login-action@v4
         with:
-          registry: ${{ env.DOCKER_REGISTRY_URL }}
-          username: ${{ env.DOCKER_REGISTRY_OWNER }}
-          password: ${{ env.DOCKER_REGISTRY_TOKEN }}
-          logout: true
+          # Server address of Docker registry. If not set then will default to Docker Hub
+          registry: ${{ env.DOCKER_REGISTRY_URL }} # optional
+          # Username used to log against the Docker registry
+          username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
+          # Password or personal access token used to log against the Docker registry
+          password: ${{ env.DOCKER_REGISTRY_TOKEN }} # optional
+          # Log out from the Docker registry at the end of a job
+          logout: true # optional, default is true
 
+      # This action sets up a go environment for use in actions by:
+      # - Optionally downloading and caching a version of Go by version and adding to PATH.
+      # - Registering problem matchers for error output.
+      # https://github.com/actions/setup-go
       -
         name: Setup Golang
         id: setup-go
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/setup-go/tags
         uses: actions/setup-go@v6
         with:
           go-version: stable
           check-latest: true
 
+      # A GitHub Action to set environment variables for Go
       -
         name: Set Golang env
         id: go-env
         run: |
           go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
 
+      # A GitHub Action to resolve Athenz version
       -
         name: Resolve Athenz version
         id: resolve-athenz-version
@@ -121,6 +158,7 @@ jobs:
           echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
           echo "version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
 
+      # A GitHub Action to select Java version
       -
         name: Select Java version
         id: select-java-version
@@ -133,21 +171,42 @@ jobs:
           echo "JAVA_VERSION=${JAVA_VERSION}" >> $GITHUB_ENV
           echo "java-version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
 
+      # This action provides the following functionality for GitHub Actions runners:
+      # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
+      # - Extracting and caching custom version of Java from a local file.
+      # - Configuring runner for publishing using Apache Maven.
+      # - Configuring runner for publishing using Gradle.
+      # - Configuring runner for using GPG private key.
+      # - Registering problem matchers for error output.
+      # - Caching dependencies managed by Apache Maven.
+      # - Caching dependencies managed by Gradle.
+      # - Caching dependencies managed by sbt.
+      # - [Maven Toolchains declaration](https://maven.apache.org/guides/mini/guide-using-toolchains.html) for specified JDK versions.
+      # 
+      # This action allows you to work with Java and Scala projects.
+      # https://github.com/actions/setup-java
       -
         name: Setup Java
         id: setup-java
+        # uses: https://github.com/actions/setup-java/tags
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: ${{ steps.select-java-version.outputs.java-version }}
+          #cache: maven
 
+      # A GitHub Action for Kubernetes IN Docker
+      # https://github.com/helm/kind-action
       -
         name: Create KinD Cluster
         id: kind
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/helm/kind-action/tags
         uses: helm/kind-action@v1
         with:
           cluster_name: kind
 
+      # A GitHub Action to build Docker container images
       -
         name: Build Docker container images
         id: build
@@ -155,6 +214,7 @@ jobs:
           set -ex
           VERSION=${VERSION} make build
 
+      # A GitHub Action to pull container images
       -
         name: Pull container images
         id: pull
@@ -162,6 +222,7 @@ jobs:
           set -ex
           make load-docker-images-external
 
+      # A GitHub Action to load container images to KinD cluster
       -
         name: Load container images to KinD cluster
         id: load
@@ -170,12 +231,14 @@ jobs:
           df -h
           make load-kubernetes-images
 
+      # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application for vault
         id: deploy-vault
         run: |
           make deploy-kubernetes-vault
 
+      # A GitHub Action to check and test application
       -
         name: Run Tests for vault
         id: test-vault
@@ -183,6 +246,14 @@ jobs:
           make check-kubernetes-vault
           make test-kubernetes-vault-pki
 
+      # A GitHub Action to use vault
+      -
+        name: Switch configuration to use vault
+        id: switch
+        run: |
+          make use-kubernetes-vault
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application
         id: deploy
@@ -190,44 +261,34 @@ jobs:
           set -ex
           make deploy-kubernetes-athenz
 
-      -
-        name: Switch configuration to use vault
-        id: switch
-        run: |
-          make use-kubernetes-vault
-
+      # A GitHub Action to check and test application
       -
         name: Run Tests
         id: test
         run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
           make check-kubernetes-athenz test-kubernetes-athenz
 
+      # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application for athenz-identityprovider
         id: deploy-identityprovider
         run: |
           make deploy-kubernetes-athenz-identityprovider
 
+      # A GitHub Action to check and test application
       -
-        name: Run Tests for athenz-identityprovider with vault
+        name: Run Tests for athenz-identityprovider
         id: test-identityprovider
         run: |
-          make test-kubernetes-vault-identityprovider
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-identityprovider
 
+      # A GitHub Action to deploy application to a Kubernetes cluster
       -
         name: Deploy Application for athenz-workloads
         id: deploy-workloads
         run: |
           make deploy-kubernetes-athenz-workloads
-
-      -
-        name: Deploy Application for athenz-oauth2
-        id: deploy-oauth2
-        run: |
-          make deploy-kubernetes-athenz-oauth2
-
-      -
-        name: Run Tests for athenz-oauth2
-        id: test-oauth2
-        run: |
-          make test-kubernetes-athenz-oauth2

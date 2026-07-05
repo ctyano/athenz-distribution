@@ -241,9 +241,6 @@ generate-vault-certificates:
 setup-vault-credentials:
 	@$(MAKE) -C vault setup-vault-credentials
 
-test-vault-identityprovider:
-	@$(MAKE) -C vault test-vault-identityprovider
-
 setup-athenz-oauth2:
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2
 

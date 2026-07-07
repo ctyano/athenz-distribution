@@ -105,7 +105,7 @@ COPY --from=builder /go/bin/zts-rolecert /usr/bin/zts-rolecert
 COPY --from=builder /go/bin/zts-roletoken /usr/bin/zts-roletoken
 COPY --from=builder /go/bin/zts-usercert /usr/bin/zts-usercert
 COPY --from=builder /go/bin/zts-svccert /usr/bin/zts-svccert
-COPY --from=builder /usr/bin/athenzusercert /usr/bin/athenzusercert
+COPY --from=athenz-user-cert /usr/bin/athenzusercert /usr/bin/athenzusercert
 
 COPY --from=builder /go/bin/step /usr/bin/step
 

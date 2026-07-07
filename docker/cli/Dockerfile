@@ -65,6 +65,7 @@ RUN apk del build-dependencies
 
 RUN set -eux && apk update && apk add --no-cache --update tini
 
+FROM ghcr.io/athenz-community/athenz-user-cert:latest AS athenz-user-cert
 FROM docker.io/library/alpine:3
 
 ARG VERSION
@@ -104,6 +105,7 @@ COPY --from=builder /go/bin/zts-rolecert /usr/bin/zts-rolecert
 COPY --from=builder /go/bin/zts-roletoken /usr/bin/zts-roletoken
 COPY --from=builder /go/bin/zts-usercert /usr/bin/zts-usercert
 COPY --from=builder /go/bin/zts-svccert /usr/bin/zts-svccert
+COPY --from=builder /usr/bin/athenzusercert /usr/bin/athenzusercert
 
 COPY --from=builder /go/bin/step /usr/bin/step
 

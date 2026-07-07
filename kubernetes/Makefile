@@ -551,6 +551,7 @@ test-athenz-envoy-loadtest:
 	@$(MAKE) -C loadtest run-athenz-envoy-loadtest
 
 test-athenz-loadtest:
+	@$(MAKE) -C loadtest test-athenz-loadtest
 	@$(MAKE) -C loadtest run-athenz-envoy-loadtest run-athenz-sidecar-loadtest run-athenz-envoyfilter-loadtest run-athenz-envoywebhook-loadtest run-athenz-authzproxy-loadtest run-athenz-echoserver-loadtest run-athenz-loadtest
 
 report-athenz-loadtest:

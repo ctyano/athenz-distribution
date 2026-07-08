@@ -46,6 +46,7 @@ clean-certificates:
 clean-namespace:
 	kubectl delete namespace athenz ||:
 	kubectl delete namespace crypki ||:
+	kubectl delete namespace keycloak||:
 	kubectl delete namespace vault ||:
 
 clean: clean-namespace clean-certificates

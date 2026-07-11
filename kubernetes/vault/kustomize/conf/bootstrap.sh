@@ -25,6 +25,7 @@ vault write pki/config/urls \
 
 vault write pki/roles/athenz \
   allow_any_name=true \
+  allowed_uri_sans="spiffe://*,athenz://*" \
   enforce_hostnames=false \
   max_ttl=43200m >/dev/null
 

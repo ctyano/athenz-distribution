@@ -263,7 +263,7 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 			-private-key /var/run/athenz/athenz_admin.private.pem \
 			-cert-file /tmp/home.athenz_admin.showcase.cert.pem \
 			-signer-cert-file /tmp/ca.cert.pem \
-		chmod a+rw /tmp/*.pem ||:; \
+		chmod a+rw /tmp/*.pem; \
 		"
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 		cat /var/run/athenz/athenz_admin.private.pem \

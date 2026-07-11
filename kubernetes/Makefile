@@ -60,6 +60,7 @@ copy-crypki-certificates-to-kustomization:
 
 copy-certificates-to-kustomization:
 	grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && echo SKIPPED || \
+	grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && echo SKIPPED || \
 	( \
 	cp -r ../keys ../certs athenz-cli/kustomize/ && \
 	cp -r ../keys ../certs athenz-zms-server/kustomize/ && \

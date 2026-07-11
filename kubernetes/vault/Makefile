@@ -23,6 +23,8 @@ generate-ca: wait-vault
 		sh -c 'VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root vault read -field=certificate pki/cert/ca' \
 		> kustomize/certs/ca.cert.pem
 	cp kustomize/certs/ca.cert.pem kustomize/certs/selfsign.ca.cert.pem
+	openssl genrsa -out kustomize/keys/ca.private.pem 4096
+	openssl rsa -pubout -in kustomize/keys/ca.private.pem -out kustomize/keys/ca.public.pem
 	cat kustomize/certs/ca.cert.pem | openssl x509 -noout -text
 	openssl verify -CAfile kustomize/certs/ca.cert.pem kustomize/certs/ca.cert.pem
 

@@ -18,8 +18,12 @@ mkdir -p "${ZMS_LOG_DIR}"
 
 # any environment variables starting with ATHENZ__ will be converted to java system properties with converting __ as to . and ___ as to -
 # convert system property to this format with: echo <system_property> | tr '[:lower:]' '[:upper:]' | sed -e 's/\./__/g' | sed -e 's/-/___/g'
-if [ $(printenv | grep -E "^ATHENZ__") ]; then
-    printenv | grep -E "^ATHENZ__" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g' | tee -a ${CONF_PATH}/zms.properties | xargs printf "[Java System Property] %s was added to ${CONF_PATH}/zms.properties\n"
+if printenv | grep -qE "^ATHENZ__"; then
+    while IFS='=' read -r key value; do
+        prop=$(echo "$key" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g')
+        JAVA_OPTS="${JAVA_OPTS} -D${prop}=${value}"
+        echo "[Java System Property] ${prop}=${value} was added to JAVA_OPTS"
+    done < <(printenv | grep -E "^ATHENZ__")
 fi
 
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.root_dir=."

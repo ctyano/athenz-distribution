@@ -203,7 +203,7 @@ spec:
                 set-service-endpoint localworkloadprovider class://com.yahoo.athenz.instance.provider.impl.InstanceLocalWorkloadProvider \
               && \
               curl \
-                -sv \
+                -sfv \
                 -d"{\"name\":\"agentbroker\",\"adminUsers\":[\"user.athenz_admin\"]}" \
                 -H"Content-Type: application/json" \
                 --key /athenz/admin/${USER}.private.pem \
@@ -212,7 +212,7 @@ spec:
                 "${ZMS}/domain" \
               && \
               curl \
-                -sv \
+                -sfv \
                 -d"{\"name\":\"mcp\",\"adminUsers\":[\"user.athenz_admin\"]}" \
                 -H"Content-Type: application/json" \
                 --key /athenz/admin/${USER}.private.pem \

@@ -22,7 +22,7 @@ if printenv | grep -qE "^ATHENZ__"; then
     while IFS='=' read -r key value; do
         prop=$(echo "$key" | tr '[:upper:]' '[:lower:]' | sed -e 's/\(__\)/./g' | sed -e 's/\(___\)/-/g')
         JAVA_OPTS="${JAVA_OPTS} -D${prop}=${value}"
-        echo "[Java System Property] ${prop}=${value} was added to JAVA_OPTS"
+        echo "[Java System Property] ${prop} was added to JAVA_OPTS"
     done < <(printenv | grep -E "^ATHENZ__")
 fi
 

@@ -146,9 +146,8 @@ patch-athenz-zts-vault:
 		KEY="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
-	@if ! grep -q "patch-vault-approle.yaml" "athenz-zts-server/kustomize/kustomization.yaml"; then \
-		printf '\npatchesStrategicMerge:\n- patch-vault-approle.yaml\n' >> athenz-zts-server/kustomize/kustomization.yaml; \
-	fi
+	@yq eval -i '.patchesStrategicMerge += ["patch-vault-approle.yaml"]' athenz-zts-server/kustomize/kustomization.yaml 2>/dev/null || \
+		yq eval -i '.patchesStrategicMerge = ["patch-vault-approle.yaml"]' athenz-zts-server/kustomize/kustomization.yaml
 
 switch-athenz-zts-cert-signer: patch-athenz-zts-crypki
 	@$(MAKE) generate-crypki-certificates

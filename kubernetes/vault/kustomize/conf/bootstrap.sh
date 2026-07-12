@@ -126,6 +126,5 @@ vault auth tune -listing-visibility=unauth keycloak/ >/dev/null
 echo "Keycloak OIDC configured"
 
 echo "Vault bootstrap completed"
-echo "role_id: $(cat /vault/bootstrap/role_id)"
 
 sleep infinity

@@ -1,18 +1,18 @@
-# Dex ID Token to Athenz ID-JAG and Chained Access Token Exchange on Kubernetes
+# Keycloak ID Token to Athenz ID-JAG and Chained Access Token Exchange on Kubernetes
 
-This document describes how to use the `athenz-cli` pod on Kubernetes to obtain an ID Token from Dex, exchange that ID Token with Athenz ZTS for an ID-JAG token, use the ID-JAG token as a JWT bearer assertion to issue an Athenz Access Token, and then exchange that Access Token for another Access Token in a different fully-qualified Athenz Domain/Role.
+This document describes how to use the `athenz-cli` pod on Kubernetes to obtain an ID Token from Keycloak, exchange that ID Token with Athenz ZTS for an ID-JAG token, use the ID-JAG token as a JWT bearer assertion to issue an Athenz Access Token, and then exchange that Access Token for another Access Token in a different fully-qualified Athenz Domain/Role.
 
 Runtime environment assumed by the commands:
 
 - namespace: `athenz`
-- Dex issuer: `http://127.0.0.1:5556/dex`
-- Dex service endpoint from pod: `http://oauth2.athenz:5556/dex`
+- Keycloak issuer: `http://keycloakx-http.keycloak:8080/realms/athenz`
+- Keycloak service endpoint from pod: `http://keycloakx-http.keycloak:8080/realms/athenz`
 - ZMS endpoint: `https://athenz-zms-server.athenz:4443/zms/v1`
 - ZTS endpoint: `https://athenz-zts-server.athenz:4443/zts/v1`
 - Working directory inside the `athenz-cli` pod: `/dev/shm/jag-flow.*`
-- Dex user: `athenz_user@athenz.io`
-- Dex client: `id-jag-client`
-- Downstream Remote Agent service: `email.downstream.agent`
+- Keycloak user: `athenz_user@athenz.io`
+- Keycloak client: `id-jag-client`
+- Downstream Remote Agent service: `keycloak.downstream.agent`
 - First Access Token source role scope: `agentbroker:role.downstream-agents`
 - First Access Token source compatibility role scope: `agentbroker:role.mcp-clients`
 - Upstream Remote Agent service: `agentbroker.upstream.agent`
@@ -20,9 +20,9 @@ Runtime environment assumed by the commands:
 
 ## 1. ZTS OAuth Provider Setup
 
-To allow ZTS to trust Dex ID Tokens and issue ID-JAG tokens, configure the ZTS OAuth provider config.
+To allow ZTS to trust Keycloak ID Tokens and issue ID-JAG tokens, configure the ZTS OAuth provider config.
 
-Dex `sub` values cannot be used directly as Athenz principals in this setup, so ZTS uses an existing `TokenExchangeIdentityProvider` implementation that maps the Dex ID Token `email` claim to `email:ext.<email>`. With this provider, the Dex user `athenz_user@athenz.io` is treated as the Athenz principal `email:ext.athenz_user@athenz.io`.
+Keycloak `sub` values cannot be used directly as Athenz principals in this setup, so ZTS uses an existing `TokenExchangeIdentityProvider` implementation that maps the Keycloak ID Token `email` claim to `keycloak:ext.<email>`. With this provider, the Keycloak user `athenz_user@athenz.io` is treated as the Athenz principal `keycloak:ext.athenz_user@athenz.io`.
 
 ## 2. Prepare ZMS Objects and Permissions
 
@@ -30,18 +30,18 @@ This procedure uses two Remote Agents:
 
 | Agent | Athenz domain | Athenz service principal | Responsibility |
 | --- | --- | --- | --- |
-| Downstream Remote Agent | `email.downstream` | `email.downstream.agent` | Sends the ID-JAG token to ZTS and obtains the first Athenz Access Token. |
+| Downstream Remote Agent | `keycloak.downstream` | `keycloak.downstream.agent` | Sends the ID-JAG token to ZTS and obtains the first Athenz Access Token. |
 | Upstream Remote Agent | `agentbroker.upstream` | `agentbroker.upstream.agent` | Sends the first Athenz Access Token to ZTS and exchanges it for a second Athenz Access Token. |
 
-Create `email`, `agentbroker`, and `mcp` as top-level domains. Create `email.downstream` under `email` for the Downstream Remote Agent, and create `agentbroker.upstream` under `agentbroker` for the Upstream Remote Agent. Register an Athenz service named `agent` in each Remote Agent subdomain, and issue a Copper Argos Service Cert for each service through the pre-registered `sys.auth.zts` identity provider. The source token roles are created in `agentbroker`, and the final target role is created in `mcp`. The commands below use `zms-cli` for ZMS registration wherever the CLI supports the operation. Domain creation first attempts `zms-cli add-domain` and falls back to the ZMS domain API only if the CLI command fails in this Kubernetes distribution.
+Create `keycloak`, `agentbroker`, and `mcp` as top-level domains. Create `keycloak.downstream` under `keycloak` for the Downstream Remote Agent, and create `agentbroker.upstream` under `agentbroker` for the Upstream Remote Agent. Register an Athenz service named `agent` in each Remote Agent subdomain, and issue a Copper Argos Service Cert for each service through the pre-registered `sys.auth.zts` identity provider. The source token roles are created in `agentbroker`, and the final target role is created in `mcp`. The commands below use `zms-cli` for ZMS registration wherever the CLI supports the operation. Domain creation first attempts `zms-cli add-domain` and falls back to the ZMS domain API only if the CLI command fails in this Kubernetes distribution.
 
-The Downstream Remote Agent is also the OAuth client that requests ID-JAG tokens, so configure `email.downstream.agent` with the Dex client ID `id-jag-client`.
+The Downstream Remote Agent is also the OAuth client that requests ID-JAG tokens, so configure `keycloak.downstream.agent` with the Keycloak client ID `id-jag-client`.
 
-Grant `email.downstream.agent` the `zts.jag_exchange` permission on `agentbroker:role.downstream-agents` and the source compatibility role `agentbroker:role.mcp-clients`. Both source roles are created in the `agentbroker` domain and contain the mapped Dex principal `email:ext.athenz_user@athenz.io`.
+Grant `keycloak.downstream.agent` the `zts.jag_exchange` permission on `agentbroker:role.downstream-agents` and the source compatibility role `agentbroker:role.mcp-clients`. Both source roles are created in the `agentbroker` domain and contain the mapped Keycloak principal `keycloak:ext.athenz_user@athenz.io`.
 
 The final Access Token target role is `mcp:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name, so the source Access Token must contain the simple role name `mcp-clients`. To avoid granting `mcp:role.mcp-clients` before the Access Token=>Access Token exchange, this procedure creates `agentbroker:role.mcp-clients` as a source-domain compatibility role and includes it in the ID-JAG request together with `agentbroker:role.downstream-agents`. The ID-JAG token and the first Access Token therefore do not grant `mcp:role.mcp-clients`; that target-domain role appears only in the exchanged Access Token.
 
-Create all Remote Agent service identities in `email.downstream` and `agentbroker.upstream`; no personal or bootstrap subdomain is used for those services.
+Create all Remote Agent service identities in `keycloak.downstream` and `agentbroker.upstream`; no personal or bootstrap subdomain is used for those services.
 
 The later Access Token Exchange step uses an Access Token with audience `agentbroker` as the source token and requests `mcp:role.mcp-clients` as the target role. Because the Access Token issued from ID-JAG in this procedure does not contain `may_act` and the exchange request does not send `actor_token`, ZTS treats the Access Token Exchange as impersonation and requires both source and target exchange policies:
 
@@ -67,7 +67,7 @@ CA=/etc/ssl/certs/ca-certificates.crt
 ADMIN_KEY=/var/run/athenz/athenz_admin.private.pem
 ADMIN_CERT=/var/run/athenz/athenz_admin.cert.pem
 
-PARENT_DOMAIN=email
+PARENT_DOMAIN=keycloak
 DOWNSTREAM_SUBDOMAIN=downstream
 DOWNSTREAM_DOMAIN=$PARENT_DOMAIN.$DOWNSTREAM_SUBDOMAIN
 UPSTREAM_PARENT_DOMAIN=agentbroker
@@ -82,7 +82,7 @@ SOURCE_ROLE_NAME=downstream-agents
 SOURCE_COMPAT_ROLE_NAME=mcp-clients
 TARGET_ROLE_NAME=mcp-clients
 ADMIN_USER=user.athenz_admin
-SUBJECT_PRINCIPAL=email:ext.athenz_user@athenz.io
+SUBJECT_PRINCIPAL=keycloak:ext.athenz_user@athenz.io
 
 post_zms_json() {
   out=$1
@@ -118,8 +118,8 @@ openssl rsa -in "$WORKDIR/upstream-agent.key.pem" \
   -pubout -out "$WORKDIR/upstream-agent.pub.pem" >/dev/null 2>&1
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$PARENT_DOMAIN" >"$WORKDIR/add-email-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-email-domain.out" "$ZMS/domain" \
+  add-domain "$PARENT_DOMAIN" >"$WORKDIR/add-keycloak-domain-cli.out" 2>&1 \
+  || post_zms_json "$WORKDIR/add-keycloak-domain.out" "$ZMS/domain" \
     "{\"name\":\"$PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
@@ -284,9 +284,9 @@ echo "WORKDIR=$WORKDIR"
 
 The split examples below use the `downstream-agent.key.pem`, `downstream-agent.cert.pem`, `upstream-agent.key.pem`, and `upstream-agent.cert.pem` files created in the `WORKDIR` printed by the previous command. The examples use `WORKDIR=/dev/shm/jag-flow.example`; replace it with the value printed in your own environment when you rerun the procedure.
 
-## 3. Request Dex ID Token
+## 3. Request Keycloak ID Token
 
-Issue an ID Token from Dex with the password grant.
+Issue an ID Token from Keycloak with the password grant.
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -294,16 +294,16 @@ set -eu
 
 WORKDIR=/dev/shm/jag-flow.example
 
-curl -sfS -X POST "http://oauth2.athenz:5556/dex/token" \
+curl -sfS -X POST "http://keycloakx-http.keycloak:8080/realms/athenz/protocol/openid-connect/token" \
   -u "id-jag-client:id-jag-client" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "grant_type=password" \
   --data-urlencode "scope=openid profile email" \
   --data-urlencode "username=athenz_user@athenz.io" \
   --data-urlencode "password=password" \
-  > "$WORKDIR/dex-token.json"
+  > "$WORKDIR/keycloak-token.json"
 
-jq -r .id_token "$WORKDIR/dex-token.json"
+jq -r .id_token "$WORKDIR/keycloak-token.json"
 '
 ```
 
@@ -311,7 +311,7 @@ Request parameters:
 
 | Parameter | Value |
 | --- | --- |
-| endpoint | `http://oauth2.athenz:5556/dex/token` |
+| endpoint | `http://keycloakx-http.keycloak:8080/realms/athenz/protocol/openid-connect/token` |
 | auth | HTTP Basic: `id-jag-client:id-jag-client` |
 | `grant_type` | `password` |
 | `scope` | `openid profile email` |
@@ -322,14 +322,14 @@ Response field used in the next step:
 
 | Field | Meaning |
 | --- | --- |
-| `id_token` | OIDC ID Token issued by Dex. Use this value as the ZTS token exchange `subject_token`. |
+| `id_token` | OIDC ID Token issued by Keycloak. Use this value as the ZTS token exchange `subject_token`. |
 
 Decoded JWT payload example:
 
 ```json
 {
-  "iss": "http://127.0.0.1:5556/dex",
-  "sub": "CgthdGhlbnpfdXNlchIFbG9jYWw",
+  "iss": "http://keycloakx-http.keycloak:8080/realms/athenz",
+  "sub": "1e5a4f3c-6c8b-4e2a-9d0f-3b7e1a2c4d5e",
   "aud": "id-jag-client",
   "email": "athenz_user@athenz.io",
   "email_verified": true,
@@ -339,9 +339,9 @@ Decoded JWT payload example:
 }
 ```
 
-## 4. Exchange Dex ID Token for ID-JAG
+## 4. Exchange Keycloak ID Token for ID-JAG
 
-Pass the Dex ID Token to ZTS `/oauth2/token` as the `subject_token` and request an ID-JAG token.
+Pass the Keycloak ID Token to ZTS `/oauth2/token` as the `subject_token` and request an ID-JAG token.
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -353,7 +353,7 @@ CA=/etc/ssl/certs/ca-certificates.crt
 SOURCE_DOMAIN=agentbroker
 SOURCE_ROLE_NAME=downstream-agents
 SOURCE_COMPAT_ROLE_NAME=mcp-clients
-ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")
+ID_TOKEN=$(jq -r .id_token "$WORKDIR/keycloak-token.json")
 
 curl -sfS -X POST "$ZTS/oauth2/token" \
   --key "$WORKDIR/downstream-agent.key.pem" \
@@ -377,12 +377,12 @@ Request parameters:
 | Parameter | Value |
 | --- | --- |
 | endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
-| client authentication | mTLS with the Downstream Remote Agent `email.downstream.agent` Service Cert |
+| client authentication | mTLS with the Downstream Remote Agent `keycloak.downstream.agent` Service Cert |
 | `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
 | `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` |
 | `audience` | `https://athenz-zts-server.athenz:4443/zts/v1` |
 | `scope` | `agentbroker:role.downstream-agents agentbroker:role.mcp-clients` |
-| `subject_token` | Dex ID Token |
+| `subject_token` | Keycloak ID Token |
 | `subject_token_type` | `urn:ietf:params:oauth:token-type:id_token` |
 
 Response example:
@@ -412,14 +412,14 @@ Decoded JWT payload example:
 ```json
 {
   "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
-  "sub": "email:ext.athenz_user@athenz.io",
+  "sub": "keycloak:ext.athenz_user@athenz.io",
   "aud": "https://athenz-zts-server.athenz:4443/zts/v1",
   "scope": "agentbroker:role.downstream-agents agentbroker:role.mcp-clients",
   "scp": [
     "agentbroker:role.downstream-agents",
     "agentbroker:role.mcp-clients"
   ],
-  "client_id": "email.downstream.agent",
+  "client_id": "keycloak.downstream.agent",
   "email": "athenz_user@athenz.io",
   "iat": 1781269291,
   "exp": 1781276491
@@ -429,7 +429,7 @@ Decoded JWT payload example:
 Important checks:
 
 - `typ` is `oauth-id-jag+jwt`.
-- `sub` is mapped to `email:ext.athenz_user@athenz.io`.
+- `sub` is mapped to `keycloak:ext.athenz_user@athenz.io`.
 - `scope` includes `agentbroker:role.downstream-agents` and `agentbroker:role.mcp-clients`.
 - `scope` does not include `mcp:role.mcp-clients`; that target role is issued only after the Access Token=>Access Token exchange.
 - The response `issued_token_type` is `urn:ietf:params:oauth:token-type:id-jag`.
@@ -465,7 +465,7 @@ Request parameters:
 | Parameter | Value |
 | --- | --- |
 | endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
-| client authentication | mTLS with the Downstream Remote Agent `email.downstream.agent` Service Cert |
+| client authentication | mTLS with the Downstream Remote Agent `keycloak.downstream.agent` Service Cert |
 | `grant_type` | `urn:ietf:params:oauth:grant-type:jwt-bearer` |
 | `assertion` | ID-JAG JWT |
 
@@ -494,15 +494,15 @@ Decoded JWT payload example:
 ```json
 {
   "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
-  "sub": "email:ext.athenz_user@athenz.io",
+  "sub": "keycloak:ext.athenz_user@athenz.io",
   "aud": "agentbroker",
   "scope": "downstream-agents mcp-clients",
   "scp": [
     "downstream-agents",
     "mcp-clients"
   ],
-  "client_id": "email.downstream.agent",
-  "uid": "email:ext.athenz_user@athenz.io",
+  "client_id": "keycloak.downstream.agent",
+  "uid": "keycloak:ext.athenz_user@athenz.io",
   "iat": 1781269291,
   "exp": 1781276491
 }
@@ -511,7 +511,7 @@ Decoded JWT payload example:
 Important checks:
 
 - `typ` is `at+jwt`.
-- `sub` and `uid` are `email:ext.athenz_user@athenz.io`.
+- `sub` and `uid` are `keycloak:ext.athenz_user@athenz.io`.
 - `aud` is the source role domain, `agentbroker`.
 - `scope` is converted to the source-domain role names, `downstream-agents` and `mcp-clients`.
 - This token still does not grant `mcp:role.mcp-clients`; `mcp-clients` is scoped to the `agentbroker` audience in this first Access Token.
@@ -520,10 +520,10 @@ Important checks:
 
 The previous step issued an Access Token with:
 
-- subject: `email:ext.athenz_user@athenz.io`
+- subject: `keycloak:ext.athenz_user@athenz.io`
 - audience: `agentbroker`
 - scope: `downstream-agents mcp-clients`
-- client: `email.downstream.agent`
+- client: `keycloak.downstream.agent`
 
 This step is performed by the Upstream Remote Agent. It uses the first Access Token as the `subject_token` and exchanges it for another Access Token in `mcp:role.mcp-clients`. The exchange request is authenticated with the Upstream Remote Agent Service Cert for `agentbroker.upstream.agent`.
 
@@ -544,7 +544,7 @@ The target fully-qualified role is different from the source fully-qualified rol
 - The authenticated principal from the actor token matches the actor token `sub`.
 - The `subject_token` contains `may_act.sub`, and that value matches the actor token `sub`.
 
-In that delegation path, ZTS evaluates `zts.token_target_exchange` for the target role, but not `zts.token_source_exchange`. The Access Token issued from ID-JAG in step 5 does not contain `may_act`, and the ID-JAG JWT bearer exchange path does not add `may_act` from an `actor` request parameter. Therefore, this end-to-end Dex ID Token -> ID-JAG -> Access Token -> Access Token procedure cannot omit `zts.token_source_exchange` without changing how the source Access Token is issued.
+In that delegation path, ZTS evaluates `zts.token_target_exchange` for the target role, but not `zts.token_source_exchange`. The Access Token issued from ID-JAG in step 5 does not contain `may_act`, and the ID-JAG JWT bearer exchange path does not add `may_act` from an `actor` request parameter. Therefore, this end-to-end Keycloak ID Token -> ID-JAG -> Access Token -> Access Token procedure cannot omit `zts.token_source_exchange` without changing how the source Access Token is issued.
 
 The subdomains, services, Copper Argos Service Certs, target role, and exchange policies were prepared in step 2. Exchange the first Access Token for an Access Token in the target domain and role:
 
@@ -615,7 +615,7 @@ Decoded JWT payload example:
 ```json
 {
   "iss": "athenz-zts-server-5c5969456-hnvjc",
-  "sub": "email:ext.athenz_user@athenz.io",
+  "sub": "keycloak:ext.athenz_user@athenz.io",
   "aud": "mcp",
   "scope": "mcp-clients",
   "scp": [
@@ -634,7 +634,7 @@ Decoded JWT payload example:
 Important checks:
 
 - `typ` is `at+jwt`.
-- `sub` remains the source Access Token subject, `email:ext.athenz_user@athenz.io`.
+- `sub` remains the source Access Token subject, `keycloak:ext.athenz_user@athenz.io`.
 - `aud` is changed from `agentbroker` to `mcp`.
 - The target full role is `mcp:role.mcp-clients`.
 - The JWT `scope` claim is `mcp-clients`, because Athenz Access Tokens carry role names in `scope` and the target role name must be a subset of the source Access Token roles.
@@ -662,12 +662,12 @@ jwt_part() {
   printf "%s" "$value" | base64 -d 2>/dev/null
 }
 
-ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")
+ID_TOKEN=$(jq -r .id_token "$WORKDIR/keycloak-token.json")
 ID_JAG=$(jq -r .access_token "$WORKDIR/id-jag.json")
 ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")
 EXCHANGED_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")
 
-echo "DEX_ID_TOKEN_PAYLOAD"
+echo "KEYCLOAK_ID_TOKEN_PAYLOAD"
 jwt_part "$ID_TOKEN" 2 | jq "{iss,sub,aud,email,email_verified,name,iat,exp}"
 
 echo "ID_JAG_HEADER"
@@ -706,7 +706,7 @@ ZTS=https://athenz-zts-server.athenz:4443/zts/v1
 CA=/etc/ssl/certs/ca-certificates.crt
 ADMIN_KEY=/var/run/athenz/athenz_admin.private.pem
 ADMIN_CERT=/var/run/athenz/athenz_admin.cert.pem
-PARENT_DOMAIN=email
+PARENT_DOMAIN=keycloak
 DOWNSTREAM_SUBDOMAIN=downstream
 DOWNSTREAM_DOMAIN=$PARENT_DOMAIN.$DOWNSTREAM_SUBDOMAIN
 UPSTREAM_PARENT_DOMAIN=agentbroker
@@ -721,7 +721,7 @@ SOURCE_ROLE_NAME=downstream-agents
 SOURCE_COMPAT_ROLE_NAME=mcp-clients
 TARGET_ROLE_NAME=mcp-clients
 ADMIN_USER=user.athenz_admin
-SUBJECT_PRINCIPAL=email:ext.athenz_user@athenz.io
+SUBJECT_PRINCIPAL=keycloak:ext.athenz_user@athenz.io
 
 http_post() {
   out=$1
@@ -779,8 +779,8 @@ openssl rsa -in "$WORKDIR/upstream-agent.key.pem" \
   -pubout -out "$WORKDIR/upstream-agent.pub.pem" >/dev/null 2>&1
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
-  add-domain "$PARENT_DOMAIN" >"$WORKDIR/add-email-domain-cli.out" 2>&1 \
-  || post_zms_json "$WORKDIR/add-email-domain.out" "$ZMS/domain" \
+  add-domain "$PARENT_DOMAIN" >"$WORKDIR/add-keycloak-domain-cli.out" 2>&1 \
+  || post_zms_json "$WORKDIR/add-keycloak-domain.out" "$ZMS/domain" \
     "{\"name\":\"$PARENT_DOMAIN\",\"adminUsers\":[\"$ADMIN_USER\"]}"
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
@@ -939,8 +939,8 @@ zts-svccert \
   -cert-file "$WORKDIR/upstream-agent.cert.pem" \
   -signer-cert-file "$WORKDIR/upstream-agent-signer-ca.cert.pem"
 
-http_post "$WORKDIR/dex-token.json" \
-  -X POST "http://oauth2.athenz:5556/dex/token" \
+http_post "$WORKDIR/keycloak-token.json" \
+  -X POST "http://keycloakx-http.keycloak:8080/realms/athenz/protocol/openid-connect/token" \
   -u "id-jag-client:id-jag-client" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "grant_type=password" \
@@ -948,7 +948,7 @@ http_post "$WORKDIR/dex-token.json" \
   --data-urlencode "username=athenz_user@athenz.io" \
   --data-urlencode "password=password"
 
-ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")
+ID_TOKEN=$(jq -r .id_token "$WORKDIR/keycloak-token.json")
 
 http_post "$WORKDIR/id-jag.json" \
   -X POST "$ZTS/oauth2/token" \
@@ -1022,7 +1022,7 @@ jq -e \
   "$WORKDIR/exchanged-access-token.payload.json" >/dev/null
 
 echo "WORKDIR=$WORKDIR"
-echo "DEX_ID_TOKEN=$(jq -r .id_token "$WORKDIR/dex-token.json")"
+echo "KEYCLOAK_ID_TOKEN=$(jq -r .id_token "$WORKDIR/keycloak-token.json")"
 echo "ID_JAG=$(jq -r .access_token "$WORKDIR/id-jag.json")"
 echo "ATHENZ_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")"
 echo "EXCHANGED_ATHENZ_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")"

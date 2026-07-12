@@ -90,7 +90,7 @@ register-athenz-oauth2:
 			-key /var/run/athenz/athenz_admin.private.pem \
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-c /etc/ssl/certs/ca-certificates.crt \
-			-d email \
+			-d keycloak \
 			set-external-member-validator \
 			com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
 	sleep 1
@@ -100,10 +100,10 @@ register-athenz-oauth2:
 			-key /var/run/athenz/athenz_admin.private.pem \
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-c /etc/ssl/certs/ca-certificates.crt \
-			-d email \
+			-d keycloak \
 			add-member \
 			admin \
-			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
+			"keycloak:ext.athenz_admin@athenz.io" "keycloak:ext.athenz_user@athenz.io"
 
 test-athenz-oauth2:
 	WAITING_TIMEOUT=60s; \

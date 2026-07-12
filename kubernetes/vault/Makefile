@@ -12,9 +12,9 @@ clean-certificates:
 	rm -rf kustomize/keys kustomize/certs
 
 wait-vault:
+	kubectl -n vault wait --for=condition=Ready pod -l app.kubernetes.io/instance=vault --timeout=120s
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
-	kubectl -n vault wait --for=condition=Ready pod/$(VAULT_POD) --timeout=120s
-	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'while [ ! -s /vault/bootstrap/role_id ] || [ ! -s /vault/bootstrap/secret_id ]; do sleep 1; done'
+	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'timeout=60; while [ ! -s /vault/bootstrap/role_id ] || [ ! -s /vault/bootstrap/secret_id ]; do if [ $$timeout -le 0 ]; then echo "Timeout waiting for bootstrap files"; exit 1; fi; sleep 1; timeout=$$((timeout - 1)); done'
 
 generate-ca: wait-vault
 	mkdir -p kustomize/keys kustomize/certs
@@ -156,9 +156,9 @@ port-forward-keycloak:
 
 test-vault-pki:
 	@echo "Testing Vault PKI signing via AppRole authentication..."
+	kubectl -n vault wait --for=condition=Ready pod -l app.kubernetes.io/instance=vault --timeout=120s
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
-	kubectl -n vault wait --for=condition=Ready pod/$(VAULT_POD) --timeout=120s
-	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'while [ ! -s /vault/bootstrap/role_id ] || [ ! -s /vault/bootstrap/secret_id ]; do sleep 1; done'
+	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'timeout=60; while [ ! -s /vault/bootstrap/role_id ] || [ ! -s /vault/bootstrap/secret_id ]; do if [ $$timeout -le 0 ]; then echo "Timeout waiting for bootstrap files"; exit 1; fi; sleep 1; timeout=$$((timeout - 1)); done'
 	kubectl -n vault exec $(VAULT_POD) -c vault -- \
 		sh -c 'VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root \
 		vault write -field=token auth/approle/login \
@@ -172,15 +172,15 @@ test-vault-pki:
 
 setup-vault-credentials:
 	$(eval VAULT_POD := $(shell kubectl -n vault get pods -l app.kubernetes.io/instance=vault -o jsonpath='{.items[0].metadata.name}'))
-	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'while [ ! -f /vault/bootstrap/role_id ]; do sleep 1; done'
-	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/role_id > /tmp/vault_role_id
-	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/secret_id > /tmp/vault_secret_id
-	kubectl create namespace athenz ||:
+	trap 'rm -f /tmp/vault_role_id /tmp/vault_secret_id' EXIT; \
+	kubectl -n vault exec $(VAULT_POD) -c vault -- sh -c 'while [ ! -f /vault/bootstrap/role_id ]; do sleep 1; done' && \
+	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/role_id > /tmp/vault_role_id && \
+	kubectl -n vault exec $(VAULT_POD) -c vault -- cat /vault/bootstrap/secret_id > /tmp/vault_secret_id && \
+	kubectl create namespace athenz ||: && \
 	kubectl -n athenz create secret generic vault-approle \
 		--from-file=role_id=/tmp/vault_role_id \
 		--from-file=secret_id=/tmp/vault_secret_id \
 		--dry-run=client -o yaml | kubectl apply -f -
-	rm -f /tmp/vault_role_id /tmp/vault_secret_id
 	@echo ""
 	@echo "**************************************"
 	@echo "***  Vault credentials provisioned ***"

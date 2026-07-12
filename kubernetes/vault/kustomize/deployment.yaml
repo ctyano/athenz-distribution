@@ -105,6 +105,9 @@ spec:
         - name: athenz-cli
           image: ghcr.io/ctyano/athenz-cli:latest
           imagePullPolicy: IfNotPresent
+          command:
+            - sleep
+            - infinity
           env:
             - name: TZ
               value: Asia/Tokyo

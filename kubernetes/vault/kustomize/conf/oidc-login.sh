@@ -12,6 +12,9 @@ cleanup() {
   if [ -n "$PORT_FORWARD_PID" ]; then
     kill "$PORT_FORWARD_PID" 2>/dev/null || true
   fi
+  if [ -n "$PF_PID" ]; then
+    kill "$PF_PID" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
@@ -58,7 +61,7 @@ RESPONSE=$(curl -sf -X POST \
   -d "role=$PROVIDER&redirect_uri=$REDIRECT_URI" \
   "http://127.0.0.1:8200/v1/$AUTH_URL_PATH")
 
-AUTH_URL=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['auth_url'])")
+AUTH_URL=$(echo "$RESPONSE" | jq -r '.data.auth_url')
 
 echo "Opening browser for OIDC login..."
 echo "Auth URL: $AUTH_URL"

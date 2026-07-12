@@ -135,7 +135,11 @@ clean-patch-athenz-zts-vault:
 		VALUE="athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 	$(SED_INPLACE) '/^- patch-vault-approle.yaml/d' athenz-zts-server/kustomize/kustomization.yaml
-	$(SED_INPLACE) '/^patchesStrategicMerge:/d' athenz-zts-server/kustomize/kustomization.yaml
+	@if grep -q "^patchesStrategicMerge:" athenz-zts-server/kustomize/kustomization.yaml; then \
+		if ! grep -A1 "^patchesStrategicMerge:" athenz-zts-server/kustomize/kustomization.yaml | grep -q "^- "; then \
+			$(SED_INPLACE) '/^patchesStrategicMerge:/d' athenz-zts-server/kustomize/kustomization.yaml; \
+		fi; \
+	fi
 
 patch-athenz-zts-vault:
 	@$(MAKE) replace-system-properties \

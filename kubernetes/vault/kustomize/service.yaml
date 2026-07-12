@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/instance: vault
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/instance: vault
+  ports:
+    - name: vault
+      port: 8200
+      targetPort: http
+      protocol: TCP
+    - name: envoy
+      port: 80
+      targetPort: envoy-http
+      protocol: TCP

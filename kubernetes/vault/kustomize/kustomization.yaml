@@ -1,0 +1,29 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: vault
+
+resources:
+- deployment.yaml
+- namespace.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- files:
+    - bootstrap.sh=conf/bootstrap.sh
+  name: vault-bootstrap
+- files:
+    - envoy.yaml=envoy/config.yaml
+  name: envoy-config
+
+images:
+- name: ghcr.io/ctyano/certsigner-envoy:latest
+  newName: ghcr.io/ctyano/certsigner-envoy
+  newTag: latest
+- name: ghcr.io/ctyano/athenz-cli:latest
+  newName: ghcr.io/ctyano/athenz-cli
+  newTag: latest

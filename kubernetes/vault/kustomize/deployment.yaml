@@ -1,0 +1,154 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/instance: vault
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+      app.kubernetes.io/instance: vault
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vault
+        app.kubernetes.io/instance: vault
+    spec:
+      restartPolicy: Always
+      dnsPolicy: "ClusterFirst"
+      volumes:
+        - name: vault-bootstrap
+          emptyDir: {}
+        - name: vault-bootstrap-config
+          configMap:
+            name: vault-bootstrap
+            defaultMode: 0555
+        - name: envoy-config
+          configMap:
+            name: envoy-config
+      containers:
+        - name: vault
+          image: docker.io/hashicorp/vault:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - vault
+            - server
+            - -dev
+            - -dev-listen-address=0.0.0.0:8200
+            - -dev-root-token-id=root
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+          ports:
+            - name: http
+              containerPort: 8200
+              protocol: TCP
+          readinessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            failureThreshold: 3
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+          livenessProbe:
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+            httpGet:
+              path: /v1/sys/health
+              port: 8200
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 500m
+            requests:
+              memory: 128Mi
+              cpu: 100m
+          volumeMounts:
+            - name: vault-bootstrap
+              mountPath: /vault/bootstrap
+        - name: vault-bootstrap
+          image: docker.io/hashicorp/vault:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - /vault/config/bootstrap.sh
+          env:
+            - name: VAULT_ADDR
+              value: http://127.0.0.1:8200
+            - name: VAULT_TOKEN
+              value: root
+            - name: TZ
+              value: Asia/Tokyo
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 100m
+            requests:
+              memory: 128Mi
+              cpu: 50m
+          volumeMounts:
+            - name: vault-bootstrap-config
+              mountPath: /vault/config/bootstrap.sh
+              subPath: bootstrap.sh
+            - name: vault-bootstrap
+              mountPath: /vault/bootstrap
+        - name: athenz-cli
+          image: ghcr.io/ctyano/athenz-cli:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - sleep
+            - infinity
+          env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: ZTS
+              value: https://athenz-zts-server.athenz:4443/zts/v1
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 100m
+            requests:
+              memory: 64Mi
+              cpu: 50m
+        - name: envoy
+          image: ghcr.io/ctyano/certsigner-envoy:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - envoy
+            - -c
+            - /etc/envoy/envoy.yaml
+            - -l
+            - debug
+          ports:
+            - name: envoy-http
+              containerPort: 10000
+              protocol: TCP
+            - name: envoy-dex
+              containerPort: 5556
+              protocol: TCP
+            - name: envoy-keycloak
+              containerPort: 18080
+              protocol: TCP
+          resources:
+            limits:
+              memory: 128Mi
+              cpu: 200m
+            requests:
+              memory: 64Mi
+              cpu: 50m
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy/envoy.yaml
+              subPath: envoy.yaml

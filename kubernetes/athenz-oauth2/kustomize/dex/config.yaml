@@ -26,6 +26,14 @@ staticClients:
       - http://127.0.0.1:8080
       - urn:ietf:wg:oauth:2.0:oob
     secret: athenz-user-cert
+  - id: vault
+    name: HashiCorp Vault
+    redirectURIs:
+      - http://localhost:8200/v1/auth/dex/oidc/callback
+      - http://127.0.0.1:8200/v1/auth/dex/oidc/callback
+      - http://localhost:8200/ui/vault/auth/dex/oidc/callback
+      - http://127.0.0.1:8200/ui/vault/auth/dex/oidc/callback
+    secret: vault
 staticPasswords:
   - email: "athenz_admin@athenz.io"
     # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo

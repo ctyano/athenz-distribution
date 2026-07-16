@@ -9,16 +9,16 @@ TRACKING_GIT_FORCE_CHECKOUT ?= false
 TRACKING_VERSION_TAG_PREFIX ?= v
 TRACKING_DOCKER_TAG_PREFIX ?= source
 VERSION_ORIGIN := $(origin VERSION)
-TRACKING_POM_VERSION = $(shell sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml 2>/dev/null | head -n1)
-TRACKING_LATEST_RELEASE_VERSION = $(shell curl -s https://api.github.com/repos/$(TRACKING_GIT_REPO)/releases/latest | sed -n 's/.*"tag_name": "$(TRACKING_VERSION_TAG_PREFIX)\([^"]*\)".*/\1/p')
+TRACKING_POM_VERSION = $(eval TRACKING_POM_VERSION := $(shell sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml 2>/dev/null | head -n1))$(TRACKING_POM_VERSION)
+TRACKING_LATEST_RELEASE_VERSION = $(eval TRACKING_LATEST_RELEASE_VERSION := $(shell curl -s https://api.github.com/repos/$(TRACKING_GIT_REPO)/releases/latest | sed -n 's/.*"tag_name": "$(TRACKING_VERSION_TAG_PREFIX)\([^"]*\)".*/\1/p'))$(TRACKING_LATEST_RELEASE_VERSION)
 ifeq ($(TRACKING_GIT_REF),)
 VERSION ?= $(TRACKING_LATEST_RELEASE_VERSION)
 else
 override VERSION = $(TRACKING_POM_VERSION)
 endif
 TRACKING_GIT_CHECKOUT_REF = $(if $(TRACKING_GIT_REF),$(TRACKING_GIT_REF),$(TRACKING_VERSION_TAG_PREFIX)$(VERSION))
-TRACKING_GIT_REPO_TAG = $(shell slug=`printf '%s' '$(TRACKING_GIT_REPO)' | sed -E 's@^https?://github.com/@@; s@\.git$$@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-32`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'repo'; fi)
-TRACKING_GIT_REF_TAG = $(shell slug=`printf '%s' '$(TRACKING_GIT_REF)' | sed -E 's@^refs/heads/@@; s@^refs/tags/@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-48`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'ref'; fi)
+TRACKING_GIT_REPO_TAG := $(shell slug=`printf '%s' '$(TRACKING_GIT_REPO)' | sed -E 's@^https?://github.com/@@; s@\.git$$@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-32`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'repo'; fi)
+TRACKING_GIT_REF_TAG := $(shell slug=`printf '%s' '$(TRACKING_GIT_REF)' | sed -E 's@^refs/heads/@@; s@^refs/tags/@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-48`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'ref'; fi)
 TRACKING_DOCKER_TAG = $(TRACKING_DOCKER_TAG_PREFIX)-$(TRACKING_GIT_REPO_TAG)-$(TRACKING_GIT_REF_TAG)-v$(VERSION)-$(VCS_REF)
 
 ifeq ($(DOCKER_TAG),)
@@ -50,7 +50,7 @@ GID_ARG := $(if $(GID),--build-arg GID=$(GID),--build-arg GID)
 UID_ARG := $(if $(UID),--build-arg UID=$(UID),--build-arg UID)
 
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-VCS_REF=$(shell git -C athenz rev-parse --short HEAD 2>/dev/null)
+VCS_REF = $(eval VCS_REF := $(shell git -C athenz rev-parse --short HEAD 2>/dev/null))$(VCS_REF)
 ifeq ($(XPLATFORMS),)
 XPLATFORMS := linux/amd64,linux/arm64
 endif
@@ -299,16 +299,18 @@ checkout-source: submodule-update
 	checkout_option=""; \
 	if [ "$(TRACKING_GIT_FORCE_CHECKOUT)" = "true" ]; then checkout_option="--force"; fi; \
 	ref="$(TRACKING_GIT_CHECKOUT_REF)"; \
-	branch_ref="$${ref#refs/heads/}"; \
-	checkout_ref="$${ref#refs/tags/}"; \
 	if [ -z "$$ref" ] || [ "$$ref" = "$(TRACKING_VERSION_TAG_PREFIX)" ]; then \
 		echo "TRACKING_GIT_REF or VERSION is required" >&2; \
 		exit 1; \
 	fi; \
-	if git -C athenz rev-parse --verify --quiet "origin/$$branch_ref^{commit}" >/dev/null; then \
-		git -C athenz checkout $$checkout_option -B "$$branch_ref" "origin/$$branch_ref"; \
+	if [ -n "$(TRACKING_GIT_REF)" ]; then \
+		if git -C athenz fetch --force --tags origin "$$ref"; then \
+			git -C athenz checkout $$checkout_option FETCH_HEAD; \
+		else \
+			git -C athenz checkout $$checkout_option "$$ref"; \
+		fi; \
 	else \
-		git -C athenz checkout $$checkout_option "$$checkout_ref"; \
+		git -C athenz checkout $$checkout_option "$$ref"; \
 	fi
 
 assert-version: checkout-source

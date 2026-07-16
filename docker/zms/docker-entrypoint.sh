@@ -51,6 +51,12 @@ merge_custom_solution_templates() {
     fi
     mv "${merged_templates}" "${ZMS_GENERATED_CONF_PATH}/solution_templates.json"
 
+    if grep -qE '^athenz\.zms\.solution_templates_fname=' "${ZMS_GENERATED_CONF_PATH}/zms.properties"; then
+        sed -i "s|^athenz\.zms\.solution_templates_fname=.*|athenz.zms.solution_templates_fname=${ZMS_GENERATED_CONF_PATH}/solution_templates.json|" "${ZMS_GENERATED_CONF_PATH}/zms.properties"
+    else
+        echo "athenz.zms.solution_templates_fname=${ZMS_GENERATED_CONF_PATH}/solution_templates.json" >> "${ZMS_GENERATED_CONF_PATH}/zms.properties"
+    fi
+
     export CONF_PATH="${ZMS_GENERATED_CONF_PATH}"
 }
 

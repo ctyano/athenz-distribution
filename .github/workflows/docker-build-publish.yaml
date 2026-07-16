@@ -92,8 +92,12 @@ jobs:
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
-          [[ "${{ inputs.source_git_repo || '' }}" != "" ]] && echo "SOURCE_GIT_REPO=${{ inputs.source_git_repo }}" >> $GITHUB_ENV
-          [[ "${{ inputs.source_git_ref || '' }}" != "" ]] && echo "SOURCE_GIT_REF=${{ inputs.source_git_ref }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.source_git_repo || '' }}" != "" ]]; then
+            echo "SOURCE_GIT_REPO=${{ inputs.source_git_repo }}" >> $GITHUB_ENV
+          fi
+          if [[ "${{ inputs.source_git_ref || '' }}" != "" ]]; then
+            echo "SOURCE_GIT_REF=${{ inputs.source_git_ref }}" >> $GITHUB_ENV
+          fi
 
       # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
       # https://github.com/actions/checkout

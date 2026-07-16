@@ -1,35 +1,36 @@
-SOURCE_GIT_REPO ?= AthenZ/athenz
-SOURCE_GIT_REPO := $(or $(SOURCE_GIT_REPO),AthenZ/athenz)
-SOURCE_GIT_URL ?= https://github.com/$(SOURCE_GIT_REPO).git
-SOURCE_GIT_URL := $(or $(SOURCE_GIT_URL),https://github.com/$(SOURCE_GIT_REPO).git)
-SOURCE_GIT_BRANCH ?=
-SOURCE_GIT_REF := $(or $(SOURCE_GIT_REF),$(SOURCE_GIT_BRANCH))
-SOURCE_GIT_FORCE_CHECKOUT ?= false
-SOURCE_VERSION_TAG_PREFIX ?= v
-SOURCE_DOCKER_TAG_PREFIX ?= source
+TRACKING_GIT_REPO ?= AthenZ/athenz
+TRACKING_GIT_REPO := $(or $(TRACKING_GIT_REPO),AthenZ/athenz)
+TRACKING_GIT_URL ?= https://github.com/$(TRACKING_GIT_REPO).git
+TRACKING_GIT_URL := $(or $(TRACKING_GIT_URL),https://github.com/$(TRACKING_GIT_REPO).git)
+TRACKING_GIT_BRANCH ?=
+TRACKING_GIT_REF ?= $(TRACKING_GIT_BRANCH)
+TRACKING_GIT_REF := $(or $(TRACKING_GIT_REF),$(TRACKING_GIT_BRANCH))
+TRACKING_GIT_FORCE_CHECKOUT ?= false
+TRACKING_VERSION_TAG_PREFIX ?= v
+TRACKING_DOCKER_TAG_PREFIX ?= source
 VERSION_ORIGIN := $(origin VERSION)
-SOURCE_POM_VERSION = $(shell sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml 2>/dev/null | head -n1)
-SOURCE_LATEST_RELEASE_VERSION = $(shell curl -s https://api.github.com/repos/$(SOURCE_GIT_REPO)/releases/latest | sed -n 's/.*"tag_name": "$(SOURCE_VERSION_TAG_PREFIX)\([^"]*\)".*/\1/p')
-ifeq ($(SOURCE_GIT_REF),)
-VERSION ?= $(SOURCE_LATEST_RELEASE_VERSION)
+TRACKING_POM_VERSION = $(shell sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml 2>/dev/null | head -n1)
+TRACKING_LATEST_RELEASE_VERSION = $(shell curl -s https://api.github.com/repos/$(TRACKING_GIT_REPO)/releases/latest | sed -n 's/.*"tag_name": "$(TRACKING_VERSION_TAG_PREFIX)\([^"]*\)".*/\1/p')
+ifeq ($(TRACKING_GIT_REF),)
+VERSION ?= $(TRACKING_LATEST_RELEASE_VERSION)
 else
-override VERSION = $(SOURCE_POM_VERSION)
+override VERSION = $(TRACKING_POM_VERSION)
 endif
-SOURCE_GIT_CHECKOUT_REF = $(if $(SOURCE_GIT_REF),$(SOURCE_GIT_REF),$(SOURCE_VERSION_TAG_PREFIX)$(VERSION))
-SOURCE_GIT_REPO_TAG = $(shell slug=`printf '%s' '$(SOURCE_GIT_REPO)' | sed -E 's@^https?://github.com/@@; s@\.git$$@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-32`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'repo'; fi)
-SOURCE_GIT_REF_TAG = $(shell slug=`printf '%s' '$(SOURCE_GIT_REF)' | sed -E 's@^refs/heads/@@; s@^refs/tags/@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-48`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'ref'; fi)
-SOURCE_DOCKER_TAG = $(SOURCE_DOCKER_TAG_PREFIX)-$(SOURCE_GIT_REPO_TAG)-$(SOURCE_GIT_REF_TAG)-v$(VERSION)-$(VCS_REF)
+TRACKING_GIT_CHECKOUT_REF = $(if $(TRACKING_GIT_REF),$(TRACKING_GIT_REF),$(TRACKING_VERSION_TAG_PREFIX)$(VERSION))
+TRACKING_GIT_REPO_TAG = $(shell slug=`printf '%s' '$(TRACKING_GIT_REPO)' | sed -E 's@^https?://github.com/@@; s@\.git$$@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-32`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'repo'; fi)
+TRACKING_GIT_REF_TAG = $(shell slug=`printf '%s' '$(TRACKING_GIT_REF)' | sed -E 's@^refs/heads/@@; s@^refs/tags/@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-48`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'ref'; fi)
+TRACKING_DOCKER_TAG = $(TRACKING_DOCKER_TAG_PREFIX)-$(TRACKING_GIT_REPO_TAG)-$(TRACKING_GIT_REF_TAG)-v$(VERSION)-$(VCS_REF)
 
 ifeq ($(DOCKER_TAG),)
-ifneq ($(SOURCE_GIT_REF),)
-DOCKER_TAG = :$(SOURCE_DOCKER_TAG)
+ifneq ($(TRACKING_GIT_REF),)
+DOCKER_TAG = :$(TRACKING_DOCKER_TAG)
 else ifneq ($(filter command line environment environment override,$(VERSION_ORIGIN)),)
 DOCKER_TAG = :v$(VERSION)
 else
 DOCKER_TAG := :latest
 endif
 endif
-LATEST_DOCKER_TAG_OPTION = $(if $(SOURCE_GIT_REF),,-t $$LATEST_IMAGE_NAME)
+LATEST_DOCKER_TAG_OPTION = $(if $(TRACKING_GIT_REF),,-t $$LATEST_IMAGE_NAME)
 
 ifeq ($(PATCH),)
 PATCH := true
@@ -55,7 +56,7 @@ XPLATFORMS := linux/amd64,linux/arm64
 endif
 XPLATFORM_ARGS := --platform=$(XPLATFORMS)
 
-BUILD_ARG = --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)'
+BUILD_ARG = --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' --build-arg 'TRACKING_GIT_URL=$(TRACKING_GIT_URL)' --build-arg 'TRACKING_GIT_REF=$(TRACKING_GIT_REF)'
 
 ifeq ($(DOCKERIO_REGISTRY),)
 DOCKERIO_REGISTRY=docker.io
@@ -276,32 +277,32 @@ diff:
 	@diff athenz patchfiles
 
 checkout:
-	@if [ -e athenz/.git ] && [ "$(SOURCE_GIT_FORCE_CHECKOUT)" = "true" ]; then git -C athenz checkout .; fi
+	@if [ -e athenz/.git ] && [ "$(TRACKING_GIT_FORCE_CHECKOUT)" = "true" ]; then git -C athenz checkout .; fi
 
 submodule-initialize:
 	@if [ ! -e athenz/.git ]; then \
-		git clone "$(SOURCE_GIT_URL)" athenz; \
+		git clone "$(TRACKING_GIT_URL)" athenz; \
 	else \
-		if [ "$(SOURCE_GIT_FORCE_CHECKOUT)" != "true" ] && [ -n "$$(git -C athenz status --porcelain)" ]; then \
-			echo "athenz has local changes; commit/stash them or set SOURCE_GIT_FORCE_CHECKOUT=true" >&2; \
+		if [ "$(TRACKING_GIT_FORCE_CHECKOUT)" != "true" ] && [ -n "$$(git -C athenz status --porcelain)" ]; then \
+			echo "athenz has local changes; commit/stash them or set TRACKING_GIT_FORCE_CHECKOUT=true" >&2; \
 			exit 1; \
 		fi; \
-		git -C athenz remote set-url origin "$(SOURCE_GIT_URL)"; \
+		git -C athenz remote set-url origin "$(TRACKING_GIT_URL)"; \
 	fi
 
 submodule-update: submodule-initialize
-	@if [ "$(SOURCE_GIT_FORCE_CHECKOUT)" = "true" ]; then git -C athenz checkout .; fi
+	@if [ "$(TRACKING_GIT_FORCE_CHECKOUT)" = "true" ]; then git -C athenz checkout .; fi
 	@git -C athenz fetch --force --tags origin '+refs/heads/*:refs/remotes/origin/*'
 
 checkout-source: submodule-update
 	@set -eu; \
 	checkout_option=""; \
-	if [ "$(SOURCE_GIT_FORCE_CHECKOUT)" = "true" ]; then checkout_option="--force"; fi; \
-	ref="$(SOURCE_GIT_CHECKOUT_REF)"; \
+	if [ "$(TRACKING_GIT_FORCE_CHECKOUT)" = "true" ]; then checkout_option="--force"; fi; \
+	ref="$(TRACKING_GIT_CHECKOUT_REF)"; \
 	branch_ref="$${ref#refs/heads/}"; \
 	checkout_ref="$${ref#refs/tags/}"; \
-	if [ -z "$$ref" ] || [ "$$ref" = "$(SOURCE_VERSION_TAG_PREFIX)" ]; then \
-		echo "SOURCE_GIT_REF or VERSION is required" >&2; \
+	if [ -z "$$ref" ] || [ "$$ref" = "$(TRACKING_VERSION_TAG_PREFIX)" ]; then \
+		echo "TRACKING_GIT_REF or VERSION is required" >&2; \
 		exit 1; \
 	fi; \
 	if git -C athenz rev-parse --verify --quiet "origin/$$branch_ref^{commit}" >/dev/null; then \
@@ -320,8 +321,8 @@ checkout-version: checkout-source
 
 version: assert-version
 	@echo "Version: $(VERSION)"
-	@echo "Source Git Repository: $(SOURCE_GIT_REPO)"
-	@echo "Source Git Ref: $(SOURCE_GIT_CHECKOUT_REF)"
+	@echo "Tracking Git Repository: $(TRACKING_GIT_REPO)"
+	@echo "Tracking Git Ref: $(TRACKING_GIT_CHECKOUT_REF)"
 	@echo "Docker Tag: $(DOCKER_TAG)"
 
 install-pathman:

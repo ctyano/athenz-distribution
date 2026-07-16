@@ -12,25 +12,25 @@ on:
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
     inputs:
-      source_git_repo:
-        description: 'Source GitHub repository in owner/name format'
+      tracking_git_repo:
+        description: 'Tracking GitHub repository in owner/name format'
         required: false
         default: 'AthenZ/athenz'
         type: string
-      source_git_ref:
-        description: 'Source git ref to build, such as a branch, tag, or commit SHA'
+      tracking_git_ref:
+        description: 'Tracking git ref to build, such as a branch, tag, or commit SHA'
         required: false
         default: ''
         type: string
   workflow_dispatch:
     inputs:
-      source_git_repo:
-        description: 'Source GitHub repository in owner/name format'
+      tracking_git_repo:
+        description: 'Tracking GitHub repository in owner/name format'
         required: false
         default: 'AthenZ/athenz'
         type: string
-      source_git_ref:
-        description: 'Source git ref to build, such as a branch, tag, or commit SHA'
+      tracking_git_ref:
+        description: 'Tracking git ref to build, such as a branch, tag, or commit SHA'
         required: false
         default: ''
         type: string
@@ -50,8 +50,8 @@ env:
   # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
   DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   #DOCKER_BUILD_ARGS: |
-  SOURCE_GIT_REPO: AthenZ/athenz
-  SOURCE_GIT_REF: ''
+  TRACKING_GIT_REPO: AthenZ/athenz
+  TRACKING_GIT_REF: ''
 
 jobs:
   build:
@@ -92,11 +92,11 @@ jobs:
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
           [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
-          if [[ "${{ inputs.source_git_repo || '' }}" != "" ]]; then
-            echo "SOURCE_GIT_REPO=${{ inputs.source_git_repo }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.tracking_git_repo || '' }}" != "" ]]; then
+            echo "TRACKING_GIT_REPO=${{ inputs.tracking_git_repo }}" >> $GITHUB_ENV
           fi
-          if [[ "${{ inputs.source_git_ref || '' }}" != "" ]]; then
-            echo "SOURCE_GIT_REF=${{ inputs.source_git_ref }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.tracking_git_ref || '' }}" != "" ]]; then
+            echo "TRACKING_GIT_REF=${{ inputs.tracking_git_ref }}" >> $GITHUB_ENV
           fi
 
       # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
@@ -117,12 +117,12 @@ jobs:
         run: |
           set -exuo pipefail
 
-          if [[ -n "${SOURCE_GIT_REF}" ]]; then
-            make checkout-source SOURCE_GIT_REPO="${SOURCE_GIT_REPO}" SOURCE_GIT_REF="${SOURCE_GIT_REF}"
+          if [[ -n "${TRACKING_GIT_REF}" ]]; then
+            make checkout-source TRACKING_GIT_REPO="${TRACKING_GIT_REPO}" TRACKING_GIT_REF="${TRACKING_GIT_REF}"
             PACKAGE_VERSION="$(sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml | head -n1)"
             TAG_VERSION="$(git -C athenz rev-parse --short HEAD)"
             if [[ -z "${PACKAGE_VERSION}" ]]; then
-              echo "No valid package version found in ${SOURCE_GIT_REPO}@${SOURCE_GIT_REF}" >&2
+              echo "No valid package version found in ${TRACKING_GIT_REPO}@${TRACKING_GIT_REF}" >&2
               exit 1
             fi
           elif [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} = true ]]; then
@@ -134,7 +134,7 @@ jobs:
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${SOURCE_GIT_REPO}/releases \
+            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
               | jq -r '.[].tag_name' \
               | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
               | sort -ruV \
@@ -143,7 +143,7 @@ jobs:
               PACKAGE_VERSION=$(echo "$LATEST_TAG" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
               TAG_VERSION="v${PACKAGE_VERSION}"
             else
-              echo "No valid version tag found in releases for ${SOURCE_GIT_REPO}" >&2
+              echo "No valid version tag found in releases for ${TRACKING_GIT_REPO}" >&2
               exit 1
             fi
           fi
@@ -157,8 +157,8 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
           printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
-          printf "SOURCE_GIT_REPO=${SOURCE_GIT_REPO}\n" >> $GITHUB_ENV
-          printf "SOURCE_GIT_REF=${SOURCE_GIT_REF}\n" >> $GITHUB_ENV
+          printf "TRACKING_GIT_REPO=${TRACKING_GIT_REPO}\n" >> $GITHUB_ENV
+          printf "TRACKING_GIT_REF=${TRACKING_GIT_REF}\n" >> $GITHUB_ENV
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action

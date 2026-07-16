@@ -10,10 +10,8 @@ WORKDIR ${GOPATH}/src/github.com/AthenZ/athenz
 ARG VERSION
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
-
-COPY athenz/go.mod athenz/go.sum ./
-RUN go mod download
-COPY athenz ./
+ARG TRACKING_GIT_URL=https://github.com/AthenZ/athenz.git
+ARG TRACKING_GIT_REF=
 
 RUN set -eux; \
     case "${TARGETPLATFORM:-}" in \
@@ -22,19 +20,35 @@ RUN set -eux; \
         "linux/arm/v7") export GOARCH=arm GOARM=7 ;; \
         "") ;; \
     esac; \
-    go install \
-        ./utils/athenz-conf \
-        ./utils/zms-cli \
-        ./utils/zms-authhistory \
-        ./utils/zms-domainattrs \
-        ./utils/zts-idtoken \
-        ./utils/zms-svctoken \
-        ./utils/zpe-updater/cmd/tools \
-        ./utils/zts-accesstoken \
-        ./utils/zts-rolecert \
-        ./utils/zts-roletoken \
-        ./utils/zts-usercert \
-        ./utils/zts-svccert
+    packages=" \
+        utils/athenz-conf \
+        utils/zms-cli \
+        utils/zms-authhistory \
+        utils/zms-domainattrs \
+        utils/zts-idtoken \
+        utils/zms-svctoken \
+        utils/zpe-updater/cmd/tools \
+        utils/zts-accesstoken \
+        utils/zts-rolecert \
+        utils/zts-roletoken \
+        utils/zts-usercert \
+        utils/zts-svccert \
+    "; \
+    if [ -n "${TRACKING_GIT_REF}" ]; then \
+        git clone "${TRACKING_GIT_URL}" .; \
+        git fetch --force --tags origin '+refs/heads/*:refs/remotes/origin/*'; \
+        ref="${TRACKING_GIT_REF}"; \
+        branch_ref="${ref#refs/heads/}"; \
+        checkout_ref="${ref#refs/tags/}"; \
+        if git rev-parse --verify --quiet "origin/${branch_ref}^{commit}" >/dev/null; then \
+            git checkout -B "${branch_ref}" "origin/${branch_ref}"; \
+        else \
+            git checkout "${checkout_ref}"; \
+        fi; \
+        for package in ${packages}; do go install "./${package}"; done; \
+    else \
+        for package in ${packages}; do go install "github.com/AthenZ/athenz/${package}@v${VERSION}"; done; \
+    fi
 
 RUN go install github.com/smallstep/cli/cmd/step@latest
 

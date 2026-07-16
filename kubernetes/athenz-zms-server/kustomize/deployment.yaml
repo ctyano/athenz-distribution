@@ -25,6 +25,9 @@ spec:
     spec:
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
       volumes:
         - name: athenz-zms-keys
           secret:
@@ -54,66 +57,15 @@ spec:
         - name: athenz-zms-conf
           configMap:
             name: athenz-zms-conf
-        - name: athenz-zms-default-solution-templates
-          configMap:
-            name: athenz-zms-default-solution-templates
         - name: athenz-zms-custom-solution-templates
           configMap:
             name: athenz-zms-custom-solution-templates
             optional: true
-        - name: athenz-zms-merged-conf
+        - name: athenz-zms-generated-conf
           emptyDir: {}
         - name: athenz-plugins
           emptyDir: {}
       initContainers:
-        - name: athenz-zms-conf-merge
-          image: ghcr.io/ctyano/athenz-zms-server:latest
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            runAsUser: 0
-            runAsGroup: 0
-          resources:
-            limits:
-              cpu: 50m
-              memory: 64Mi
-            requests:
-              cpu: 10m
-              memory: 16Mi
-          command:
-            - sh
-            - -c
-          args:
-            - |
-              set -eu
-
-              cp -R -L /zms-conf-default/. /zms-conf-merged/
-
-              custom_templates=/zms-solution-templates-custom/custom_solution_templates.json
-              if [ ! -s "${custom_templates}" ]; then
-                custom_templates=/tmp/empty_custom_solution_templates.json
-                printf '%s\n' '{"templates":{}}' > "${custom_templates}"
-              fi
-
-              jq -s '
-                .[0] * {
-                  templates: ((.[0].templates // {}) * (.[1].templates // {}))
-                }
-              ' \
-                /zms-solution-templates-default/solution_templates.json \
-                "${custom_templates}" \
-                > /zms-conf-merged/solution_templates.json
-          volumeMounts:
-            - name: athenz-zms-conf
-              mountPath: /zms-conf-default
-              readOnly: true
-            - name: athenz-zms-default-solution-templates
-              mountPath: /zms-solution-templates-default
-              readOnly: true
-            - name: athenz-zms-custom-solution-templates
-              mountPath: /zms-solution-templates-custom
-              readOnly: true
-            - name: athenz-zms-merged-conf
-              mountPath: /zms-conf-merged
         - name: athenz-plugins
           image: ghcr.io/ctyano/athenz-plugins:latest
           imagePullPolicy: IfNotPresent
@@ -189,6 +141,10 @@ spec:
               value: /opt/athenz/zms/var/certs/zms.cert.pem
             - name: ZMS_KEYSTORE_KEY_PEM_PATH
               value: /opt/athenz/zms/var/keys/zms.private.pem
+            - name: ZMS_CUSTOM_SOLUTION_TEMPLATES
+              value: /opt/athenz/zms/conf/zms_custom_solution_templates/custom_solution_templates.json
+            - name: ZMS_GENERATED_CONF_PATH
+              value: /var/run/athenz/zms-conf
           ports:
             - name: https
               containerPort: 4443
@@ -239,8 +195,13 @@ spec:
               mountPath: /var/run/athenz/keystore
             - name: athenz-trust-store
               mountPath: /var/run/athenz/truststore
-            - name: athenz-zms-merged-conf
+            - name: athenz-zms-conf
               mountPath: /opt/athenz/zms/conf/zms_server
               readOnly: true
+            - name: athenz-zms-custom-solution-templates
+              mountPath: /opt/athenz/zms/conf/zms_custom_solution_templates
+              readOnly: true
+            - name: athenz-zms-generated-conf
+              mountPath: /var/run/athenz/zms-conf
             - name: athenz-plugins
               mountPath: /athenz/plugins

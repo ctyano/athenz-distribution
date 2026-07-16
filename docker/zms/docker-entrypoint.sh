@@ -26,6 +26,36 @@ if printenv | grep -qE "^ATHENZ__"; then
     done < <(printenv | grep -E "^ATHENZ__")
 fi
 
+merge_custom_solution_templates() {
+    if [ -z "${ZMS_CUSTOM_SOLUTION_TEMPLATES}" ] || [ ! -s "${ZMS_CUSTOM_SOLUTION_TEMPLATES}" ]; then
+        return
+    fi
+
+    if [ -z "${ZMS_GENERATED_CONF_PATH}" ]; then
+        echo "ZMS_CUSTOM_SOLUTION_TEMPLATES is set, but ZMS_GENERATED_CONF_PATH is empty"
+        exit 1
+    fi
+
+    echo "Merging custom ZMS solution templates from ${ZMS_CUSTOM_SOLUTION_TEMPLATES}"
+    mkdir -p "${ZMS_GENERATED_CONF_PATH}"
+    cp -R -L "${CONF_PATH}/." "${ZMS_GENERATED_CONF_PATH}/"
+
+    merged_templates="${ZMS_GENERATED_CONF_PATH}/solution_templates.json.tmp"
+    if ! jq -s '
+        .[0] * {
+            templates: ((.[0].templates // {}) * (.[1].templates // {}))
+        }
+    ' "${CONF_PATH}/solution_templates.json" "${ZMS_CUSTOM_SOLUTION_TEMPLATES}" > "${merged_templates}"; then
+        echo "Failed to merge ZMS solution templates"
+        exit 1
+    fi
+    mv "${merged_templates}" "${ZMS_GENERATED_CONF_PATH}/solution_templates.json"
+
+    export CONF_PATH="${ZMS_GENERATED_CONF_PATH}"
+}
+
+merge_custom_solution_templates
+
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.root_dir=."
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.prop_file=${CONF_PATH}/athenz.properties"
 JAVA_OPTS="${JAVA_OPTS} -Dathenz.zms.prop_file=${CONF_PATH}/zms.properties"

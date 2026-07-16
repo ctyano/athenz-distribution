@@ -87,6 +87,8 @@ ENV ZMS_DB_ADMIN_PASS=''
 ENV ZMS_RODB_ADMIN_PASS=''
 ENV ZMS_KEYSTORE_PASS=''
 ENV ZMS_TRUSTSTORE_PASS=''
+ENV ZMS_CUSTOM_SOLUTION_TEMPLATES=''
+ENV ZMS_GENERATED_CONF_PATH=''
 
 COPY ./docker/zms/docker-entrypoint.sh /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

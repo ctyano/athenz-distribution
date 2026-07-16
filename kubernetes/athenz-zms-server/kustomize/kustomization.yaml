@@ -32,8 +32,13 @@ configMapGenerator:
   - authorized_client_ids.txt=conf/authorized_client_ids.txt
   - authorized_services.json=conf/authorized_services.json
   - logback.xml=conf/logback.xml
-  - solution_templates.json=conf/solution_templates.json
   name: athenz-zms-conf
+- files:
+  - solution_templates.json=conf/solution_templates.json
+  name: athenz-zms-default-solution-templates
+- files:
+  - custom_solution_templates.json=conf/custom_solution_templates.json
+  name: athenz-zms-custom-solution-templates
 images:
 - name: ghcr.io/ctyano/athenz-plugins:latest
   newName: ghcr.io/ctyano/athenz-plugins

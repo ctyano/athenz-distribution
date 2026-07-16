@@ -1,5 +1,6 @@
 *.pem
 *.json
+!kustomize/conf/custom_solution_templates.json
 *.jks
 *.pkcs12
 *.srl

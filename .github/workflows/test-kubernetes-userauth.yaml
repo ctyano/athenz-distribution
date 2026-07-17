@@ -141,13 +141,13 @@ jobs:
           if [[ -z "${CURRENT_VERSION}" ]]; then
             CURRENT_VERSION="$( \
               curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest \
-              | jq -r .tag_name \
-              | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
+              | jq -r '.tag_name // empty' \
+              | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' \
               | sort -ruV \
               | head -n1 \
             )"
           fi
-          CURRENT_VERSION="$(echo "${CURRENT_VERSION}" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          CURRENT_VERSION="$(echo "${CURRENT_VERSION}" | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
           if [[ -z "${CURRENT_VERSION}" ]]; then
             echo "No valid Athenz version found" >&2
             exit 1

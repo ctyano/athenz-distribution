@@ -10,54 +10,49 @@ WORKDIR ${GOPATH}/src/github.com/AthenZ/athenz
 ARG VERSION
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
+ARG TRACKING_GIT_URL=https://github.com/AthenZ/athenz.git
+ARG TRACKING_GIT_REF=
 
-RUN case ${TARGETPLATFORM} in \
-         "linux/amd64")  \
-            GOARCH=amd64 \
-            go install github.com/AthenZ/athenz/utils/athenz-conf@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-cli@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-authhistory@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-domainattrs@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-idtoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-svctoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zpe-updater/cmd/tools@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-accesstoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-rolecert@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-roletoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-usercert@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-svccert@v${VERSION} \
-              ;; \
-         "linux/arm64" | "linux/arm64/v8")  \
-            GOARCH=arm64 \
-            go install github.com/AthenZ/athenz/utils/athenz-conf@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-cli@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-authhistory@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-domainattrs@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-idtoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-svctoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zpe-updater/cmd/tools@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-accesstoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-rolecert@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-roletoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-usercert@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-svccert@v${VERSION} \
-              ;; \
-         "linux/arm/v7")  \
-            GOARCH=arm GOARM=7 \
-            go install github.com/AthenZ/athenz/utils/athenz-conf@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-cli@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-authhistory@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-domainattrs@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-idtoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zms-svctoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zpe-updater/cmd/tools@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-accesstoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-rolecert@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-roletoken@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-usercert@v${VERSION} \
-            && go install github.com/AthenZ/athenz/utils/zts-svccert@v${VERSION} \
-             ;; \
-    esac
+RUN set -eux; \
+    case "${TARGETPLATFORM:-}" in \
+        "linux/amd64") export GOARCH=amd64 ;; \
+        "linux/arm64" | "linux/arm64/v8") export GOARCH=arm64 ;; \
+        "linux/arm/v7") export GOARCH=arm GOARM=7 ;; \
+        "") ;; \
+    esac; \
+    packages=" \
+        utils/athenz-conf \
+        utils/zms-cli \
+        utils/zms-authhistory \
+        utils/zms-domainattrs \
+        utils/zts-idtoken \
+        utils/zms-svctoken \
+        utils/zpe-updater/cmd/tools \
+        utils/zts-accesstoken \
+        utils/zts-rolecert \
+        utils/zts-roletoken \
+        utils/zts-usercert \
+        utils/zts-svccert \
+    "; \
+    if [ -n "${TRACKING_GIT_REF}" ]; then \
+        git clone "${TRACKING_GIT_URL}" .; \
+        ref="${TRACKING_GIT_REF}"; \
+        if git fetch --force --tags origin "${ref}"; then \
+            git checkout FETCH_HEAD; \
+        else \
+            git fetch --force --tags origin '+refs/heads/*:refs/remotes/origin/*'; \
+            branch_ref="${ref#refs/heads/}"; \
+            checkout_ref="${ref#refs/tags/}"; \
+            if git rev-parse --verify --quiet "origin/${branch_ref}^{commit}" >/dev/null; then \
+                git checkout -B "${branch_ref}" "origin/${branch_ref}"; \
+            else \
+                git checkout "${checkout_ref}"; \
+            fi; \
+        fi; \
+        for package in ${packages}; do go install "./${package}"; done; \
+    else \
+        for package in ${packages}; do go install "github.com/AthenZ/athenz/${package}@v${VERSION}"; done; \
+    fi
 
 RUN go install github.com/smallstep/cli/cmd/step@latest
 

@@ -36,14 +36,18 @@ RUN set -eux; \
     "; \
     if [ -n "${TRACKING_GIT_REF}" ]; then \
         git clone "${TRACKING_GIT_URL}" .; \
-        git fetch --force --tags origin '+refs/heads/*:refs/remotes/origin/*'; \
         ref="${TRACKING_GIT_REF}"; \
-        branch_ref="${ref#refs/heads/}"; \
-        checkout_ref="${ref#refs/tags/}"; \
-        if git rev-parse --verify --quiet "origin/${branch_ref}^{commit}" >/dev/null; then \
-            git checkout -B "${branch_ref}" "origin/${branch_ref}"; \
+        if git fetch --force --tags origin "${ref}"; then \
+            git checkout FETCH_HEAD; \
         else \
-            git checkout "${checkout_ref}"; \
+            git fetch --force --tags origin '+refs/heads/*:refs/remotes/origin/*'; \
+            branch_ref="${ref#refs/heads/}"; \
+            checkout_ref="${ref#refs/tags/}"; \
+            if git rev-parse --verify --quiet "origin/${branch_ref}^{commit}" >/dev/null; then \
+                git checkout -B "${branch_ref}" "origin/${branch_ref}"; \
+            else \
+                git checkout "${checkout_ref}"; \
+            fi; \
         fi; \
         for package in ${packages}; do go install "./${package}"; done; \
     else \

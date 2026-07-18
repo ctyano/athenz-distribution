@@ -206,6 +206,7 @@ patch:
 build-java: assert-version patch install-rdl-tools
 	mvn -B clean install \
 		-f athenz/pom.xml \
+		$(if $(TRACKING_GIT_REF),--also-make) \
 		-Dproject.basedir=athenz \
 		-Dproject.build.directory=athenz \
 		-Dmaven.test.skip=true \

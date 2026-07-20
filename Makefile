@@ -603,6 +603,12 @@ deploy-kubernetes-athenz-client:
 test-kubernetes-athenz-client:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-client
 
+deploy-kubernetes-athenz-mcp-server:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz-mcp-server
+
+test-kubernetes-athenz-mcp-server:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-mcp-server
+
 deploy-kubernetes-athenz-workloads:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-workloads deploy-athenz-workloads
 

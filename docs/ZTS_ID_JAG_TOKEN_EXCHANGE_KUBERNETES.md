@@ -1,58 +1,91 @@
-# Keycloak ID Token to Athenz ID-JAG and Chained Access Token Exchange on Kubernetes
+# Identity Chaining: Keycloak User to MCP Server via ID-JAG Token Exchange on Kubernetes
 
-This document describes how to use the `athenz-cli` pod on Kubernetes to obtain an ID Token from Keycloak, exchange that ID Token with Athenz ZTS for an ID-JAG token, use the ID-JAG token as a JWT bearer assertion to issue an Athenz Access Token, and then exchange that Access Token for another Access Token in a different fully-qualified Athenz Domain/Role.
+This showcase demonstrates **Identity Chaining** — a Keycloak user logs in once, and their identity is preserved through every token exchange, all the way to an MCP server. The flow is designed for Agent and MCP users to intuitively understand how a single login propagates through the system.
 
-Runtime environment assumed by the commands:
+## What Happens at a Glance
 
-- namespace: `athenz`
-- Keycloak issuer: `http://keycloakx-http.keycloak:8080/realms/athenz`
-- Keycloak service endpoint from pod: `http://keycloakx-http.keycloak:8080/realms/athenz`
-- ZMS endpoint: `https://athenz-zms-server.athenz:4443/zms/v1`
-- ZTS endpoint: `https://athenz-zts-server.athenz:4443/zts/v1`
-- Working directory inside the `athenz-cli` pod: `/dev/shm/jag-flow.*`
-- Keycloak user: `athenz_user@athenz.io`
-- Keycloak client: `id-jag-client`
-- Downstream Remote Agent service: `keycloak.downstream.agent`
-- First Access Token source role scope: `agentbroker:role.downstream-agents`
-- First Access Token source compatibility role scope: `agentbroker:role.mcp-clients`
-- Upstream Remote Agent service: `agentbroker.upstream.agent`
-- Final Access Token target role scope: `mcp:role.mcp-clients`
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Keycloak   │───▶│     ZTS     │───▶│     ZTS     │───▶│     ZTS     │───▶│  MCP Server │
+│   Login      │    │  ID-JAG     │    │  Access     │    │  Exchanged  │    │  (FastMCP)  │
+│              │    │  Exchange   │    │  Token      │    │  Token      │    │             │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+  athenz_user@     keycloak:ext.      keycloak:ext.      keycloak:ext.      keycloak:ext.
+  athenz.io        athenz_user@       athenz_user@       athenz_user@       athenz_user@
+                   athenz.io          athenz.io          athenz.io          athenz.io
+   ↓                  ↓                  ↓                  ↓                  ↓
+  Keycloak ID      ID-JAG JWT         Access Token       Exchanged Token    MCP logs show
+  Token (sub=      (sub=keycloak:     (sub=keycloak:     (sub=keycloak:     sub=keycloak:ext.
+  1e5a4f3c...)     ext.athenz_        ext.athenz_        ext.athenz_        athenz_user@athenz.io
+                   user@athenz.io)    user@athenz.io)    user@athenz.io)
+```
+
+**Key insight**: The `sub` claim evolves from Keycloak's UUID (`1e5a4f3c...`) to the mapped Athenz principal (`keycloak:ext.athenz_user@athenz.io`) and stays there through every exchange. This is Identity Chaining.
+
+## What You Need
+
+| Component | Endpoint | Purpose |
+| --- | --- | --- |
+| Keycloak | `http://keycloakx-http.keycloak:8080/realms/athenz` | Issues ID Tokens for user login |
+| ZMS | `https://athenz-zms-server.athenz:4443/zms/v1` | Manages domains, roles, policies |
+| ZTS | `https://athenz-zts-server.athenz:4443/zts/v1` | Issues tokens via ID-JAG and Token Exchange |
+| MCP Server | `http://athenz-mcp-server.athenz:8000/mcp` | Demonstrates token authorization |
+
+## How the Identity Chain Works
+
+1. **Keycloak Login** → User `athenz_user@athenz.io` authenticates, gets an ID Token (subject = Keycloak UUID)
+2. **ID-JAG Exchange** → ZTS validates the ID Token, maps `email` → `keycloak:ext.athenz_user@athenz.io`, issues an ID-JAG JWT
+3. **Access Token** → ZTS converts the ID-JAG into an Athenz Access Token with roles `downstream-agents mcp-clients`
+4. **Token Exchange** → Upstream Agent exchanges the Access Token for an `mcp` audience token with role `mcp-clients`
+5. **MCP Server** → FastMCP validates the JWT, logs the chained identity, authorizes read/write based on scope
+
+## Environment
+
+| Variable | Value |
+| --- | --- |
+| namespace | `athenz` |
+| Keycloak user | `athenz_user@athenz.io` |
+| Keycloak client | `id-jag-client` |
+| Keycloak issuer | `http://keycloakx-http.keycloak:8080/realms/athenz` |
+| ZMS endpoint | `https://athenz-zms-server.athenz:4443/zms/v1` |
+| ZTS endpoint | `https://athenz-zts-server.athenz:4443/zts/v1` |
+| Working directory | `/dev/shm/jag-flow.*` |
+| Downstream Remote Agent | `keycloak.downstream.agent` |
+| Upstream Remote Agent | `agentbroker.upstream.agent` |
+| Final Access Token role | `mcp:role.mcp-clients` |
 
 ## 1. ZTS OAuth Provider Setup
 
-To allow ZTS to trust Keycloak ID Tokens and issue ID-JAG tokens, configure the ZTS OAuth provider config.
+**What this does**: Tells ZTS to trust Keycloak ID Tokens and map Keycloak users to Athenz principals.
 
-Keycloak `sub` values cannot be used directly as Athenz principals in this setup, so ZTS uses an existing `TokenExchangeIdentityProvider` implementation that maps the Keycloak ID Token `email` claim to `keycloak:ext.<email>`. With this provider, the Keycloak user `athenz_user@athenz.io` is treated as the Athenz principal `keycloak:ext.athenz_user@athenz.io`.
+**How it works**: Keycloak assigns users UUID-based `sub` values (like `1e5a4f3c-...`), but Athenz principals look like `keycloak:ext.athenz_user@athenz.io`. ZTS uses a `TokenExchangeIdentityProvider` that maps the Keycloak ID Token `email` claim to the Athenz principal format. With this provider, `athenz_user@athenz.io` becomes `keycloak:ext.athenz_user@athenz.io` — and this mapped identity is what gets chained through every subsequent token.
+
+**Pre-requisite**: This must be configured before the first token exchange. See the ZTS OAuth provider configuration documentation for details.
 
 ## 2. Prepare ZMS Objects and Permissions
 
-This procedure uses two Remote Agents:
+**What this does**: Creates the Athenz domains, service identities, and authorization policies that the token exchange flow requires. This is the one-time setup that makes Identity Chaining possible.
 
-| Agent | Athenz domain | Athenz service principal | Responsibility |
-| --- | --- | --- | --- |
-| Downstream Remote Agent | `keycloak.downstream` | `keycloak.downstream.agent` | Sends the ID-JAG token to ZTS and obtains the first Athenz Access Token. |
-| Upstream Remote Agent | `agentbroker.upstream` | `agentbroker.upstream.agent` | Sends the first Athenz Access Token to ZTS and exchanges it for a second Athenz Access Token. |
+**What gets created**:
 
-Create `keycloak`, `agentbroker`, and `mcp` as top-level domains. Create `keycloak.downstream` under `keycloak` for the Downstream Remote Agent, and create `agentbroker.upstream` under `agentbroker` for the Upstream Remote Agent. Register an Athenz service named `agent` in each Remote Agent subdomain, and issue a Copper Argos Service Cert for each service through the pre-registered `sys.auth.zts` identity provider. The source token roles are created in `agentbroker`, and the final target role is created in `mcp`. The commands below use `zms-cli` for ZMS registration wherever the CLI supports the operation. Domain creation first attempts `zms-cli add-domain` and falls back to the ZMS domain API only if the CLI command fails in this Kubernetes distribution.
+| Resource | Domain | Purpose |
+| --- | --- | --- |
+| `keycloak.downstream` | `keycloak` | Hosts the Downstream Agent that requests ID-JAG tokens |
+| `agentbroker.upstream` | `agentbroker` | Hosts the Upstream Agent that exchanges Access Tokens |
+| `mcp` | `mcp` | Target domain for the final Access Token |
+| `keycloak.downstream.agent` | `keycloak.downstream` | Downstream Agent service identity (OAuth client `id-jag-client`) |
+| `agentbroker.upstream.agent` | `agentbroker.upstream` | Upstream Agent service identity |
+| `agentbroker:role.downstream-agents` | `agentbroker` | Source role containing `keycloak:ext.athenz_user@athenz.io` |
+| `agentbroker:role.mcp-clients` | `agentbroker` | Compatibility role for token exchange scope validation |
+| `mcp:role.mcp-clients` | `mcp` | Target role for the final Access Token |
+| `mcp_write_access` policy | `mcp` | Grants `mcp:action.write` action scope |
 
-The Downstream Remote Agent is also the OAuth client that requests ID-JAG tokens, so configure `keycloak.downstream.agent` with the Keycloak client ID `id-jag-client`.
+**Authorization flow**:
+1. `keycloak.downstream.agent` is authorized to exchange ID Tokens → ID-JAG for roles in `agentbroker`
+2. `agentbroker.upstream.agent` is authorized to exchange Access Tokens from `agentbroker` audience → `mcp` audience
+3. The mapped Keycloak principal is added as a member of both source roles and the target role
 
-Grant `keycloak.downstream.agent` the `zts.jag_exchange` permission on `agentbroker:role.downstream-agents` and the source compatibility role `agentbroker:role.mcp-clients`. Both source roles are created in the `agentbroker` domain and contain the mapped Keycloak principal `keycloak:ext.athenz_user@athenz.io`.
-
-The final Access Token target role is `mcp:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name, so the source Access Token must contain the simple role name `mcp-clients`. To avoid granting `mcp:role.mcp-clients` before the Access Token=>Access Token exchange, this procedure creates `agentbroker:role.mcp-clients` as a source-domain compatibility role and includes it in the ID-JAG request together with `agentbroker:role.downstream-agents`. The ID-JAG token and the first Access Token therefore do not grant `mcp:role.mcp-clients`; that target-domain role appears only in the exchanged Access Token.
-
-Create all Remote Agent service identities in `keycloak.downstream` and `agentbroker.upstream`; no personal or bootstrap subdomain is used for those services.
-
-The later Access Token Exchange step uses an Access Token with audience `agentbroker` as the source token and requests `mcp:role.mcp-clients` as the target role. Because the Access Token issued from ID-JAG in this procedure does not contain `may_act` and the exchange request does not send `actor_token`, ZTS treats the Access Token Exchange as impersonation and requires both source and target exchange policies:
-
-| Policy action | Policy domain | Token-exchange role | Resource checked by ZTS | Authorized service |
-| --- | --- | --- | --- | --- |
-| `zts.token_source_exchange` | `agentbroker` | `token_source_exchanger` | `agentbroker:mcp` | `agentbroker.upstream.agent` |
-| `zts.token_target_exchange` | `mcp` | `token_target_exchanger` | `mcp:agentbroker:role.mcp-clients` | `agentbroker.upstream.agent` |
-
-A `zts.token_source_exchange`-free Access Token Exchange can only be constructed through the delegation path, where the request includes `actor_token` and the `subject_token` already has `may_act.sub` matching the actor identity. The ID-JAG-to-Access-Token step in this document does not issue a source Access Token with `may_act`, so the end-to-end procedure below intentionally keeps `zts.token_source_exchange`.
-
-Note: pass the `zms-cli add-policy` assertion as separate arguments, not as one quoted argument.
+The script below creates all domains, registers services with Copper Argos Service Certs, configures the `mcp_write_access` template, and sets up exchange policies:
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -215,6 +248,10 @@ zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   add-member "$TARGET_ROLE_NAME" "$SUBJECT_PRINCIPAL" || true
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  set-domain-template mcp_write_access || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   -d "$SOURCE_DOMAIN" \
   add-regular-role token_source_exchanger "$UPSTREAM_AGENT" || true
 
@@ -286,7 +323,9 @@ The split examples below use the `downstream-agent.key.pem`, `downstream-agent.c
 
 ## 3. Request Keycloak ID Token
 
-Issue an ID Token from Keycloak with the password grant.
+**What happens**: User `athenz_user@athenz.io` logs in to Keycloak. Keycloak issues an ID Token with `sub` = Keycloak UUID (e.g., `1e5a4f3c-...`) and `email` = `athenz_user@athenz.io`.
+
+**Command**:
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -307,24 +346,7 @@ jq -r .id_token "$WORKDIR/keycloak-token.json"
 '
 ```
 
-Request parameters:
-
-| Parameter | Value |
-| --- | --- |
-| endpoint | `http://keycloakx-http.keycloak:8080/realms/athenz/protocol/openid-connect/token` |
-| auth | HTTP Basic: `id-jag-client:id-jag-client` |
-| `grant_type` | `password` |
-| `scope` | `openid profile email` |
-| `username` | `athenz_user@athenz.io` |
-| `password` | `password` |
-
-Response field used in the next step:
-
-| Field | Meaning |
-| --- | --- |
-| `id_token` | OIDC ID Token issued by Keycloak. Use this value as the ZTS token exchange `subject_token`. |
-
-Decoded JWT payload example:
+**Result**: A Keycloak ID Token JWT.
 
 ```json
 {
@@ -339,9 +361,30 @@ Decoded JWT payload example:
 }
 ```
 
+Request parameters:
+
+| Parameter | Value |
+| --- | --- |
+| endpoint | `http://keycloakx-http.keycloak:8080/realms/athenz/protocol/openid-connect/token` |
+| auth | HTTP Basic: `id-jag-client:id-jag-client` |
+| `grant_type` | `password` (RFC 6749 Section 4.3) |
+| `scope` | `openid profile email` (OpenID Connect Core Section 11) |
+| `username` | `athenz_user@athenz.io` |
+| `password` | `password` |
+
+Response field used in the next step:
+
+| Field | Meaning |
+| --- | --- |
+| `id_token` | OIDC ID Token (JWT) issued by Keycloak. Used as the ZTS token exchange `subject_token`. |
+
+**Identity Chaining checkpoint**: At this point, the identity is `sub: 1e5a4f3c-6c8b-4e2a-9d0f-3b7e1a2c4d5e` (Keycloak UUID). The `email` claim is what ZTS will use to map to the Athenz principal in the next step.
+
 ## 4. Exchange Keycloak ID Token for ID-JAG
 
-Pass the Keycloak ID Token to ZTS `/oauth2/token` as the `subject_token` and request an ID-JAG token.
+**What happens**: The Downstream Agent sends the Keycloak ID Token to ZTS. ZTS validates the token against Keycloak's JWKS, maps the `email` claim to `keycloak:ext.athenz_user@athenz.io`, and issues an ID-JAG JWT with the mapped identity as `sub`.
+
+**Command**:
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -372,18 +415,37 @@ jq -r .access_token "$WORKDIR/id-jag.json"
 '
 ```
 
+**Result**: An ID-JAG JWT with the mapped Athenz principal.
+
+```json
+{
+  "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
+  "sub": "keycloak:ext.athenz_user@athenz.io",
+  "aud": "https://athenz-zts-server.athenz:4443/zts/v1",
+  "scope": "agentbroker:role.downstream-agents agentbroker:role.mcp-clients",
+  "scp": [
+    "agentbroker:role.downstream-agents",
+    "agentbroker:role.mcp-clients"
+  ],
+  "client_id": "keycloak.downstream.agent",
+  "email": "athenz_user@athenz.io",
+  "iat": 1781269291,
+  "exp": 1781276491
+}
+```
+
 Request parameters:
 
 | Parameter | Value |
 | --- | --- |
 | endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
 | client authentication | mTLS with the Downstream Remote Agent `keycloak.downstream.agent` Service Cert |
-| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
-| `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` |
+| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` (RFC 8693 Section 2.1) |
+| `requested_token_type` | `urn:ietf:params:oauth:token-type:id-jag` (Athenz-specific ID-JAG token type) |
 | `audience` | `https://athenz-zts-server.athenz:4443/zts/v1` |
 | `scope` | `agentbroker:role.downstream-agents agentbroker:role.mcp-clients` |
-| `subject_token` | Keycloak ID Token |
-| `subject_token_type` | `urn:ietf:params:oauth:token-type:id_token` |
+| `subject_token` | Keycloak ID Token (JWT) |
+| `subject_token_type` | `urn:ietf:params:oauth:token-type:id_token` (RFC 8693 Section 2.1) |
 
 Response example:
 
@@ -407,36 +469,21 @@ Decoded JWT header example:
 }
 ```
 
-Decoded JWT payload example:
-
-```json
-{
-  "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
-  "sub": "keycloak:ext.athenz_user@athenz.io",
-  "aud": "https://athenz-zts-server.athenz:4443/zts/v1",
-  "scope": "agentbroker:role.downstream-agents agentbroker:role.mcp-clients",
-  "scp": [
-    "agentbroker:role.downstream-agents",
-    "agentbroker:role.mcp-clients"
-  ],
-  "client_id": "keycloak.downstream.agent",
-  "email": "athenz_user@athenz.io",
-  "iat": 1781269291,
-  "exp": 1781276491
-}
-```
-
 Important checks:
 
-- `typ` is `oauth-id-jag+jwt`.
-- `sub` is mapped to `keycloak:ext.athenz_user@athenz.io`.
+- `typ` is `oauth-id-jag+jwt` (Athenz ID-JAG token type identifier).
+- `sub` is mapped from Keycloak UUID to `keycloak:ext.athenz_user@athenz.io` via the `email` claim.
 - `scope` includes `agentbroker:role.downstream-agents` and `agentbroker:role.mcp-clients`.
 - `scope` does not include `mcp:role.mcp-clients`; that target role is issued only after the Access Token=>Access Token exchange.
 - The response `issued_token_type` is `urn:ietf:params:oauth:token-type:id-jag`.
 
+**Identity Chaining checkpoint**: The `sub` claim has changed from Keycloak UUID to `keycloak:ext.athenz_user@athenz.io`. This mapped identity will persist through all subsequent exchanges. The `typ` header is `oauth-id-jag+jwt`.
+
 ## 5. Exchange ID-JAG for Athenz Access Token
 
-Pass the ID-JAG token to ZTS `/oauth2/token` as a JWT bearer assertion and issue an Athenz Access Token.
+**What happens**: ZTS converts the ID-JAG JWT into a standard Athenz Access Token. The `sub` remains `keycloak:ext.athenz_user@athenz.io`, but the `aud` changes to `agentbroker` (the source role domain) and the `scope` contains the simple role names `downstream-agents` and `mcp-clients`.
+
+**Command**:
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -460,13 +507,32 @@ jq -r .access_token "$WORKDIR/access-token.json"
 '
 ```
 
+**Result**: An Athenz Access Token JWT scoped to the `agentbroker` audience.
+
+```json
+{
+  "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
+  "sub": "keycloak:ext.athenz_user@athenz.io",
+  "aud": "agentbroker",
+  "scope": "downstream-agents mcp-clients",
+  "scp": [
+    "downstream-agents",
+    "mcp-clients"
+  ],
+  "client_id": "keycloak.downstream.agent",
+  "uid": "keycloak:ext.athenz_user@athenz.io",
+  "iat": 1781269291,
+  "exp": 1781276491
+}
+```
+
 Request parameters:
 
 | Parameter | Value |
 | --- | --- |
 | endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
 | client authentication | mTLS with the Downstream Remote Agent `keycloak.downstream.agent` Service Cert |
-| `grant_type` | `urn:ietf:params:oauth:grant-type:jwt-bearer` |
+| `grant_type` | `urn:ietf:params:oauth:grant-type:jwt-bearer` (RFC 7523 Section 2.1) |
 | `assertion` | ID-JAG JWT |
 
 Response example:
@@ -489,64 +555,30 @@ Decoded JWT header example:
 }
 ```
 
-Decoded JWT payload example:
-
-```json
-{
-  "iss": "https://athenz-zts-server.athenz:4443/zts/v1",
-  "sub": "keycloak:ext.athenz_user@athenz.io",
-  "aud": "agentbroker",
-  "scope": "downstream-agents mcp-clients",
-  "scp": [
-    "downstream-agents",
-    "mcp-clients"
-  ],
-  "client_id": "keycloak.downstream.agent",
-  "uid": "keycloak:ext.athenz_user@athenz.io",
-  "iat": 1781269291,
-  "exp": 1781276491
-}
-```
-
 Important checks:
 
-- `typ` is `at+jwt`.
+- `typ` is `at+jwt` (Athenz Access Token type identifier).
 - `sub` and `uid` are `keycloak:ext.athenz_user@athenz.io`.
 - `aud` is the source role domain, `agentbroker`.
-- `scope` is converted to the source-domain role names, `downstream-agents` and `mcp-clients`.
+- `scope` is converted from fully-qualified role names (`agentbroker:role.downstream-agents`) to simple role names (`downstream-agents`).
 - This token still does not grant `mcp:role.mcp-clients`; `mcp-clients` is scoped to the `agentbroker` audience in this first Access Token.
+
+**Identity Chaining checkpoint**: The `sub` and `uid` are still `keycloak:ext.athenz_user@athenz.io`. The token is scoped to `agentbroker` audience with roles `downstream-agents` and `mcp-clients`. The target `mcp:role.mcp-clients` is not yet available — it will appear only after the next exchange. The `typ` header is `at+jwt`.
 
 ## 6. Exchange the Access Token for Another Domain/Role Access Token
 
-The previous step issued an Access Token with:
+**What happens**: The Upstream Agent exchanges the first Access Token (audience `agentbroker`) for a new Access Token (audience `mcp`) with the target role `mcp-clients`. The `sub` remains `keycloak:ext.athenz_user@athenz.io` — this is where Identity Chaining delivers the final token to the MCP domain.
 
-- subject: `keycloak:ext.athenz_user@athenz.io`
-- audience: `agentbroker`
-- scope: `downstream-agents mcp-clients`
-- client: `keycloak.downstream.agent`
+**Why two agents?**: The Downstream Agent is the Keycloak OAuth client that initiated the ID-JAG flow. The Upstream Agent is authorized to exchange tokens from `agentbroker` audience to `mcp` audience. Separation of duties keeps the ID-JAG client and the token exchange client distinct.
 
-This step is performed by the Upstream Remote Agent. It uses the first Access Token as the `subject_token` and exchanges it for another Access Token in `mcp:role.mcp-clients`. The exchange request is authenticated with the Upstream Remote Agent Service Cert for `agentbroker.upstream.agent`.
+**Authorization**: ZTS checks two permissions for this exchange:
 
-This is the standard OAuth 2.0 Token Exchange path in ZTS, not the ID-JAG JWT bearer path. This procedure uses the Access Token issued in step 5 as `subject_token` and does not send `actor_token`, so ZTS handles it as an impersonation-style access-token exchange. In that path, the Service Cert authenticates the Upstream Remote Agent, but it does not replace the source-domain authorization check. ZTS evaluates both of these permissions:
-
-| Policy action | Policy domain | Resource checked by ZTS | Purpose |
+| Permission | Domain | Resource | Purpose |
 | --- | --- | --- | --- |
-| `zts.token_source_exchange` | source domain, `agentbroker` | `agentbroker:mcp` | Allows the Upstream Remote Agent to exchange a token from the `agentbroker` audience to the `mcp` audience. |
-| `zts.token_target_exchange` | target domain, `mcp` | `mcp:agentbroker:role.mcp-clients` | Allows the Upstream Remote Agent to request the target role for tokens whose source audience is `agentbroker`. |
+| `zts.token_source_exchange` | `agentbroker` | `agentbroker:mcp` | Allows exchanging from `agentbroker` to `mcp` audience |
+| `zts.token_target_exchange` | `mcp` | `mcp:agentbroker:role.mcp-clients` | Allows requesting `mcp-clients` role from `agentbroker` source |
 
-The target role must include the source Access Token subject as a ZMS role member, because ZTS verifies that the subject principal has access to the requested target role before issuing the exchanged Access Token. This ZMS membership is not the same as granting the target role in the ID-JAG token or in the first Access Token; those credentials only carry the roles requested for their own audience, and the first Access Token audience remains `agentbroker`.
-
-The target fully-qualified role is different from the source fully-qualified roles: the source token is issued from `agentbroker:role.downstream-agents` and `agentbroker:role.mcp-clients`, while the target is `mcp:role.mcp-clients`. ZTS validates requested target role names against the source Access Token `scope` by simple role name. Since the first Access Token contains `scope=downstream-agents mcp-clients`, a request for `mcp:role.mcp-clients` passes the subset check without granting `mcp:role.mcp-clients` before the exchange. If the source Access Token only had `scope=downstream-agents`, the target request for `mcp:role.mcp-clients` would fail with `Invalid scope for token exchange` before ZTS issued the exchanged Access Token.
-
-`zts.token_source_exchange` is not evaluated only in the delegation-style access-token exchange path. That path requires all of the following:
-
-- The exchange request includes `actor_token` and `actor_token_type`.
-- The authenticated principal from the actor token matches the actor token `sub`.
-- The `subject_token` contains `may_act.sub`, and that value matches the actor token `sub`.
-
-In that delegation path, ZTS evaluates `zts.token_target_exchange` for the target role, but not `zts.token_source_exchange`. The Access Token issued from ID-JAG in step 5 does not contain `may_act`, and the ID-JAG JWT bearer exchange path does not add `may_act` from an `actor` request parameter. Therefore, this end-to-end Keycloak ID Token -> ID-JAG -> Access Token -> Access Token procedure cannot omit `zts.token_source_exchange` without changing how the source Access Token is issued.
-
-The subdomains, services, Copper Argos Service Certs, target role, and exchange policies were prepared in step 2. Exchange the first Access Token for an Access Token in the target domain and role:
+**Command**:
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -576,18 +608,39 @@ jq -r .access_token "$WORKDIR/exchanged-access-token.json"
 '
 ```
 
+**Result**: An Athenz Access Token JWT scoped to the `mcp` audience.
+
+```json
+{
+  "iss": "athenz-zts-server-5c5969456-hnvjc",
+  "sub": "keycloak:ext.athenz_user@athenz.io",
+  "aud": "mcp",
+  "scope": "mcp-clients",
+  "scp": [
+    "mcp-clients"
+  ],
+  "client_id": "agentbroker.upstream.agent",
+  "uid": "agentbroker.upstream.agent",
+  "cnf": {
+    "x5t#S256": "<Upstream Remote Agent certificate thumbprint>"
+  },
+  "iat": 1781269291,
+  "exp": 1781276491
+}
+```
+
 Request parameters:
 
 | Parameter | Value |
 | --- | --- |
 | endpoint | `https://athenz-zts-server.athenz:4443/zts/v1/oauth2/token` |
 | client authentication | mTLS with the Upstream Remote Agent `agentbroker.upstream.agent` Service Cert |
-| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
-| `requested_token_type` | `urn:ietf:params:oauth:token-type:access_token` |
+| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` (RFC 8693 Section 2.1) |
+| `requested_token_type` | `urn:ietf:params:oauth:token-type:access_token` (RFC 8693 Section 2.1) |
 | `audience` | `mcp` |
 | `scope` | `mcp:role.mcp-clients` |
 | `subject_token` | The first Athenz Access Token issued from the ID-JAG token |
-| `subject_token_type` | `urn:ietf:params:oauth:token-type:access_token` |
+| `subject_token_type` | `urn:ietf:params:oauth:token-type:access_token` (RFC 8693 Section 2.1) |
 
 Response example:
 
@@ -610,39 +663,25 @@ Decoded JWT header example:
 }
 ```
 
-Decoded JWT payload example:
-
-```json
-{
-  "iss": "athenz-zts-server-5c5969456-hnvjc",
-  "sub": "keycloak:ext.athenz_user@athenz.io",
-  "aud": "mcp",
-  "scope": "mcp-clients",
-  "scp": [
-    "mcp-clients"
-  ],
-  "client_id": "agentbroker.upstream.agent",
-  "uid": "agentbroker.upstream.agent",
-  "cnf": {
-    "x5t#S256": "<Upstream Remote Agent certificate thumbprint>"
-  },
-  "iat": 1781269291,
-  "exp": 1781276491
-}
-```
-
 Important checks:
 
-- `typ` is `at+jwt`.
+- `typ` is `at+jwt` (Athenz Access Token type identifier).
 - `sub` remains the source Access Token subject, `keycloak:ext.athenz_user@athenz.io`.
 - `aud` is changed from `agentbroker` to `mcp`.
 - The target full role is `mcp:role.mcp-clients`.
 - The JWT `scope` claim is `mcp-clients`, because Athenz Access Tokens carry role names in `scope` and the target role name must be a subset of the source Access Token roles.
 - `client_id` and `uid` identify the Upstream Remote Agent service principal, `agentbroker.upstream.agent`.
+- The `cnf` claim contains the certificate thumbprint of the Upstream Remote Agent (RFC 8705 Section 3).
+
+**Exchange path note**: This procedure uses the Access Token as `subject_token` without `actor_token`, so ZTS handles it as an impersonation-style access-token exchange (RFC 8693 Section 2.1). In that path, the Service Cert authenticates the Upstream Remote Agent, but it does not replace the source-domain authorization check. ZTS evaluates both `zts.token_source_exchange` and `zts.token_target_exchange`.
+
+A `zts.token_source_exchange`-free Access Token Exchange can only be constructed through the delegation path (RFC 8693 Section 2.1), where the request includes `actor_token` and `actor_token_type`, and the `subject_token` already has `may_act.sub` matching the actor identity. The Access Token issued from ID-JAG in step 5 does not contain `may_act`, so this end-to-end procedure intentionally keeps `zts.token_source_exchange`.
+
+**Identity Chaining checkpoint**: The `sub` is still `keycloak:ext.athenz_user@athenz.io` — the original Keycloak user's identity has been preserved through four token exchanges. The `aud` is now `mcp`, and the `scope` contains `mcp-clients` (the role name) plus `mcp:action.write` (the action scope from the `mcp_write_access` template). This is the token that will be presented to the MCP server.
 
 ## 7. JWT Decode Helper
 
-Use this helper to inspect JWT headers and payloads inside the pod.
+Use this helper to inspect JWT headers and payloads inside the pod. This is useful for verifying the Identity Chaining checkpoints at each stage.
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -692,7 +731,7 @@ jwt_part "$EXCHANGED_ACCESS_TOKEN" 2 | jq "{iss,sub,aud,scope,scp,client_id,uid,
 
 ## 8. End-to-End Script
 
-The script below runs the full flow, from preparing the ZMS domains and Remote Agent services through issuing all four tokens. It also decodes the issued JWT payloads and verifies that only the final exchanged Access Token carries the `mcp` audience with the `mcp-clients` role.
+This script runs the full Identity Chaining flow in one shot — from preparing ZMS domains through issuing all four tokens. It also decodes the JWT payloads and verifies that only the final exchanged Access Token carries the `mcp` audience with the `mcp-clients` role.
 
 ```sh
 kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
@@ -876,6 +915,10 @@ zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   add-member "$TARGET_ROLE_NAME" "$SUBJECT_PRINCIPAL" >"$WORKDIR/add-target-member.out" 2>&1 || true
 
 zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
+  -d "$TARGET_DOMAIN" \
+  set-domain-template mcp_write_access >"$WORKDIR/add-mcp-write-access.out" 2>&1 || true
+
+zms-cli -z "$ZMS" -key "$ADMIN_KEY" -cert "$ADMIN_CERT" -c "$CA" \
   -d "$SOURCE_DOMAIN" \
   add-regular-role token_source_exchanger "$UPSTREAM_AGENT" >"$WORKDIR/add-token-source-role.out" 2>&1 || true
 
@@ -1028,3 +1071,170 @@ echo "ATHENZ_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/access-token.json")"
 echo "EXCHANGED_ATHENZ_ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")"
 '
 ```
+
+## 9. Deploy the MCP Server
+
+**What happens**: Deploys a FastMCP-based MCP server that validates Athenz Access Tokens and authorizes MCP operations based on token scope. The server uses a built-in `JWTVerifier` that checks token signature and issuer against the ZTS JWKS endpoint, and a scope authorization middleware that checks the `mcp:action.write` scope for write operations.
+
+**Command**:
+
+```sh
+make -C kubernetes deploy-athenz-mcp-server
+```
+
+Wait for the deployment to become ready:
+
+```sh
+kubectl -n athenz wait --for=condition=available --timeout=60s deployment/athenz-mcp-server
+```
+
+The server listens on port 8000 and exposes the MCP SSE endpoint at `/mcp`.
+
+## 10. Test Read Access (tools/list)
+
+**What happens**: Calls `tools/list` on the MCP server with the exchanged Access Token. This is a read-only operation that succeeds for any valid Athenz Access Token with audience `mcp`, regardless of the token's role scope.
+
+**Command**:
+
+From the `athenz-cli` pod, obtain the exchanged Access Token from Step 6 and call `tools/list`:
+
+```sh
+kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
+set -eu
+
+WORKDIR=/dev/shm/jag-flow.example
+ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")
+
+curl -sfS "http://athenz-mcp-server.athenz:8000/mcp" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+'
+```
+
+Expected response (HTTP 200):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "tools": [
+      {"name": "get_server_info", "description": "..."},
+      {"name": "read_data", "description": "..."},
+      {"name": "write_data", "description": "..."}
+    ]
+  },
+  "id": 1
+}
+```
+
+The JWTVerifier validates the token signature and issuer against the ZTS JWKS endpoint. The scope authorization middleware permits `tools/list` without checking the role scope.
+
+## 11. Test Write Access (tools/call)
+
+**What happens**: Calls `tools/call` on the MCP server with the exchanged Access Token. The scope authorization middleware checks that the token's `scope` includes `mcp:action.write`. Because the `mcp_write_access` template was configured in Step 2, ZTS includes `mcp:action.write` in the token scope during the exchange.
+
+**Command**:
+
+Call `tools/call` with the exchanged Access Token from Step 6:
+
+```sh
+kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
+set -eu
+
+WORKDIR=/dev/shm/jag-flow.example
+ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")
+
+curl -sfS "http://athenz-mcp-server.athenz:8000/mcp" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '"'"'{"jsonrpc":"2.0","method":"tools/call","params":{"name":"write_data","arguments":{"key":"test","value":"hello"}},"id":2}'"'"'
+'
+```
+
+Expected response (HTTP 200):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [{"type": "text", "text": "{\"status\": \"success\", \"key\": \"test\", \"value\": \"hello\"}"}]
+  },
+  "id": 2
+}
+```
+
+The token's scope includes `mcp:action.write` (granted by the `mcp_write_access` template), so the write succeeds immediately.
+
+## 12. Verify Token Scope
+
+**What happens**: Decodes the exchanged Access Token to verify that the Identity Chaining has preserved the original Keycloak user identity and that the scope contains both the role name and the action scope.
+
+**Command**:
+
+```sh
+kubectl -n athenz exec deployment/athenz-cli -- /bin/sh -lc '
+WORKDIR=/dev/shm/jag-flow.example
+ACCESS_TOKEN=$(jq -r .access_token "$WORKDIR/exchanged-access-token.json")
+printf "%s" "$ACCESS_TOKEN" | cut -d. -f2 | tr "_-" "/+" | base64 -d 2>/dev/null | jq "{sub,aud,scope,client_id}"
+'
+```
+
+Expected output:
+
+```json
+{
+  "sub": "keycloak:ext.athenz_user@athenz.io",
+  "aud": "mcp",
+  "scope": "mcp-clients mcp:action.write",
+  "client_id": "agentbroker.upstream.agent"
+}
+```
+
+Key observations:
+
+- `sub` is the mapped Keycloak principal (`keycloak:ext.athenz_user@athenz.io`), propagated through the entire ID-JAG and token exchange chain.
+- `scope` contains both `mcp-clients` (the role name) and `mcp:action.write` (the action scope from the `mcp_write_access`).
+- `client_id` identifies the Upstream Remote Agent that performed the exchange.
+
+## 13. Verify MCP Server Logs
+
+**What happens**: Checks the MCP server logs to confirm that the JWT claims are visible. The logs show the original Keycloak user identity (`keycloak:ext.athenz_user@athenz.io`) preserved in the `sub` claim throughout the entire token exchange chain.
+
+**Command**:
+
+```sh
+kubectl -n athenz logs deployment/athenz-mcp-server --tail=20
+```
+
+Expected log output:
+
+```
+INFO:athenz-mcp-server:MCP request: method=tools/list tool=- sub=keycloak:ext.athenz_user@athenz.io client_id=agentbroker.upstream.agent aud=mcp scope=mcp-clients mcp:action.write
+INFO:athenz-mcp-server:MCP request: method=tools/call tool=write_data sub=keycloak:ext.athenz_user@athenz.io client_id=agentbroker.upstream.agent aud=mcp scope=mcp-clients mcp:action.write
+INFO:athenz-mcp-server:write_data called: key=test value=hello
+```
+
+The logs demonstrate the end-to-end ID-JAG benefit: the original Keycloak user identity (`keycloak:ext.athenz_user@athenz.io`) is preserved in the `sub` claim throughout the entire token exchange chain (Keycloak ID Token → ID-JAG → Access Token → Exchanged Access Token), and the `scope` carries both the Athenz role membership and the action-level permissions granted by the `mcp_write_access`.
+
+## Summary: Identity Chaining End-to-End
+
+```
+Keycloak Login          →  ID-JAG Exchange       →  Access Token       →  Token Exchange      →  MCP Server
+                                                                     
+sub: 1e5a4f3c...        sub: keycloak:ext.       sub: keycloak:ext.   sub: keycloak:ext.   sub: keycloak:ext.
+      (Keycloak UUID)        athenz_user@athenz.io   athenz_user@athenz.io  athenz_user@athenz.io  athenz_user@athenz.io
+ aud: id-jag-client      aud: ZTS                 aud: agentbroker      aud: mcp               aud: mcp
+                                                                        scope: mcp-clients     scope: mcp-clients
+                                                                        + mcp:action.write     + mcp:action.write
+```
+
+**What Identity Chaining means for Agent and MCP users**:
+
+1. **Single login**: The user authenticates once with Keycloak. No separate Athenz login is needed.
+2. **Identity preserved**: The original Keycloak user identity (`keycloak:ext.athenz_user@athenz.io`) flows through every token exchange without modification.
+3. **Audience-scoped**: Each token is scoped to a specific audience (`id-jag-client` → `ZTS` → `agentbroker` → `mcp`), ensuring least-privilege access.
+4. **Role-aware**: The token scope carries Athenz role membership (`mcp-clients`) and action permissions (`mcp:action.write`), enabling fine-grained authorization at the MCP server.
+5. **Auditable**: The MCP server logs show the original user identity, the client that performed the exchange, and the scope — providing full audit trail from login to MCP operation.
+
+This is Identity Chaining: a single Keycloak login propagates through the entire token exchange chain, arriving at the MCP server with the original user identity intact and the appropriate permissions for authorization.

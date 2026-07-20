@@ -645,6 +645,12 @@ report-athenz-loadtest:
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify
 
+deploy-athenz-mcp-server: test-athenz-servers
+	kubectl apply -k athenz-mcp-server/kustomize
+
+test-athenz-mcp-server:
+	@$(MAKE) -C athenz-mcp-server test-athenz-mcp-server
+
 register-athenz-localworkloadprovider:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 zms-cli \

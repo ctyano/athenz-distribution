@@ -13,6 +13,9 @@ endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
+ifeq ($(ATHENZ_IMAGE_TAG),)
+ATHENZ_IMAGE_TAG=latest
+endif
 
 clean-certificates:
 	rm -rf kustomize/keys kustomize/certs
@@ -144,10 +147,10 @@ check-register-cfssl:
 	@echo ""
 
 kustomize-edit-cfssl-image:
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \

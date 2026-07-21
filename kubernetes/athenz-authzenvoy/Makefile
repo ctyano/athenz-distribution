@@ -13,6 +13,9 @@ endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
+ifeq ($(ATHENZ_IMAGE_TAG),)
+ATHENZ_IMAGE_TAG=latest
+endif
 
 clean-athenz-authzenvoy:
 	kubectl delete -k kustomize
@@ -118,10 +121,10 @@ done
 	@echo ""
 
 kustomize-edit-athenz-authzenvoy-image:
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \

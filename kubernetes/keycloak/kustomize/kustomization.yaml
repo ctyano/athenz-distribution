@@ -31,6 +31,12 @@ helmCharts:
     # https://github.com/codecentric/helm-charts/blob/master/charts/keycloakx/values.yaml
     valuesInline:
 
+      # 0. Always pull the latest Keycloak image (for development purposes)
+      image:
+        repository: quay.io/keycloak/keycloak
+        tag: latest
+        pullPolicy: IfNotPresent
+
       # 1. FIX: Change 'build' to 'start' so the server actually runs
       command: ["/opt/keycloak/bin/kc.sh"]
       args: ["start", "--http-enabled=true", "--hostname-strict=false", "--import-realm", "--health-enabled=true"]

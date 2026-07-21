@@ -198,7 +198,7 @@ kind-load-images:
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+		$(QUAYIO_REGISTRY)/keycloak/keycloak:latest \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest

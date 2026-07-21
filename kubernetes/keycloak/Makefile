@@ -35,7 +35,7 @@ kustomize-edit-keycloak-image:
 	if [ "$(QUAYIO_REGISTRY)" != "quay.io" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image quay.io/keycloak/keycloak:26.5.5=$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+	&& kustomize edit set image quay.io/keycloak/keycloak:latest=$(QUAYIO_REGISTRY)/keycloak/keycloak:latest \
 	) \
 	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \

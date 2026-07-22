@@ -491,7 +491,7 @@ load-docker-images-external:
 	else \
 		docker pull $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
 	fi
-	docker pull $(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
+	docker pull $(DOCKERIO_REGISTRY)/keycloak/keycloak:latest
 	docker pull $(DOCKERIO_REGISTRY)/library/postgres:alpine
 
 deploy-kubernetes-in-docker:

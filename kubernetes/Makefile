@@ -208,7 +208,7 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:latest \
+		$(DOCKERIO_REGISTRY)/keycloak/keycloak:latest \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKERIO_REGISTRY)/dexidp/dex:latest
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \

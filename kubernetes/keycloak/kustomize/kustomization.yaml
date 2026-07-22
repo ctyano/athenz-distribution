@@ -33,7 +33,7 @@ helmCharts:
 
       # 0. Always pull the latest Keycloak image (for development purposes)
       image:
-        repository: quay.io/keycloak/keycloak
+        repository: docker.io/keycloak/keycloak
         tag: latest
         pullPolicy: IfNotPresent
 

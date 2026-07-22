@@ -45,6 +45,25 @@
       }
     },
     {
+      "clientId": "id-jag-client",
+      "name": "Client for ID-JAG showcase",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "id-jag-client",
+      "redirectUris": [
+        "http://127.0.0.1:8080",
+        "urn:ietf:wg:oauth:2.0:oob"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "post.logout.redirect.uris": "+",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
       "clientId": "realm-management",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
@@ -93,6 +112,19 @@
     }
   ],
   "users": [
+    {
+      "username": "athenz_user",
+      "email": "athenz_user@athenz.io",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "credentialData": "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\"}",
+          "secretData": "{\"value\":\"AMgZGlKr3foLG8zh2w0ze9Tlt82CpNTLd1MGdmARwN0=\",\"salt\":\"u+004mmexanVgp3kjhUBZw==\"}"
+        }
+      ]
+    },
     {
       "username": "athenz_admin",
       "email": "athenz_admin@athenz.io",

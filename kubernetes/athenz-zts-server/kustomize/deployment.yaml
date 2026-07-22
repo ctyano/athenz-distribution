@@ -148,7 +148,7 @@ spec:
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
                 -d sys.auth \
-                add-service usercertprovider "${HOSTNAME}" /athenz/zts/zts.public.pem \
+                add-service usercertprovider \
               ) \
               && \
               zms-cli \
@@ -161,7 +161,7 @@ spec:
               && \
               curl \
                 -sv \
-                -d"{\"name\":\"email\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -d"{\"name\":\"keycloak\",\"adminUsers\":[\"user.athenz_admin\"]}" \
                 -H"Content-Type: application/json" \
                 --key /athenz/admin/${USER}.private.pem \
                 --cert /athenz/admin/${USER}.cert.pem \
@@ -173,8 +173,52 @@ spec:
                 -cert /athenz/admin/${USER}.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
-                -d email \
-                set-external-member-validator com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+                -d keycloak \
+                set-external-member-validator com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator \
+              && \
+              ( \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                show-service localworkloadprovider \
+              || \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                add-service localworkloadprovider \
+              ) \
+              && \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                set-service-endpoint localworkloadprovider class://com.yahoo.athenz.instance.provider.impl.InstanceLocalWorkloadProvider \
+              && \
+              curl \
+                -sfv \
+                -d"{\"name\":\"agentbroker\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -H"Content-Type: application/json" \
+                --key /athenz/admin/${USER}.private.pem \
+                --cert /athenz/admin/${USER}.cert.pem \
+                --cacert /etc/ssl/certs/ca-certificates.crt \
+                "${ZMS}/domain" \
+              && \
+              curl \
+                -sfv \
+                -d"{\"name\":\"mcp\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -H"Content-Type: application/json" \
+                --key /athenz/admin/${USER}.private.pem \
+                --cert /athenz/admin/${USER}.cert.pem \
+                --cacert /etc/ssl/certs/ca-certificates.crt \
+                "${ZMS}/domain"
           resources:
             limits:
               memory: 32Mi

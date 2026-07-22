@@ -198,7 +198,7 @@ kind-load-images:
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+		$(DOCKERIO_REGISTRY)/keycloak/keycloak:latest \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
@@ -633,3 +633,19 @@ report-athenz-loadtest:
 	@$(MAKE) -C loadtest report-athenz-envoy-loadtest report-athenz-sidecar-loadtest report-athenz-envoyfilter-loadtest report-athenz-envoywebhook-loadtest report-athenz-authzproxy-loadtest report-athenz-echoserver-loadtest report-athenz-loadtest
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify
+
+register-athenz-localworkloadprovider:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+zms-cli \
+	-z https://athenz-zms-server.athenz:4443/zms/v1 \
+	-key /var/run/athenz/athenz_admin.private.pem \
+	-cert /var/run/athenz/athenz_admin.cert.pem \
+	-d sys.auth \
+	add-service localworkloadprovider
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+zms-cli \
+	-z https://athenz-zms-server.athenz:4443/zms/v1 \
+	-key /var/run/athenz/athenz_admin.private.pem \
+	-cert /var/run/athenz/athenz_admin.cert.pem \
+	-d sys.auth \
+	set-service-endpoint localworkloadprovider class://com.yahoo.athenz.instance.provider.impl.InstanceLocalWorkloadProvider

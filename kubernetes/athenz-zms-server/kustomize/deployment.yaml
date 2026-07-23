@@ -25,6 +25,9 @@ spec:
     spec:
       restartPolicy: Always
       dnsPolicy: "ClusterFirst"
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
       volumes:
         - name: athenz-zms-keys
           secret:
@@ -54,6 +57,12 @@ spec:
         - name: athenz-zms-conf
           configMap:
             name: athenz-zms-conf
+        - name: athenz-zms-custom-solution-templates
+          configMap:
+            name: athenz-zms-custom-solution-templates
+            optional: true
+        - name: athenz-zms-generated-conf
+          emptyDir: {}
         - name: athenz-plugins
           emptyDir: {}
       initContainers:
@@ -132,6 +141,10 @@ spec:
               value: /opt/athenz/zms/var/certs/zms.cert.pem
             - name: ZMS_KEYSTORE_KEY_PEM_PATH
               value: /opt/athenz/zms/var/keys/zms.private.pem
+            - name: ZMS_CUSTOM_SOLUTION_TEMPLATES
+              value: /opt/athenz/zms/conf/zms_custom_solution_templates/custom_solution_templates.json
+            - name: ZMS_GENERATED_CONF_PATH
+              value: /var/run/athenz/zms-conf
           ports:
             - name: https
               containerPort: 4443
@@ -185,5 +198,10 @@ spec:
             - name: athenz-zms-conf
               mountPath: /opt/athenz/zms/conf/zms_server
               readOnly: true
+            - name: athenz-zms-custom-solution-templates
+              mountPath: /opt/athenz/zms/conf/zms_custom_solution_templates
+              readOnly: true
+            - name: athenz-zms-generated-conf
+              mountPath: /var/run/athenz/zms-conf
             - name: athenz-plugins
               mountPath: /athenz/plugins

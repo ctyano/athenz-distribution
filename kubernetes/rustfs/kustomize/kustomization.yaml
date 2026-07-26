@@ -1,0 +1,21 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+resources:
+- namespace.yaml
+- service.yaml
+- statefulset.yaml
+- job-create-bucket.yaml
+
+secretGenerator:
+- name: rustfs-credentials
+  literals:
+  - RUSTFS_ACCESS_KEY=rustfsadmin
+  - RUSTFS_SECRET_KEY=rustfsadmin
+  type: Opaque

@@ -11,7 +11,6 @@ resources:
 - namespace.yaml
 - service.yaml
 - statefulset.yaml
-- job-create-bucket.yaml
 
 secretGenerator:
 - name: rustfs-credentials

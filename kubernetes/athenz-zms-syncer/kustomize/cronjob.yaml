@@ -11,7 +11,7 @@ spec:
   # invocation reads the full domain list from ZMS and reconciles it into
   # RustFS. concurrencyPolicy=Forbid avoids overlapping runs if one takes
   # longer than the schedule interval.
-  schedule: "*/5 * * * *"
+  schedule: "*/1 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1

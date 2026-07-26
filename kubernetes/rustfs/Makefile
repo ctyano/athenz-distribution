@@ -60,10 +60,23 @@ deploy-rustfs: setup-rustfs patch-coredns-rustfs
 		kubectl -n athenz logs statefulset/rustfs --all-containers=true --tail=200 ||:; \
 		exit 1; \
 	)
-	kubectl -n athenz wait --for=condition=complete --timeout=$(WAITING_TIMEOUT) job/rustfs-create-bucket \
+	kubectl -n athenz run rustfs-create-bucket-$$(date +%s) --rm -i --restart=Never \
+		--image=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest \
+		--env="AWS_ACCESS_KEY_ID=$$(kubectl -n athenz get secret rustfs-credentials -o jsonpath='{.data.RUSTFS_ACCESS_KEY}' | base64 -d)" \
+		--env="AWS_SECRET_ACCESS_KEY=$$(kubectl -n athenz get secret rustfs-credentials -o jsonpath='{.data.RUSTFS_SECRET_KEY}' | base64 -d)" \
+		--env="AWS_DEFAULT_REGION=us-east-1" \
+		--command \
+		-- \
+		/bin/sh -c ' \
+			until aws --endpoint-url http://rustfs.athenz:9000 s3api list-buckets >/dev/null 2>&1; do \
+				echo "Waiting for rustfs..."; \
+				sleep 2; \
+			done; \
+			aws --endpoint-url http://rustfs.athenz:9000 s3api head-bucket --bucket $(RUSTFS_BUCKET) >/dev/null 2>&1 || \
+				aws --endpoint-url http://rustfs.athenz:9000 s3api create-bucket --bucket $(RUSTFS_BUCKET) \
+		' \
 	|| ( \
-		printf "\n\n** rustfs-create-bucket job did not complete within $(WAITING_TIMEOUT) **\n\n"; \
-		kubectl -n athenz logs job/rustfs-create-bucket ||:; \
+		printf "\n\n** failed to create bucket $(RUSTFS_BUCKET) on rustfs **\n\n"; \
 		exit 1; \
 	)
 	@echo ""

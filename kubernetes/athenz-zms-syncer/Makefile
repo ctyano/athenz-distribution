@@ -6,7 +6,7 @@ DOCKERIO_REGISTRY=docker.io
 endif
 
 RUSTFS_BUCKET=zms-domains
-MANUAL_JOB_NAME_FILE=.manual-job-name
+JOB_NAME := athenz-zms-syncer-manual-$(shell date +%s)
 
 clean-athenz-zms-syncer:
 	kubectl delete -k kustomize ||:
@@ -26,19 +26,16 @@ setup-athenz-zms-syncer: kustomize-edit-athenz-zms-syncer-image
 # Triggers one immediate run of the CronJob's pod template, so the showcase
 # doesn't have to wait for the schedule to fire.
 deploy-athenz-zms-syncer: setup-athenz-zms-syncer
-	JOB_NAME=athenz-zms-syncer-manual-$$(date +%s); \
-	kubectl -n athenz create job --from=cronjob/athenz-zms-syncer $${JOB_NAME}; \
-	echo $${JOB_NAME} > $(MANUAL_JOB_NAME_FILE)
-	@$(MAKE) wait-athenz-zms-syncer-job
+	kubectl -n athenz create job --from=cronjob/athenz-zms-syncer $(JOB_NAME)
+	$(MAKE) wait-athenz-zms-syncer-job JOB_NAME=$(JOB_NAME)
 
 wait-athenz-zms-syncer-job:
 	WAITING_TIMEOUT=120s; \
-	JOB_NAME=$$(cat $(MANUAL_JOB_NAME_FILE)); \
-	kubectl -n athenz wait --for=condition=complete --timeout=$${WAITING_TIMEOUT} job/$${JOB_NAME} \
+	kubectl -n athenz wait --for=condition=complete --timeout=$${WAITING_TIMEOUT} job/$(JOB_NAME) \
 	|| ( \
-		printf "\n\n** job/$${JOB_NAME} did not complete within $${WAITING_TIMEOUT} **\n\n"; \
+		printf "\n\n** job/$(JOB_NAME) did not complete within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all -l app.kubernetes.io/instance=athenz-zms-syncer; \
-		kubectl -n athenz logs job/$${JOB_NAME} --all-containers=true --tail=200 ||:; \
+		kubectl -n athenz logs job/$(JOB_NAME) --all-containers=true --tail=200 ||:; \
 		exit 1; \
 	)
 	@echo ""

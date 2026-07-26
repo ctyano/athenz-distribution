@@ -2,7 +2,7 @@
 
 This deploys [RustFS](https://rustfs.com/), an S3-compatible object storage server, as the backing store for the [ZMS Domain Syncer showcase](../athenz-zms-syncer).
 
-A `Job` (`rustfs-create-bucket`) pre-creates the `zms-domains` bucket right after RustFS starts, using the [AWS CLI](https://github.com/aws/aws-cli) (`aws s3api create-bucket --endpoint-url ...`) — a generic S3 client also usable against RustFS's S3-compatible API. This is required because the ZMS Domain Syncer fails on startup if the target bucket does not already exist.
+`make deploy-rustfs` pre-creates the `zms-domains` bucket right after RustFS becomes ready, using the [AWS CLI](https://github.com/aws/aws-cli) (`aws s3api create-bucket --endpoint-url ...`) — a generic S3 client also usable against RustFS's S3-compatible API — run as a one-off `kubectl run --rm` pod (see the `deploy-rustfs` target in `Makefile`). This is required because the ZMS Domain Syncer fails on startup if the target bucket does not already exist.
 
 **Demo-only credentials**: `RUSTFS_ACCESS_KEY`/`RUSTFS_SECRET_KEY` default to `rustfsadmin`/`rustfsadmin` (RustFS's own built-in defaults) via a plain Kubernetes `Secret`. This is fine for a local/CI showcase but must never be used as-is outside of a throwaway demo cluster.
 

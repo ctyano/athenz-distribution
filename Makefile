@@ -557,6 +557,9 @@ deploy-kubernetes-athenz-zms-syncer: generate-certificates
 test-kubernetes-athenz-zms-syncer:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-zms-syncer
 
+show-kubernetes-athenz-zms-syncer-status:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes show-athenz-zms-syncer-status
+
 use-kubernetes-athenz-zms-syncer: test-kubernetes-athenz-zms-syncer
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-change-log-store
 

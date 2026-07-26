@@ -298,6 +298,18 @@ spec:
               value: /opt/athenz/zts/var/certs/selfsign.ca.cert.pem
             - name: ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH
               value: /opt/athenz/zts/var/keys/ca.private.pem
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: RUSTFS_ACCESS_KEY
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: RUSTFS_SECRET_KEY
+                  optional: true
           ports:
             - name: https
               containerPort: 4443

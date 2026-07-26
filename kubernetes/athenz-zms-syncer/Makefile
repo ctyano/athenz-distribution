@@ -44,6 +44,19 @@ wait-athenz-zms-syncer-job:
 	@echo "**************************************"
 	@echo ""
 
+# kubectl run --rm -i's attach-then-stream-logs fallback is unreliable for
+# containers that finish almost instantly (a known kubectl quirk), so this
+# creates the pod, waits for it to finish, reads its logs, then deletes it --
+# rather than relying on --rm -i to stream output live.
+show-athenz-zms-syncer-status:
+	@NAME=zms-syncer-status-$$(date +%s); \
+	kubectl -n athenz run $$NAME --restart=Never \
+		--image=$(DOCKER_REGISTRY)athenz-cli:latest \
+		--overrides='{"apiVersion":"v1","spec":{"volumes":[{"name":"state","persistentVolumeClaim":{"claimName":"athenz-zms-syncer-state","readOnly":true}}],"containers":[{"name":"'"$$NAME"'","image":"$(DOCKER_REGISTRY)athenz-cli:latest","command":["cat","/state/run_state.json"],"volumeMounts":[{"name":"state","mountPath":"/state","readOnly":true}]}]}}' >/dev/null; \
+	kubectl -n athenz wait --for=jsonpath='{.status.phase}'=Succeeded --timeout=30s pod/$$NAME >/dev/null; \
+	kubectl -n athenz logs $$NAME | jq .; \
+	kubectl -n athenz delete pod $$NAME --ignore-not-found >/dev/null
+
 test-athenz-zms-syncer:
 	kubectl -n athenz run zms-syncer-aws-cli-test-$$(date +%s) --rm -i --restart=Never \
 		--image=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest \

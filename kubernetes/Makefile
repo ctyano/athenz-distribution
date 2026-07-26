@@ -171,6 +171,7 @@ patch-athenz-zts-s3-change-log-store:
 	@$(SED_INPLACE) '/^#athenz.zts.aws_bucket_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^#athenz.zts.aws_region_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^#athenz.zts.aws_s3_endpoint=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^#athenz.zts.zms_domain_jws_support=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 
 clean-patch-athenz-zts-s3-change-log-store:
 	@$(MAKE) replace-system-properties \
@@ -180,6 +181,7 @@ clean-patch-athenz-zts-s3-change-log-store:
 	@$(SED_INPLACE) '/^athenz.zts.aws_bucket_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^athenz.zts.aws_region_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^athenz.zts.aws_s3_endpoint=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^athenz.zts.zms_domain_jws_support=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 
 switch-athenz-zts-change-log-store: patch-athenz-zts-s3-change-log-store
 	kubectl apply -k athenz-zts-server/kustomize
@@ -275,6 +277,9 @@ deploy-athenz-zms-syncer:
 
 test-athenz-zms-syncer:
 	@$(MAKE) -C athenz-zms-syncer test-athenz-zms-syncer
+
+show-athenz-zms-syncer-status:
+	@$(MAKE) -C athenz-zms-syncer show-athenz-zms-syncer-status
 
 setup-vault:
 	@$(MAKE) -C vault setup-vault

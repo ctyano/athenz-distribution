@@ -1,0 +1,21 @@
+---
+# This is the only PersistentVolumeClaim in this repository. Every other
+# component intentionally uses emptyDir, since this is meant to be a fully
+# disposable showcase cluster. This one is a narrow, deliberate exception:
+# it only caches domain_state.json/run_state.json, which the syncer can
+# always regenerate from ZMS/RustFS (the real sources of truth). Losing this
+# volume's contents is harmless — it just reverts to the existing, correct
+# but more expensive fallback (see README.md).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: athenz-zms-syncer-state
+  labels:
+    app.kubernetes.io/name: athenz-zms-syncer
+    app.kubernetes.io/instance: athenz-zms-syncer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 64Mi

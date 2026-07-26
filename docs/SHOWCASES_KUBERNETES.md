@@ -53,6 +53,8 @@ This is entirely opt-in: unless these extra targets are run, `athenz-zts-server`
 
 ⚠️ `deploy-kubernetes-rustfs` is the only target in this repository that modifies cluster-wide (`kube-system`) state: it adds a CoreDNS rewrite rule needed for virtual-hosted-style S3 addressing against RustFS. See [kubernetes/rustfs/README.md](../kubernetes/rustfs/README.md) for details — this matters if you're running against a shared/existing cluster rather than the disposable KinD cluster from `deploy-kubernetes-in-docker`.
 
+⚠️ `deploy-kubernetes-athenz-zms-syncer` also creates this repository's only `PersistentVolumeClaim` (see [kubernetes/athenz-zms-syncer/README.md](../kubernetes/athenz-zms-syncer/README.md)). It relies on the cluster's default `StorageClass` supporting dynamic `ReadWriteOnce` provisioning — KinD's bundled `rancher.io/local-path` provisioner does this automatically, so no extra setup is needed on the standard `deploy-kubernetes-in-docker` flow.
+
 ## Each steps in Makefile
 
 - `deploy-kubernetes-in-docker` installs kind and create a cluster.
@@ -67,6 +69,7 @@ This is entirely opt-in: unless these extra targets are run, `athenz-zts-server`
 - `deploy-kubernetes-rustfs` deploys RustFS (an S3-compatible object store) and pre-creates the bucket the ZMS Domain Syncer writes to.
 - `deploy-kubernetes-athenz-zms-syncer` registers a dedicated service identity for the ZMS Domain Syncer and deploys it as a Kubernetes `CronJob` that periodically writes ZMS domain data into RustFS.
 - `use-kubernetes-athenz-zms-syncer` switches `athenz-zts-server` to read domain data from RustFS instead of pulling it directly from ZMS.
+- `show-kubernetes-athenz-zms-syncer-status` prints the ZMS Domain Syncer's last run status/counters from its persisted state volume.
 
 ## After completing the setup
 

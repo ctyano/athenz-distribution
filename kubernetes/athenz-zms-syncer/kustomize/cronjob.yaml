@@ -27,14 +27,18 @@ spec:
           restartPolicy: Never
           # The main container's ROOT (/opt/athenz/zms-syncer) is already
           # athenz-owned at image build time, but the "zms-syncer-conf"
-          # emptyDir below is a fresh volume mounted on top of it, so it
-          # needs fsGroup to be writable/readable by the non-root athenz
-          # user (uid/gid 10001/1001, see docker/zms-syncer/Dockerfile).
+          # emptyDir and "zms-syncer-state" PVC below are fresh volumes
+          # mounted on top of it, so they need fsGroup to be writable by
+          # the non-root athenz user (uid/gid 10001/1001, see
+          # docker/zms-syncer/Dockerfile).
           securityContext:
             fsGroup: 1001
           volumes:
             - name: zms-syncer-conf
               emptyDir: {}
+            - name: zms-syncer-state
+              persistentVolumeClaim:
+                claimName: athenz-zms-syncer-state
             - name: athenz-zms-syncer-keys
               secret:
                 secretName: athenz-zms-syncer-keys
@@ -180,3 +184,5 @@ spec:
                   readOnly: true
                 - name: zms-syncer-conf
                   mountPath: /opt/athenz/zms-syncer/zms_syncer/conf
+                - name: zms-syncer-state
+                  mountPath: /opt/athenz/zms-syncer/var/state

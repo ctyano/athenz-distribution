@@ -80,6 +80,8 @@ WORKDIR /opt/athenz/zms-syncer
 COPY --from=builder /opt/athenz/zms-syncer /opt/athenz/zms-syncer
 COPY ./docker/zms-syncer/conf/zms_syncer.conf.template /opt/athenz/zms-syncer/conf-template/zms_syncer.conf.template
 
+RUN mkdir -p /opt/athenz/zms-syncer/var
+
 # The syncer's Config class hardcodes its config file paths relative to a
 # "root_path" (the ROOT env var, default /opt) as:
 #   ${root_path}/zms_syncer/conf/zms_syncer.conf

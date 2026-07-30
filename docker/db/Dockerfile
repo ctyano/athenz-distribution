@@ -1,6 +1,8 @@
 FROM docker.io/linuxserver/mariadb:latest AS builder
 
 ARG VERSION
+ARG TRACKING_GIT_REPO=AthenZ/athenz
+ARG TRACKING_GIT_REF=
 # date -u +'%Y-%m-%dT%H:%M:%SZ'
 ARG BUILD_DATE
 # git rev-parse --short HEAD
@@ -25,10 +27,10 @@ WORKDIR /config/initdb.d
 
 COPY ./docker/db/schema/zms_user.sql /config/initdb.d/zms_user.sql
 COPY ./docker/db/schema/zts_user.sql /config/initdb.d/zts_user.sql
-#COPY ./docker/db/schema/zms_server.sql /config/initdb.d/zms_server.sql
-#COPY ./docker/db/schema/zts_server.sql /config/initdb.d/zts_server.sql
-RUN curl -svL https://raw.githubusercontent.com/AthenZ/athenz/v$VERSION/servers/zms/schema/zms_server.sql -o /config/initdb.d/zms_server.sql
-RUN curl -svL https://raw.githubusercontent.com/AthenZ/athenz/v$VERSION/servers/zts/schema/zts_server.sql -o /config/initdb.d/zts_server.sql
+RUN set -eux; \
+    schema_ref="${TRACKING_GIT_REF:-v${VERSION}}"; \
+    curl -fSL "https://raw.githubusercontent.com/${TRACKING_GIT_REPO}/${schema_ref}/servers/zms/schema/zms_server.sql" -o /config/initdb.d/zms_server.sql; \
+    curl -fSL "https://raw.githubusercontent.com/${TRACKING_GIT_REPO}/${schema_ref}/servers/zts/schema/zts_server.sql" -o /config/initdb.d/zts_server.sql
 
 VOLUME /config/databases
 

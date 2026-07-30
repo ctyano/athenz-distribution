@@ -86,8 +86,12 @@ ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
+ifeq ($(ATHENZ_IMAGE_TAG),)
+ATHENZ_IMAGE_TAG=latest
+endif
+
 export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
-export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
+export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL ATHENZ_IMAGE_TAG
 
 ifeq ($(DOCKER_CACHE),)
 DOCKER_CACHE=false
@@ -462,11 +466,11 @@ clean-kubernetes-vault:
 load-docker-images: load-docker-images-internal load-docker-images-external
 
 load-docker-images-internal:
-	docker pull $(DOCKER_REGISTRY)athenz-db:latest
-	docker pull $(DOCKER_REGISTRY)athenz-zms-server:latest
-	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
-	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
-	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+	docker pull $(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
 
 load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest

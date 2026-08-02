@@ -504,6 +504,15 @@ deploy-kubernetes-in-docker:
 load-kubernetes-images: version install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images
 
+load-kubernetes-images-internal: version install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-internal
+
+load-kubernetes-images-external: version install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-external
+
+load-kubernetes-images-thirdparty: version install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-thirdparty
+
 deploy-kubernetes-crypki-softhsm: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm
 

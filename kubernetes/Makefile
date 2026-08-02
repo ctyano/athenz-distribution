@@ -164,7 +164,7 @@ kind-setup:
 	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
 	which kind && (kind delete cluster ||:; kind create cluster)
 
-kind-load-images:
+kind-load-images-check:
 	@# Check if Docker is using the problematic containerd-snapshotter
 	@# https://docs.rancherdesktop.io/how-to-guides/migrating-images/
 	@if [ "$$(docker info 2>/dev/null | grep -c 'containerd-snapshotter')" -eq 1 ]; then \
@@ -178,22 +178,29 @@ kind-load-images:
 		echo "Environment is correct. No driver change needed."; \
 	fi
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
-	kind load docker-image \
-		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
-		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
+
+kind-load-images-internal: kind-load-images-check
 	kind load docker-image \
 		$(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
+
+kind-load-images-external: kind-load-images-check
 	kind load docker-image \
+		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
+
+kind-load-images-thirdparty: kind-load-images-check
+	kind load docker-image \
+		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
+		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
-		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
 		$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
 		$(DOCKERIO_REGISTRY)/cfssl/cfssl:latest \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest \
@@ -201,15 +208,16 @@ kind-load-images:
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
-		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
+		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
+		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 		kind load docker-image $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
 	else \
 		kind load docker-image $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
 	fi
+
+kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
 
 kind-shutdown:
 	kind delete cluster

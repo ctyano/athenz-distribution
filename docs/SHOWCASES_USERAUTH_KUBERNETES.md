@@ -48,13 +48,13 @@ make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-cry
 - `deploy-kubernetes-athenz` prepares the keys and the certs locally (if they do not exist) and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
 - `deploy-kubernetes-athenz-identityprovider` registers required information to athenz and deploys copper argos identity provider.
 - `deploy-kubernetes-athenz-workloads` registers required information to athenz for each showcase and deploys miscellaneous workload applications for authentication/authorization showcases.
-- `deploy-kubernetes-athenz-oauth2` deploys `dex` to authenticate user with oidc and deploys `certsigner-envoy` to check request against `crypki-softhsm` to sign user certificates.
+- `deploy-kubernetes-athenz-oauth2` deploys `keycloak` to authenticate users with OIDC and deploys `certsigner-envoy` to check request against `crypki-softhsm` to sign certificates.
 
 ## After completing the setup
 
 ### How to install CLI
 
-You may retrieve Athenz-compatible user certificate with `athenzusercert` command line utility.
+You may retrieve Athenz-compatible external member certificate with `athenzusercert` command line utility.
 
 ```
 brew tap ctyano/athenz-user-cert https://github.com/ctyano/athenz-user-cert
@@ -66,10 +66,10 @@ brew install ctyano/athenz-user-cert/athenz-user-cert
 
 ### How to run CLI
 
-To run `athenzusercert`, you must forward requests to `dex` and `certsigner-envoy`.
+To run `athenzusercert`, you must forward requests to `keycloak`.
 
 ```
-kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 10000:10000
+kubectl -n keycloak port-forward service/keycloakx-http 18080:80
 ```
 
 After forwarding the ports, you can simply run:

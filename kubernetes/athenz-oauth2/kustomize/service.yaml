@@ -22,3 +22,9 @@ spec:
     - name: envoy
       port: 10000
       targetPort: envoy
+    - name: keycloak-http
+      port: 18080
+      targetPort: keycloak-http
+    - name: keycloak-https
+      port: 10001
+      targetPort: keycloak-https

@@ -27,4 +27,4 @@ configMapGenerator:
 images:
 - name: ghcr.io/ctyano/athenz-cli:latest
   newName: ghcr.io/ctyano/athenz-cli
-  newTag: latest
+  newTag: source-AthenZ-athenz-e2eb8c5-v1.12.45-SNAPSHOT-e2eb8c52b

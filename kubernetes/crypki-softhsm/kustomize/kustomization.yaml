@@ -40,16 +40,16 @@ configMapGenerator:
   - slot_pwd.txt=conf/slot_pwd.txt
   name: crypki-shm
 - files:
-    - envoy.yaml=envoy/config.yaml
+  - envoy.yaml=envoy/config.yaml
   name: envoy-config
 
 images:
-- name: ghcr.io/ctyano/crypki-softhsm:latest
-  newName: ghcr.io/ctyano/crypki-softhsm
-  newTag: latest
+- name: ghcr.io/ctyano/athenz-cli:latest
+  newName: ghcr.io/ctyano/athenz-cli
+  newTag: source-AthenZ-athenz-e2eb8c5-v1.12.45-SNAPSHOT-e2eb8c52b
 - name: ghcr.io/ctyano/certsigner-envoy:latest
   newName: ghcr.io/ctyano/certsigner-envoy
   newTag: latest
-- name: ghcr.io/ctyano/athenz-cli:latest
-  newName: ghcr.io/ctyano/athenz-cli
+- name: ghcr.io/ctyano/crypki-softhsm:latest
+  newName: ghcr.io/ctyano/crypki-softhsm
   newTag: latest

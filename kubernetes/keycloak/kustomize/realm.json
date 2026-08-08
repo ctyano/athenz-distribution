@@ -21,7 +21,32 @@
       "attributes": {
         "post.logout.redirect.uris": "+",
         "display.on.consent.screen": "false"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "athenz_external_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "athenz_external_id",
+            "claim.name": "athenz_external_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "athenz-user-cert",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
     },
     {
       "clientId": "vault",
@@ -96,8 +121,13 @@
     {
       "username": "athenz_admin",
       "email": "athenz_admin@athenz.io",
+      "firstName": "Athenz",
+      "lastName": "Admin",
       "enabled": true,
       "emailVerified": true,
+      "attributes": {
+        "athenz_external_id": "keycloak:ext.athenz_admin@athenz.io"
+      },
       "credentials": [
         {
           "type": "password",

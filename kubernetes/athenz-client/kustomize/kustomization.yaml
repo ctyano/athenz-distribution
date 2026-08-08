@@ -1,16 +1,15 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: athenz
 
 resources:
-  - deployment.yaml
-  - namespace.yaml
-  - role.yaml
-  - rolebinding.yaml
-  - service.yaml
-  - serviceaccount.yaml
+- deployment.yaml
+- namespace.yaml
+- role.yaml
+- rolebinding.yaml
+- service.yaml
+- serviceaccount.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -22,36 +21,40 @@ generatorOptions:
 #  type: Opaque
 
 configMapGenerator:
-  - name: client-sia
-    envs:
-      - athenz-sia/athenz-sia.env
-  - name: client-envoy
-    files:
-      - config.yaml=envoy/config.yaml
-      - identity_sds.yaml=envoy/identity_sds.yaml
-      - role_sds.yaml=envoy/role_sds.yaml
-      - ca_sds.yaml=envoy/ca_sds.yaml
+- envs:
+  - athenz-sia/athenz-sia.env
+  name: client-sia
+- files:
+  - config.yaml=envoy/config.yaml
+  - identity_sds.yaml=envoy/identity_sds.yaml
+  - role_sds.yaml=envoy/role_sds.yaml
+  - ca_sds.yaml=envoy/ca_sds.yaml
+  name: client-envoy
 
 replacements:
-  - source:
+- source:
+    fieldPath: data.SERVICEACCOUNT
+    kind: ConfigMap
+    name: client-sia
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.name
+    options:
+      create: true
+    select:
+      kind: ServiceAccount
+      name: client-serviceaccount
       version: v1
-      kind: ConfigMap
-      name: client-sia
-      fieldpath: data.SERVICEACCOUNT
-    targets:
-      - select:
-          version: v1
-          kind: ServiceAccount
-          name: client-serviceaccount
-        fieldPaths:
-          - metadata.name
-        options:
-          create: true
-      - select:
-          version: v1
-          kind: Deployment
-          name: client-deployment
-        fieldPaths:
-          - spec.template.spec.serviceAccountName
-        options:
-          create: true
+  - fieldPaths:
+    - spec.template.spec.serviceAccountName
+    options:
+      create: true
+    select:
+      kind: Deployment
+      name: client-deployment
+      version: v1
+images:
+- name: ghcr.io/ctyano/athenz-cli:latest
+  newName: ghcr.io/ctyano/athenz-cli
+  newTag: source-AthenZ-athenz-e2eb8c5-v1.12.45-SNAPSHOT-e2eb8c52b

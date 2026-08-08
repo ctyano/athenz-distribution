@@ -1,14 +1,13 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: athenz
 
 resources:
-  - deployment.yaml
-  - namespace.yaml
-  - service.yaml
-  - serviceaccount.yaml
+- deployment.yaml
+- namespace.yaml
+- service.yaml
+- serviceaccount.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -20,38 +19,45 @@ generatorOptions:
 #  type: Opaque
 
 configMapGenerator:
-  - name: authzproxy-sia
-    envs:
-      - athenz-sia/athenz-sia.env
-  - name: authzproxy-envoy
-    files:
-      - config.yaml=envoy/config.yaml
-      - identity_sds.yaml=envoy/identity_sds.yaml
-      - ca_sds.yaml=envoy/ca_sds.yaml
-  - name: authzproxy-config
-    files:
-      - config.yaml=authorization-proxy/config.yaml
+- envs:
+  - athenz-sia/athenz-sia.env
+  name: authzproxy-sia
+- files:
+  - config.yaml=envoy/config.yaml
+  - identity_sds.yaml=envoy/identity_sds.yaml
+  - ca_sds.yaml=envoy/ca_sds.yaml
+  name: authzproxy-envoy
+- files:
+  - config.yaml=authorization-proxy/config.yaml
+  name: authzproxy-config
 
 replacements:
-  - source:
+- source:
+    fieldPath: data.SERVICEACCOUNT
+    kind: ConfigMap
+    name: authzproxy-sia
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.name
+    options:
+      create: true
+    select:
+      kind: ServiceAccount
+      name: authzproxy-serviceaccount
       version: v1
-      kind: ConfigMap
-      name: authzproxy-sia
-      fieldpath: data.SERVICEACCOUNT
-    targets:
-      - select:
-          version: v1
-          kind: ServiceAccount
-          name: authzproxy-serviceaccount
-        fieldPaths:
-          - metadata.name
-        options:
-          create: true
-      - select:
-          version: v1
-          kind: Deployment
-          name: authzproxy-deployment
-        fieldPaths:
-          - spec.template.spec.serviceAccountName
-        options:
-          create: true
+  - fieldPaths:
+    - spec.template.spec.serviceAccountName
+    options:
+      create: true
+    select:
+      kind: Deployment
+      name: authzproxy-deployment
+      version: v1
+images:
+- name: docker.io/athenz/authorization-proxy:latest
+  newName: docker.io/tatyano/authorization-proxy
+  newTag: latest
+- name: ghcr.io/ctyano/athenz-cli:latest
+  newName: ghcr.io/ctyano/athenz-cli
+  newTag: source-AthenZ-athenz-e2eb8c5-v1.12.45-SNAPSHOT-e2eb8c52b

@@ -226,6 +226,9 @@ build-java: assert-version patch install-rdl-tools
 		-pl libs/java/auth_core \
 		-pl libs/java/client_common \
 		-pl libs/java/server_common \
+		-pl libs/java/syncer_common \
+		-pl libs/java/server_aws_common \
+		-pl libs/java/server_k8s_common \
 		-pl libs/java/instance_provider \
 		-pl libs/java/cert_refresher \
 		-pl libs/java/dynamodb_client_factory \

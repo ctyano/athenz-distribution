@@ -1,0 +1,26 @@
+controller:
+  # Plugins will be installed during Jenkins controller start
+  # -- List of Jenkins plugins to install. If you don't want to install plugins, set it to `false`
+  installPlugins:
+    # https://plugins.jenkins.io/oidc-provider/
+    # https://github.com/jenkinsci/oidc-provider-plugin/tags
+    - oidc-provider:96.vee8ed882ec4d
+    # https://plugins.jenkins.io/credentials-binding/
+    # https://github.com/jenkinsci/credentials-binding-plugin/tags
+    - credentials-binding:687.v619cb_15e923f
+    # https://plugins.jenkins.io/docker-plugin/
+    # https://github.com/jenkinsci/docker-plugin/tags
+    - docker-plugin:1274.vc0203fdf2e74
+    # https://plugins.jenkins.io/kubernetes/
+    # https://github.com/jenkinsci/kubernetes-plugin/tags
+    #- kubernetes:4324.vfec199a_33512
+  # -- Set to true to download the latest version of any plugin that is requested to have the latest version
+  #installLatestSpecifiedPlugins: true
+
+# http://127.0.0.1:8080/job/${JOB_NAME}
+# JENKINS_ID_TOKEN
+#
+# curl -s https://webi.sh/jq | sh
+# #curl -Lo ~/.local/bin/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/arm64/kubectl"
+# echo ${JENKINS_ID_TOKEN} | ~/.local/bin/jq -Rr 'split(".") | .[0,1] | @base64d' | ~/.local/bin/jq -r .
+# ~/.local/bin/kubectl cluster-info

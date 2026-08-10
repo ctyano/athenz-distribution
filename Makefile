@@ -56,7 +56,7 @@ XPLATFORMS := linux/amd64,linux/arm64
 endif
 XPLATFORM_ARGS := --platform=$(XPLATFORMS)
 
-BUILD_ARG = --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' --build-arg 'TRACKING_GIT_URL=$(TRACKING_GIT_URL)' --build-arg 'TRACKING_GIT_REF=$(TRACKING_GIT_REF)'
+BUILD_ARG = --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' --build-arg 'TRACKING_GIT_REPO=$(TRACKING_GIT_REPO)' --build-arg 'TRACKING_GIT_URL=$(TRACKING_GIT_URL)' --build-arg 'TRACKING_GIT_REF=$(TRACKING_GIT_REF)'
 
 ifeq ($(DOCKERIO_REGISTRY),)
 DOCKERIO_REGISTRY=docker.io
@@ -86,8 +86,12 @@ ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
 
+ifeq ($(ATHENZ_IMAGE_TAG),)
+ATHENZ_IMAGE_TAG=latest
+endif
+
 export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
-export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
+export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL ATHENZ_IMAGE_TAG
 
 ifeq ($(DOCKER_CACHE),)
 DOCKER_CACHE=false
@@ -235,6 +239,9 @@ build-java: assert-version patch install-rdl-tools
 		-pl libs/java/auth_core \
 		-pl libs/java/client_common \
 		-pl libs/java/server_common \
+		-pl libs/java/syncer_common \
+		-pl libs/java/server_aws_common \
+		-pl libs/java/server_k8s_common \
 		-pl libs/java/instance_provider \
 		-pl libs/java/cert_refresher \
 		-pl libs/java/dynamodb_client_factory \
@@ -526,6 +533,15 @@ deploy-kubernetes-in-docker:
 
 load-kubernetes-images: version install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images
+
+load-kubernetes-images-internal: version install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-internal
+
+load-kubernetes-images-external: version install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-external
+
+load-kubernetes-images-thirdparty: version install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-thirdparty
 
 deploy-kubernetes-crypki-softhsm: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm

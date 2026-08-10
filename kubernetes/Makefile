@@ -19,8 +19,11 @@ endif
 ifeq ($(DOCKER_REGISTRY_EXTERNAL),)
 DOCKER_REGISTRY_EXTERNAL=$(GHCR_REGISTRY)/ctyano/
 endif
+ifeq ($(ATHENZ_IMAGE_TAG),)
+ATHENZ_IMAGE_TAG=latest
+endif
 export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
-export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL
+export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL ATHENZ_IMAGE_TAG
 
 install-kustomize:
 	which kustomize \
@@ -195,7 +198,7 @@ kind-setup:
 	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
 	which kind && (kind delete cluster ||:; kind create cluster)
 
-kind-load-images:
+kind-load-images-check:
 	@# Check if Docker is using the problematic containerd-snapshotter
 	@# https://docs.rancherdesktop.io/how-to-guides/migrating-images/
 	@if [ "$$(docker info 2>/dev/null | grep -c 'containerd-snapshotter')" -eq 1 ]; then \
@@ -209,23 +212,30 @@ kind-load-images:
 		echo "Environment is correct. No driver change needed."; \
 	fi
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
+
+kind-load-images-internal: kind-load-images-check
 	kind load docker-image \
-		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
-		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
+		$(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-zms-syncer:latest
+
+kind-load-images-external: kind-load-images-check
+	kind load docker-image \
 		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
+
+kind-load-images-thirdparty: kind-load-images-check
 	kind load docker-image \
-		$(DOCKER_REGISTRY)athenz-db:latest \
-		$(DOCKER_REGISTRY)athenz-zms-server:latest \
-		$(DOCKER_REGISTRY)athenz-zts-server:latest \
-		$(DOCKER_REGISTRY)athenz-cli:latest \
-		$(DOCKER_REGISTRY)athenz-ui:latest \
-		$(DOCKER_REGISTRY)athenz-zms-syncer:latest
-	kind load docker-image \
+		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
+		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
-		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
 		$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
 		$(DOCKERIO_REGISTRY)/cfssl/cfssl:latest \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest \
@@ -233,6 +243,7 @@ kind-load-images:
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
+		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
 		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKERIO_REGISTRY)/rustfs/rustfs:latest \
@@ -244,6 +255,8 @@ kind-load-images:
 	else \
 		kind load docker-image $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
 	fi
+
+kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
 
 kind-shutdown:
 	kind delete cluster
@@ -320,10 +333,10 @@ athenz-user-cert:
 	@$(MAKE) -C athenz-oauth2 athenz-user-cert
 
 kustomize-edit-athenz-db-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd athenz-db/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-db:latest=$(DOCKER_REGISTRY)athenz-db:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-db:latest=$(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 
@@ -331,10 +344,10 @@ setup-athenz-db: kustomize-edit-athenz-db-image
 	kubectl apply -k athenz-db/kustomize
 
 kustomize-edit-athenz-cli-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd athenz-cli/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 
@@ -342,10 +355,10 @@ setup-athenz-cli: kustomize-edit-athenz-cli-image
 	kubectl apply -k athenz-cli/kustomize
 
 kustomize-edit-athenz-zms-server-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd athenz-zms-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-server:latest=$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
@@ -359,11 +372,11 @@ setup-athenz-zms-server: setup-athenz-db kustomize-edit-athenz-zms-server-image
 	kubectl apply -k athenz-zms-server/kustomize
 
 kustomize-edit-athenz-zts-server-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd athenz-zts-server/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-zts-server:latest=$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
@@ -377,10 +390,10 @@ setup-athenz-zts-server: setup-athenz-db setup-athenz-zms-server kustomize-edit-
 	kubectl apply -k athenz-zts-server/kustomize
 
 kustomize-edit-athenz-ui-image: install-kustomize
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd athenz-ui/kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-ui:latest=$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \

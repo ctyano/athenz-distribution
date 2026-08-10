@@ -348,3 +348,41 @@ jobs:
           # Run tests against your deployed application in KinD
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for RustFS
+        id: deploy-rustfs
+        run: |
+          make deploy-kubernetes-rustfs
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for RustFS
+        id: test-rustfs
+        run: |
+          make test-kubernetes-rustfs
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for ZMS Domain Syncer
+        id: deploy-athenz-zms-syncer
+        run: |
+          make deploy-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for ZMS Domain Syncer
+        id: test-athenz-zms-syncer
+        run: |
+          make test-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to switch athenz-zts-server to S3ChangeLogStore and
+      # re-run its existing smoke test -- since S3ChangeLogStore is
+      # read-only against RustFS, re-running the pre-existing ZTS test is
+      # the only way to confirm the switch actually took effect.
+      -
+        name: Switch athenz-zts-server to read from RustFS and verify
+        id: use-athenz-zms-syncer
+        run: |
+          make use-kubernetes-athenz-zms-syncer

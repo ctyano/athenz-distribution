@@ -41,6 +41,20 @@ Running Athenz together with [crypki](https://github.com/theparanoids/crypki), e
 make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-crypki-softhsm deploy-kubernetes-athenz deploy-kubernetes-athenz-identityprovider deploy-kubernetes-athenz-workloads
 ```
 
+### Setup with ZMS Domain Syncer
+
+Deploys the [ZMS Domain Syncer](https://github.com/AthenZ/athenz/tree/master/syncers/zms_aws_domain_syncer), which reads signed domain data from ZMS and writes it to [RustFS](https://rustfs.com/) (an S3-compatible object store), then switches `athenz-zts-server` to read domain data from RustFS instead of pulling it directly from ZMS.
+
+```
+make clean-kubernetes-athenz deploy-kubernetes-athenz deploy-kubernetes-rustfs deploy-kubernetes-athenz-zms-syncer use-kubernetes-athenz-zms-syncer
+```
+
+This is entirely opt-in: unless these extra targets are run, `athenz-zts-server` keeps reading domain data directly from ZMS as usual.
+
+⚠️ `deploy-kubernetes-rustfs` is the only target in this repository that modifies cluster-wide (`kube-system`) state: it adds a CoreDNS rewrite rule needed for virtual-hosted-style S3 addressing against RustFS. See [kubernetes/rustfs/README.md](../kubernetes/rustfs/README.md) for details — this matters if you're running against a shared/existing cluster rather than the disposable KinD cluster from `deploy-kubernetes-in-docker`.
+
+⚠️ `deploy-kubernetes-athenz-zms-syncer` also creates this repository's only `PersistentVolumeClaim` (see [kubernetes/athenz-zms-syncer/README.md](../kubernetes/athenz-zms-syncer/README.md)). It relies on the cluster's default `StorageClass` supporting dynamic `ReadWriteOnce` provisioning — KinD's bundled `rancher.io/local-path` provisioner does this automatically, so no extra setup is needed on the standard `deploy-kubernetes-in-docker` flow.
+
 ## Each steps in Makefile
 
 - `deploy-kubernetes-in-docker` installs kind and create a cluster.
@@ -52,6 +66,10 @@ make clean-kubernetes-athenz deploy-kubernetes-crypki-softhsm use-kubernetes-cry
 - `deploy-kubernetes-athenz` prepares the keys and the certs locally (if they do not exist) and deploys `athenz-db`, `athenz-zms-server`, `athenz-zts-server`, `athenz-cli`, and `athenz-ui`.
 - `deploy-kubernetes-athenz-identityprovider` registers required informations to athenz and deploys copper argos identity provider.
 - `deploy-kubernetes-athenz-workloads` registers required informations to athenz for the each showcase and deploys miscellaneous workload applications for authentication/authorization showcases.
+- `deploy-kubernetes-rustfs` deploys RustFS (an S3-compatible object store) and pre-creates the bucket the ZMS Domain Syncer writes to.
+- `deploy-kubernetes-athenz-zms-syncer` registers a dedicated service identity for the ZMS Domain Syncer and deploys it as a Kubernetes `CronJob` that periodically writes ZMS domain data into RustFS.
+- `use-kubernetes-athenz-zms-syncer` switches `athenz-zts-server` to read domain data from RustFS instead of pulling it directly from ZMS.
+- `show-kubernetes-athenz-zms-syncer-status` prints the ZMS Domain Syncer's last run status/counters from its persisted state volume.
 
 ## After completing the setup
 

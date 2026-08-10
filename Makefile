@@ -123,7 +123,7 @@ endif
 
 .SILENT: version
 
-build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui
+build: build-athenz-db build-athenz-zms-server build-athenz-zts-server build-athenz-cli build-athenz-ui build-athenz-zms-syncer
 
 build-athenz-db: assert-version
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
@@ -146,6 +146,13 @@ build-athenz-zts-server: build-java
 	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
 	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
+build-athenz-zms-syncer: build-java
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer:latest; \
+	DOCKERFILE_PATH=./docker/zms-syncer/Dockerfile; \
+	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
+	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
+
 build-athenz-ui: assert-version
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
@@ -160,7 +167,7 @@ build-athenz-cli: assert-version
 	test $(DOCKER_CACHE) && DOCKER_CACHE_OPTION="--cache-from $$IMAGE_NAME"; \
 	docker build $(BUILD_ARG) $(GID_ARG) $(UID_ARG) $$DOCKER_CACHE_OPTION -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
-buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
+buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui buildx-athenz-zms-syncer
 
 buildx-athenz-db: assert-version
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
@@ -178,6 +185,12 @@ buildx-athenz-zts-server: build-java
 	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
 	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
+	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
+
+buildx-athenz-zms-syncer: build-java
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer:latest; \
+	DOCKERFILE_PATH=./docker/zms-syncer/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-ui: assert-version
@@ -237,7 +250,10 @@ build-java: assert-version patch install-rdl-tools
 		-pl servers/zts \
 		-pl containers/jetty \
 		-pl assembly/zms \
-		-pl assembly/zts
+		-pl assembly/zts \
+		-pl libs/java/syncer_common \
+		-pl libs/java/server_aws_common \
+		-pl syncers/zms_aws_domain_syncer
 
 build-go: assert-version install-rdl-tools
 	go install github.com/ardielle/ardielle-go/...@master && \
@@ -458,7 +474,15 @@ generate-idp: generate-ca
 	openssl x509 -req -in certs/idp.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/idp.cert.pem -days 99999 -extfile openssl/idp.openssl.config -extensions ext_req
 	openssl verify -CAfile certs/ca.cert.pem certs/idp.cert.pem
 
-generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki generate-idp
+generate-zms-syncer: generate-ca
+	mkdir keys certs ||:
+	openssl genrsa -out keys/zms-syncer.private.pem 4096
+	openssl rsa -pubout -in keys/zms-syncer.private.pem -out keys/zms-syncer.public.pem
+	openssl req -config openssl/zms-syncer.openssl.config -new -key keys/zms-syncer.private.pem -out certs/zms-syncer.csr.pem -extensions ext_req
+	openssl x509 -req -in certs/zms-syncer.csr.pem -CA certs/ca.cert.pem -CAkey keys/ca.private.pem -CAcreateserial -out certs/zms-syncer.cert.pem -days 99999 -extfile openssl/zms-syncer.openssl.config -extensions ext_req
+	openssl verify -CAfile certs/ca.cert.pem certs/zms-syncer.cert.pem
+
+generate-certificates: generate-ca generate-zms generate-zts generate-admin generate-ui generate-identityprovider generate-crypki generate-idp generate-zms-syncer
 
 clean-kubernetes-athenz: clean-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes clean
@@ -469,11 +493,12 @@ clean-kubernetes-vault:
 load-docker-images: load-docker-images-internal load-docker-images-external
 
 load-docker-images-internal:
-	docker pull $(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG)
-	docker pull $(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG)
-	docker pull $(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG)
-	docker pull $(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG)
-	docker pull $(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-db:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zms-server:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
+	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
+	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zms-syncer:latest
 
 load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
@@ -489,7 +514,7 @@ load-docker-images-external:
 	docker pull $(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest
 	docker pull $(DOCKERIO_REGISTRY)/cfssl/cfssl:latest
 	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest
-	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-envoy
+	docker pull --platform linux/amd64 $(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-envoy
 	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static
 	docker pull $(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static
 	docker pull $(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest
@@ -500,6 +525,8 @@ load-docker-images-external:
 	fi
 	docker pull $(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
 	docker pull $(DOCKERIO_REGISTRY)/library/postgres:alpine
+	docker pull $(DOCKERIO_REGISTRY)/rustfs/rustfs:latest
+	docker pull $(DOCKERIO_REGISTRY)/amazon/aws-cli:latest
 
 deploy-kubernetes-in-docker:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup
@@ -529,6 +556,28 @@ use-kubernetes-crypki-softhsm: test-kubernetes-crypki-softhsm
 use-kubernetes-vault: test-kubernetes-vault-pki
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-cert-signer-vault
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-oauth2 deploy-athenz-oauth2
+
+deploy-kubernetes-rustfs:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-rustfs deploy-rustfs
+
+test-kubernetes-rustfs:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-rustfs
+
+# ZMS Domain Syncer showcase (opt-in): reads signed domain data from ZMS and
+# writes it to RustFS (S3-compatible). Deploying it does NOT change how ZTS
+# reads domain data -- run `use-kubernetes-athenz-zms-syncer` to switch ZTS
+# to read from RustFS instead of pulling from ZMS directly.
+deploy-kubernetes-athenz-zms-syncer: generate-certificates
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-zms-syncer deploy-athenz-zms-syncer
+
+test-kubernetes-athenz-zms-syncer:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-zms-syncer
+
+show-kubernetes-athenz-zms-syncer-status:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes show-athenz-zms-syncer-status
+
+use-kubernetes-athenz-zms-syncer: test-kubernetes-athenz-zms-syncer
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes switch-athenz-zts-change-log-store
 
 test-kubernetes-vault-pki:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-vault-pki

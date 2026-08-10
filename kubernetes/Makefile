@@ -45,6 +45,7 @@ clean-certificates:
 	rm -rf crypki-softhsm/kustomize/{keys,certs}
 	rm -rf athenz-oauth2/kustomize/{keys,certs}
 	rm -rf vault/kustomize/{keys,certs}
+	rm -rf athenz-zms-syncer/kustomize/{keys,certs}
 
 clean-namespace:
 	kubectl delete namespace athenz ||:
@@ -57,6 +58,9 @@ clean: clean-namespace clean-certificates
 		$(MAKE) clean-patch-athenz-zts-crypki ||:
 	@grep -q "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
 		$(MAKE) clean-patch-athenz-zts-vault ||:
+	@grep -q "athenz.zts.change_log_store_factory_class=io.athenz.server.aws.common.store.impl.S3ChangeLogStoreFactory" "athenz-zts-server/kustomize/conf/zts.properties" && \
+		$(MAKE) clean-patch-athenz-zts-s3-change-log-store ||:
+	@$(MAKE) -C rustfs clean-patch-coredns-rustfs ||:
 
 copy-crypki-certificates-to-kustomization:
 	cp -r ../keys ../certs crypki-softhsm/kustomize/
@@ -77,6 +81,7 @@ copy-certificates-to-kustomization:
 	cp -r ../keys ../certs athenz-client/kustomize/ && \
 	cp -r ../keys ../certs crypki-softhsm/kustomize/ && \
 	cp -r ../keys ../certs athenz-oauth2/kustomize/ && \
+	cp -r ../keys ../certs athenz-zms-syncer/kustomize/ && \
 	echo "APPLIED copy-certificates-to-kustomization" \
 	)
 
@@ -156,6 +161,35 @@ switch-athenz-zts-cert-signer: patch-athenz-zts-crypki
 	@$(MAKE) generate-crypki-certificates
 	@$(MAKE) overwrite-certificates-with-crypki
 
+# Switches athenz-zts-server from pulling domains directly from ZMS
+# (ZMSFileChangeLogStoreFactory, the default) to reading them from RustFS
+# (S3ChangeLogStoreFactory), which the ZMS Domain Syncer showcase populates.
+# This is opt-in: it only runs when `use-kubernetes-athenz-zms-syncer` is
+# explicitly invoked (see root Makefile).
+patch-athenz-zts-s3-change-log-store:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.change_log_store_factory_class=com.yahoo.athenz.common.server.store.impl.ZMSFileChangeLogStoreFactory" \
+		VALUE="athenz.zts.change_log_store_factory_class=io.athenz.server.aws.common.store.impl.S3ChangeLogStoreFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+	@$(SED_INPLACE) '/^#athenz.zts.aws_bucket_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^#athenz.zts.aws_region_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^#athenz.zts.aws_s3_endpoint=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^#athenz.zts.zms_domain_jws_support=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
+
+clean-patch-athenz-zts-s3-change-log-store:
+	@$(MAKE) replace-system-properties \
+		KEY="athenz.zts.change_log_store_factory_class=io.athenz.server.aws.common.store.impl.S3ChangeLogStoreFactory" \
+		VALUE="athenz.zts.change_log_store_factory_class=com.yahoo.athenz.common.server.store.impl.ZMSFileChangeLogStoreFactory" \
+		FILE="athenz-zts-server/kustomize/conf/zts.properties"
+	@$(SED_INPLACE) '/^athenz.zts.aws_bucket_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^athenz.zts.aws_region_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^athenz.zts.aws_s3_endpoint=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
+	@$(SED_INPLACE) '/^athenz.zts.zms_domain_jws_support=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
+
+switch-athenz-zts-change-log-store: patch-athenz-zts-s3-change-log-store
+	kubectl apply -k athenz-zts-server/kustomize
+	kubectl -n athenz rollout status deployment/athenz-zts-server --timeout=90s
+
 switch-athenz-zts-cert-signer-vault: patch-athenz-zts-vault setup-vault-credentials
 	@$(MAKE) generate-vault-certificates
 	@$(MAKE) overwrite-certificates-with-vault
@@ -185,7 +219,8 @@ kind-load-images-internal: kind-load-images-check
 		$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
-		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
+		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-zms-syncer:latest
 
 kind-load-images-external: kind-load-images-check
 	kind load docker-image \
@@ -208,9 +243,13 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
-		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
+		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
+		$(DOCKERIO_REGISTRY)/rustfs/rustfs:latest \
+		$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 		kind load docker-image $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
 	else \
@@ -233,6 +272,27 @@ test-crypki-softhsm:
 
 generate-crypki-certificates:
 	@$(MAKE) -C crypki-softhsm generate-certificates
+
+setup-rustfs:
+	@$(MAKE) -C rustfs setup-rustfs
+
+deploy-rustfs: setup-rustfs
+	@$(MAKE) -C rustfs deploy-rustfs
+
+test-rustfs:
+	@$(MAKE) -C rustfs test-rustfs
+
+setup-athenz-zms-syncer:
+	@$(MAKE) -C athenz-zms-syncer setup-athenz-zms-syncer
+
+deploy-athenz-zms-syncer:
+	@$(MAKE) -C athenz-zms-syncer deploy-athenz-zms-syncer
+
+test-athenz-zms-syncer:
+	@$(MAKE) -C athenz-zms-syncer test-athenz-zms-syncer
+
+show-athenz-zms-syncer-status:
+	@$(MAKE) -C athenz-zms-syncer show-athenz-zms-syncer-status
 
 setup-vault:
 	@$(MAKE) -C vault setup-vault

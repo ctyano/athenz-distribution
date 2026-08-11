@@ -258,7 +258,7 @@ generate-vault-certificates:
 setup-vault-credentials:
 	@$(MAKE) -C vault setup-vault-credentials
 
-setup-athenz-oauth2:
+setup-athenz-oauth2: check-athenz
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2
 
 deploy-athenz-oauth2: setup-athenz-oauth2

@@ -208,9 +208,9 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:latest-static \
 		$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
+		$(DOCKERIO_REGISTRY)/keycloak/keycloak:latest \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
-		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
+		$(DOCKERIO_REGISTRY)/dexidp/dex:latest
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 		kind load docker-image $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
 	else \
@@ -258,7 +258,7 @@ generate-vault-certificates:
 setup-vault-credentials:
 	@$(MAKE) -C vault setup-vault-credentials
 
-setup-athenz-oauth2:
+setup-athenz-oauth2: check-athenz
 	@$(MAKE) -C athenz-oauth2 setup-athenz-oauth2
 
 deploy-athenz-oauth2: setup-athenz-oauth2
@@ -644,3 +644,25 @@ report-athenz-loadtest:
 	@$(MAKE) -C loadtest report-athenz-envoy-loadtest report-athenz-sidecar-loadtest report-athenz-envoyfilter-loadtest report-athenz-envoywebhook-loadtest report-athenz-authzproxy-loadtest report-athenz-echoserver-loadtest report-athenz-loadtest
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify
+
+deploy-athenz-mcp-server: test-athenz-servers
+	kubectl apply -k athenz-mcp-server/kustomize
+
+test-athenz-mcp-server:
+	@$(MAKE) -C athenz-mcp-server test-athenz-mcp-server
+
+register-athenz-localworkloadprovider:
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+zms-cli \
+	-z https://athenz-zms-server.athenz:4443/zms/v1 \
+	-key /var/run/athenz/athenz_admin.private.pem \
+	-cert /var/run/athenz/athenz_admin.cert.pem \
+	-d sys.auth \
+	add-service localworkloadprovider
+	kubectl -n athenz exec deployment/athenz-cli -it -- \
+zms-cli \
+	-z https://athenz-zms-server.athenz:4443/zms/v1 \
+	-key /var/run/athenz/athenz_admin.private.pem \
+	-cert /var/run/athenz/athenz_admin.cert.pem \
+	-d sys.auth \
+	set-service-endpoint localworkloadprovider class://com.yahoo.athenz.instance.provider.impl.InstanceLocalWorkloadProvider

@@ -170,6 +170,29 @@
                     ]
                 }
             ]
+        },
+        "mcp_write_access": {
+            "metadata":
+            {
+                "latestVersion": 1,
+                "timestamp": "2020-06-16T00:00:00.000Z",
+                "description": "Grant MCP write access to mcp-clients role for Agent-to-MCP authorization",
+                "keywordsToReplace": "",
+                "autoUpdate": false
+            },
+            "policies": [
+                {
+                    "name": "_domain_:policy.mcp_write_access",
+                    "modified": "1970-01-01T00:00:00.000Z",
+                    "assertions": [
+                        {
+                            "resource": "_domain_:tools",
+                            "role": "_domain_:role.mcp-clients",
+                            "action": "mcp:action.write"
+                        }
+                    ]
+                }
+            ]
         }
     }
 }

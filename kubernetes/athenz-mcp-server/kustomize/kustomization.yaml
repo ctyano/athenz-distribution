@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: athenz
+
+resources:
+- deployment.yaml
+- namespace.yaml
+- service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- literals:
+  - ZTS_BASE_URL=https://athenz-zts-server.athenz:4443/zts/v1
+  - ISSUER=https://athenz-zts-server.athenz:4443/zts/v1
+  - AUDIENCE=mcp
+  - REQUIRED_WRITE_SCOPE=mcp:action.write
+  name: athenz-mcp-server-conf
+- files:
+  - server.py=server.py
+  - requirements.txt=requirements.txt
+  name: athenz-mcp-server-src
+  type: Opaque

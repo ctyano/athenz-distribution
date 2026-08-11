@@ -32,10 +32,10 @@ clean-keycloak:
 	kubectl delete namespace keycloak
 
 kustomize-edit-keycloak-image:
-	if [ "$(QUAYIO_REGISTRY)" != "quay.io" ]; then \
+	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image quay.io/keycloak/keycloak:26.5.5=$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5 \
+	&& kustomize edit set image docker.io/keycloak/keycloak:latest=$(DOCKERIO_REGISTRY)/keycloak/keycloak:latest \
 	) \
 	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \

@@ -498,7 +498,7 @@ load-docker-images-external:
 	else \
 		docker pull $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
 	fi
-	docker pull $(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
+	docker pull $(DOCKERIO_REGISTRY)/keycloak/keycloak:latest
 	docker pull $(DOCKERIO_REGISTRY)/library/postgres:alpine
 
 deploy-kubernetes-in-docker:
@@ -602,6 +602,12 @@ deploy-kubernetes-athenz-client:
 
 test-kubernetes-athenz-client:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-client
+
+deploy-kubernetes-athenz-mcp-server:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes deploy-athenz-mcp-server
+
+test-kubernetes-athenz-mcp-server:
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-mcp-server
 
 deploy-kubernetes-athenz-workloads:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-athenz-workloads deploy-athenz-workloads

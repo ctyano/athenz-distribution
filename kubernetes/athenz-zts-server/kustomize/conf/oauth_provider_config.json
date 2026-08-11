@@ -1,0 +1,7 @@
+[
+  {
+    "issuerUri": "http://keycloakx-http.keycloak:8080/realms/athenz",
+    "jwksUri": "http://keycloakx-http.keycloak:8080/realms/athenz/protocol/openid-connect/certs",
+    "providerClassName": "com.yahoo.athenz.auth.impl.EmailTokenExchangeIdentityProvider"
+  }
+]

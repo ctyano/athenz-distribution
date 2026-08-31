@@ -25,6 +25,15 @@ endif
 export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
 export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL ATHENZ_IMAGE_TAG
 
+define KIND_LOAD_DOCKER_IMAGES
+	if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
+		echo "Loading Docker images into kind using docker image save and ctr import"; \
+		docker image save $(1) | docker exec --privileged -i kind-control-plane ctr --namespace=k8s.io images import --digests --snapshotter=overlayfs -; \
+	else \
+		kind load docker-image $(1); \
+	fi
+endef
+
 install-kustomize:
 	which kustomize \
 || (curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"| bash \
@@ -180,24 +189,24 @@ kind-load-images-check:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 
 kind-load-images-internal: kind-load-images-check
-	kind load docker-image \
+	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
-		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
+		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG))
 
 kind-load-images-external: kind-load-images-check
-	kind load docker-image \
+	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
+		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest)
 
 kind-load-images-thirdparty: kind-load-images-check
-	kind load docker-image \
+	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
@@ -210,11 +219,11 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKERIO_REGISTRY)/dexidp/dex:latest \
-		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5
+		$(QUAYIO_REGISTRY)/keycloak/keycloak:26.5.5)
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
-		kind load docker-image $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
+		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest); \
 	else \
-		kind load docker-image $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
+		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest); \
 	fi
 
 kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty

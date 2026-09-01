@@ -243,7 +243,7 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make check-kubernetes-athenz test-kubernetes-athenz
+          make check-kubernetes-athenz test-kubernetes-athenz test-kubernetes-athenz-solution-template-reload
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

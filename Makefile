@@ -636,6 +636,9 @@ test-kubernetes-athenz-envoy2authzproxy:
 test-kubernetes-athenz-showcases:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-showcases
 
+test-kubernetes-athenz-solution-template-reload: install-parsers
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-solution-template-reload
+
 check-kubernetes-athenz: install-parsers
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes check-athenz
 

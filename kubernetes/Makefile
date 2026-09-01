@@ -423,6 +423,19 @@ zms-cli \
 	-cert /var/run/athenz/athenz_admin.cert.pem \
 	show-domain sys.auth
 
+test-athenz-solution-template-reload:
+	SOLUTION_TEMPLATE=dynamic_reload_showcase; \
+solution_templates="$$(kubectl -n athenz get configmap athenz-zms-conf -o json | jq -rc --arg template "$${SOLUTION_TEMPLATE}" '.data["solution_templates.json"] | fromjson | .templates[$$template] = {"metadata":{"latestVersion":1,"timestamp":"2020-06-16T00:00:00.000Z","description":"dynamic reload showcase template","autoUpdate":false},"roles":[],"policies":[]} | tojson')"; \
+kubectl -n athenz patch configmap athenz-zms-conf --type merge -p "$$(jq -nc --arg solution_templates "$${solution_templates}" '{data: {"solution_templates.json": $$solution_templates}}')"; \
+for i in $$(seq 1 48); do \
+	kubectl -n athenz exec deployment/athenz-cli -it -- zms-cli -z https://athenz-zms-server.athenz:4443/zms/v1 -key /var/run/athenz/athenz_admin.private.pem -cert /var/run/athenz/athenz_admin.cert.pem list-server-template | tee /tmp/athenz-server-templates | grep -q "$${SOLUTION_TEMPLATE}" && exit 0; \
+	echo "Waiting for ZMS to reload solution templates..."; \
+	sleep 5; \
+done; \
+cat /tmp/athenz-server-templates ||:; \
+kubectl -n athenz logs -l app.kubernetes.io/name=athenz-zms-server --all-containers=true --tail=200 ||:; \
+exit 1
+
 test-athenz-ui:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \
 curl \

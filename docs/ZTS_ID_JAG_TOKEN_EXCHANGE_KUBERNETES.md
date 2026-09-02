@@ -5,11 +5,11 @@ This showcase demonstrates **Identity Chaining** — a Keycloak user logs in onc
 ## What Happens at a Glance
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+┌──────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Keycloak   │───▶│     ZTS     │───▶│     ZTS     │───▶│     ZTS     │───▶│  MCP Server │
 │   Login      │    │  ID-JAG     │    │  Access     │    │  Exchanged  │    │  (FastMCP)  │
 │              │    │  Exchange   │    │  Token      │    │  Token      │    │             │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+└──────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
   athenz_user@     keycloak:ext.      keycloak:ext.      keycloak:ext.      keycloak:ext.
   athenz.io        athenz_user@       athenz_user@       athenz_user@       athenz_user@
                    athenz.io          athenz.io          athenz.io          athenz.io

@@ -427,7 +427,7 @@ test-athenz-solution-template-reload:
 	SOLUTION_TEMPLATE=dynamic_reload_showcase; \
 solution_templates="$$(kubectl -n athenz get configmap athenz-zms-conf -o json | jq -rc --arg template "$${SOLUTION_TEMPLATE}" --arg timestamp "$$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" '.data["solution_templates.json"] | fromjson | .templates[$$template] as $$existing | .templates[$$template] = {"metadata":{"latestVersion":(($$existing.metadata.latestVersion // 0)+1),"timestamp":$$timestamp,"description":"dynamic reload showcase template","autoUpdate":false},"roles":[{"name":"_domain_:role.dynamic_reload_showcase","modified":"1970-01-01T00:00:00.000Z"}],"policies":[{"name":"_domain_:policy.dynamic_reload_showcase","modified":"1970-01-01T00:00:00.000Z","assertions":[{"resource":"_domain_:dynamic_reload_showcase","role":"_domain_:role.dynamic_reload_showcase","action":"showcase"}]}]} | tojson')"; \
 kubectl -n athenz patch configmap athenz-zms-conf --type merge -p "$$(jq -nc --arg solution_templates "$${solution_templates}" '{data: {"solution_templates.json": $$solution_templates}}')"; \
-for i in $$(seq 1 12); do \
+for i in $$(seq 1 24); do \
 	kubectl -n athenz exec deployment/athenz-cli -it -- zms-cli -z https://athenz-zms-server.athenz:4443/zms/v1 -key /var/run/athenz/athenz_admin.private.pem -cert /var/run/athenz/athenz_admin.cert.pem list-server-template > /tmp/athenz-server-templates; \
 	if grep -q "$${SOLUTION_TEMPLATE}" /tmp/athenz-server-templates; then \
 		echo "zms-cli list-server-template"; \

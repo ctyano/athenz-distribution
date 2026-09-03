@@ -36,15 +36,16 @@ uninstall-athenz-user-cert:
 	)
 
 athenz-user-cert: install-athenz-user-cert
-	kubectl -n athenz port-forward svc/oauth2 5556:5556 >/tmp/athenz-oauth2-idp-port-forward.log 2>&1 & \
-	IDPPID=$$!; \
+	kubectl -n keycloak port-forward service/keycloakx-http 18080:80 >/tmp/athenz-oauth2-keycloak-port-forward.log 2>&1 & \
+	KEYCLOAKPID=$$!; \
 	kubectl -n athenz port-forward svc/oauth2 8080:8080 >/tmp/athenz-oauth2-cli-port-forward.log 2>&1 & \
 	CLIPID=$$!; \
-	trap 'kill -15 $$IDPPID $$CLIPID >/dev/null 2>&1 ||:' EXIT; \
+	trap 'kill -15 $$KEYCLOAKPID $$CLIPID >/dev/null 2>&1 ||:' EXIT; \
 	kubectl -n athenz exec deployment/oauth2-deployment -c athenz-user-cert -i -- \
 		athenzusercert \
-			-oidc-issuer https://oauth2.athenz/dex \
-			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
+			-oidc-issuer http://127.0.0.1:18080/realms/athenz \
+			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/extmembercert \
+			-athenz-cn-mode external \
 			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
 		;
 
@@ -90,7 +91,7 @@ register-athenz-oauth2:
 			-key /var/run/athenz/athenz_admin.private.pem \
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-c /etc/ssl/certs/ca-certificates.crt \
-			-d email \
+			-d keycloak \
 			set-external-member-validator \
 			com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
 	sleep 1
@@ -100,10 +101,10 @@ register-athenz-oauth2:
 			-key /var/run/athenz/athenz_admin.private.pem \
 			-cert /var/run/athenz/athenz_admin.cert.pem \
 			-c /etc/ssl/certs/ca-certificates.crt \
-			-d email \
+			-d keycloak \
 			add-member \
 			admin \
-			"email:ext.athenz_admin@athenz.io" "email:ext.athenz_user@athenz.io"
+			"keycloak:ext.athenz_admin@athenz.io" "keycloak:ext.athenz_user@athenz.io"
 
 test-athenz-oauth2:
 	WAITING_TIMEOUT=60s; \
@@ -115,7 +116,7 @@ test-athenz-oauth2:
 		kubectl -n athenz describe deployment oauth2-deployment ||:; \
 		exit 1; \
 	)
-	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 5556:5556 &
+	timeout -k 0 30 kubectl -n keycloak port-forward service/keycloakx-http 18080:80 &
 	timeout -k 0 30 kubectl -n athenz port-forward deployment/oauth2-deployment 10000:10000 &
 	SLEEP_SECONDS=5; \
 WAITING_THRESHOLD=30; \
@@ -123,17 +124,12 @@ i=0; \
 while true; do \
 	printf "\n***** Waiting for athenz($$(( $$i * $${SLEEP_SECONDS} ))s/$${WAITING_THRESHOLD}s) *****\n"; \
 	( \
-	kubectl -n athenz exec deployment/oauth2-deployment -it -c dex -- \
-	    nc -vz 127.0.0.1 5556 \
-	&& \
-	kubectl -n athenz exec deployment/oauth2-deployment -it -c dex -- \
-	    nc -vz 127.0.0.1 10000 \
-	&& \
 	kubectl -n athenz exec deployment/oauth2-deployment -it -c athenz-user-cert -- \
 		/bin/sh -c " \
 			echo -n password | athenzusercert \
-			-oidc-issuer https://oauth2.athenz/dex \
-			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/usercert \
+			-oidc-issuer http://127.0.0.1:18080/realms/athenz \
+			-endpoint https://athenz-zts-server.athenz:4443/zts/v1/extmembercert \
+			-athenz-cn-mode external \
 			-signer-tls-ca /etc/ssl/certs/ca-certificates.crt \
 			-oidc-user athenz_admin@athenz.io \
 			-oidc-password-stdin; \
@@ -141,7 +137,7 @@ while true; do \
 		" \
 	) \
 	&& break \
-	|| echo "Waiting for Dex Identity Provider and Envoy CertSigner Proxy..."; \
+	|| echo "Waiting for Keycloak Identity Provider and Envoy CertSigner Proxy..."; \
 	sleep $${SLEEP_SECONDS}; \
 	i=$$(( i + 1 )); \
 	if [ $$i -eq $$(( $${WAITING_THRESHOLD} / $${SLEEP_SECONDS} )) ]; then \

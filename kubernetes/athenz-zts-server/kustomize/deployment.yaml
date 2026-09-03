@@ -159,9 +159,35 @@ spec:
                 -d sys.auth \
                 set-service-endpoint usercertprovider class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider \
               && \
+              ( \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                show-service extmembercertprovider \
+              || \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                add-service extmembercertprovider "${HOSTNAME}" /athenz/zts/zts.public.pem \
+              ) \
+              && \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                 set-service-endpoint extmembercertprovider class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider \
+              && \
               curl \
                 -sv \
-                -d"{\"name\":\"email\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                -d"{\"name\":\"keycloak\",\"adminUsers\":[\"user.athenz_admin\"]}" \
                 -H"Content-Type: application/json" \
                 --key /athenz/admin/${USER}.private.pem \
                 --cert /athenz/admin/${USER}.cert.pem \
@@ -173,7 +199,7 @@ spec:
                 -cert /athenz/admin/${USER}.cert.pem \
                 -c /etc/ssl/certs/ca-certificates.crt \
                 -z ${ZMS} \
-                -d email \
+                -d keycloak \
                 set-external-member-validator com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
           resources:
             limits:

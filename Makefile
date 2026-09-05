@@ -516,6 +516,29 @@ load-kubernetes-images-external: version install-kustomize
 load-kubernetes-images-thirdparty: version install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-thirdparty
 
+set-kubernetes-athenz-build-env:
+	@if [ -z "$${GITHUB_ENV:-}" ]; then exit 0; fi; \
+set_env() { \
+	[ -z "$$2" ] && return 0; \
+	case "$$1" in \
+		ATHENZ_IMAGE_TAG) pattern='^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$$' ;; \
+		TRACKING_GIT_REPO) pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$$' ;; \
+		TRACKING_GIT_REF) pattern='^[A-Za-z0-9._/@+-]+$$' ;; \
+		*) return 0 ;; \
+	esac; \
+	printf '%s' "$$2" | grep -Eq "$$pattern" || { echo "Invalid $$1: $$2" >&2; exit 1; }; \
+	printf '%s=%s\n' "$$1" "$$2" >> "$$GITHUB_ENV"; \
+	echo "$$1=$$2"; \
+}; \
+set_env ATHENZ_IMAGE_TAG "$${ATHENZ_IMAGE_TAG_INPUT:-}"; \
+set_env TRACKING_GIT_REPO "$${TRACKING_GIT_REPO_INPUT:-}"; \
+set_env TRACKING_GIT_REF "$${TRACKING_GIT_REF_INPUT:-}"; \
+if [ "$${GITHUB_EVENT_NAME:-}" = "pull_request" ] && [ -n "$${GITHUB_EVENT_PATH:-}" ]; then \
+	jq -r '.pull_request.body // ""' "$$GITHUB_EVENT_PATH" \
+	| sed -n -E 's/^[[:space:]]*(ATHENZ_IMAGE_TAG|TRACKING_GIT_REPO|TRACKING_GIT_REF)[[:space:]]*=[[:space:]]*([^[:space:]`]+).*/\1=\2/p' \
+	| while IFS='=' read -r key value; do set_env "$$key" "$$value"; done; \
+fi
+
 deploy-kubernetes-crypki-softhsm: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm
 
@@ -635,6 +658,9 @@ test-kubernetes-athenz-envoy2authzproxy:
 
 test-kubernetes-athenz-showcases:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-showcases
+
+test-kubernetes-athenz-solution-template-reload: install-parsers
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-solution-template-reload
 
 check-kubernetes-athenz: install-parsers
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes check-athenz

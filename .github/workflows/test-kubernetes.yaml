@@ -12,7 +12,24 @@ on:
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
   workflow_dispatch:
+    inputs:
+      athenz_image_tag:
+        description: 'Athenz image tag to pull instead of building images locally'
+        required: false
+        default: ''
+        type: string
+      tracking_git_repo:
+        description: 'Tracking GitHub repository in owner/name format'
+        required: false
+        default: 'AthenZ/athenz'
+        type: string
+      tracking_git_ref:
+        description: 'Tracking git ref for resolving the Athenz source version'
+        required: false
+        default: ''
+        type: string
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches:
       - main
     paths-ignore:
@@ -29,6 +46,8 @@ env:
   # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   # DOCKER_BUILD_ARGS: |
   GITHUB_REPOSITORY: AthenZ/athenz
+  TRACKING_GIT_REPO: AthenZ/athenz
+  TRACKING_GIT_REF: ''
 
 jobs:
   build:
@@ -81,6 +100,16 @@ jobs:
         with:
           submodules: recursive
 
+      -
+        name: Set Kubernetes Athenz build parameters
+        id: kubernetes-athenz-build-params
+        env:
+          ATHENZ_IMAGE_TAG_INPUT: ${{ inputs.athenz_image_tag || '' }}
+          TRACKING_GIT_REPO_INPUT: ${{ inputs.tracking_git_repo || '' }}
+          TRACKING_GIT_REF_INPUT: ${{ inputs.tracking_git_ref || '' }}
+        run: |
+          make set-kubernetes-athenz-build-env
+
       # GitHub Action to login against a Docker registry.
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -126,7 +155,10 @@ jobs:
         name: Resolve Athenz version
         id: resolve-athenz-version
         run: |
-          if [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
+          if [[ -n "${TRACKING_GIT_REF}" ]]; then
+            make checkout-source TRACKING_GIT_REPO="${TRACKING_GIT_REPO}" TRACKING_GIT_REF="${TRACKING_GIT_REF}"
+            CURRENT_VERSION="$(sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml | head -n1)"
+          elif [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
             CURRENT_VERSION="${{ github.event.inputs.target_version }}"
           else
             CURRENT_VERSION="$( \
@@ -209,7 +241,11 @@ jobs:
         id: build
         run: |
           set -ex
-          VERSION=${VERSION} make build
+          if [[ -z "${ATHENZ_IMAGE_TAG:-}" ]]; then
+            VERSION=${VERSION} make build
+          else
+            echo "Using prebuilt Athenz images tagged ${ATHENZ_IMAGE_TAG}"
+          fi
 
       # A GitHub Action to pull container images
       -
@@ -217,6 +253,9 @@ jobs:
         id: pull
         run: |
           set -ex
+          if [[ -n "${ATHENZ_IMAGE_TAG:-}" ]]; then
+            make load-docker-images-internal
+          fi
           make load-docker-images-external
 
       # A GitHub Action to load container images to KinD cluster
@@ -243,7 +282,7 @@ jobs:
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make check-kubernetes-athenz test-kubernetes-athenz
+          make check-kubernetes-athenz test-kubernetes-athenz test-kubernetes-athenz-solution-template-reload
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

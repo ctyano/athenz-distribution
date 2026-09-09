@@ -298,6 +298,115 @@ kubectl -n athenz exec deployment/athenz-cli -it -- \
     && printf "\nValid Access Token\n" || printf "\nInvalid Access Token\n"
 ```
 
+#### Retrieving JAG Token
+
+JWT Authorization Grant (JAG) tokens delegate the authority of an external identity provider ID token to
+a service or an AI agent, allowing it to request an access token for the principal.
+
+First, obtain an ID token from an external identity provider (e.g. Keycloak) and save it to a file.
+
+Next, issue the JAG token by exchanging the ID token with the `token-exchange` grant type.
+The `-requested-token-type` argument defaults to `urn:ietf:params:oauth:token-type:id-jag`, so it can be omitted.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-accesstoken \
+        -grant-type token-exchange \
+        -domain athenz.demo \
+        -roles clients \
+        -subject-token /tmp/athenz_user.id_token.jwt \
+        -audience home.athenz_admin \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+    | jq -r .id_token
+```
+
+Note: JAG token issue requires X.509 certificate credentials (`-svc-key-file`/`-svc-cert-file`).
+The requesting principal must be authorized to perform the exchange for the requested roles via the
+`zts.jag_exchange` action.
+
+#### Retrieving Access Token via JAG Token Exchange
+
+A JAG token can be exchanged for an access token using the `jwt-bearer` grant type.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-accesstoken \
+        -grant-type jwt-bearer \
+        -domain athenz.demo \
+        -roles clients \
+        -assertion /tmp/home.athenz_admin.showcase.idjag.jwt \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+    | jq -r .access_token
+```
+
+#### Retrieving Access Token via Token Exchange
+
+The `token-exchange` grant type can exchange an ID token or an access token for a new access token
+(RFC 8693). The `-requested-token-type`, `-subject-token-type` and `-actor-token-type` arguments
+accept either the full URN values or the short forms `id-jag`, `id_token`, `access_token` and `jwt`.
+
+##### Exchanging an ID token for an access token
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-accesstoken \
+        -grant-type token-exchange \
+        -requested-token-type access_token \
+        -subject-token /tmp/athenz_user.id_token.jwt \
+        -subject-token-type id_token \
+        -domain athenz.demo \
+        -audience athenz.demo \
+        -roles clients \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+    | jq -r .access_token
+```
+
+##### Exchanging an access token for an access token (Impersonation)
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-accesstoken \
+        -grant-type token-exchange \
+        -requested-token-type access_token \
+        -subject-token /tmp/home.athenz_admin.showcase.access_token.jwt \
+        -subject-token-type access_token \
+        -domain athenz.demo \
+        -audience athenz.demo \
+        -roles clients \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+    | jq -r .access_token
+```
+
+##### Exchanging an access token for an access token (Delegation)
+
+For delegation, additionally specify the actor token with `-actor-token` and `-actor-token-type`.
+
+```
+kubectl -n athenz exec deployment/athenz-cli -it -- \
+    zts-accesstoken \
+        -grant-type token-exchange \
+        -requested-token-type access_token \
+        -subject-token /tmp/home.athenz_admin.showcase.access_token.jwt \
+        -subject-token-type access_token \
+        -actor-token /tmp/home.athenz_admin.next_actor.access_token.jwt \
+        -actor-token-type access_token \
+        -domain athenz.demo \
+        -audience athenz.demo \
+        -roles clients \
+        -zts https://athenz-zts-server.athenz:4443/zts/v1 \
+        -svc-key-file /var/run/athenz/athenz_admin.private.pem \
+        -svc-cert-file /var/run/athenz/athenz_admin.cert.pem \
+    | jq -r .access_token
+```
+
 #### Retriving Role Cert
 
 ```

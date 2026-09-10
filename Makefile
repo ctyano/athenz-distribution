@@ -50,11 +50,15 @@ GID_ARG := $(if $(GID),--build-arg GID=$(GID),--build-arg GID)
 UID_ARG := $(if $(UID),--build-arg UID=$(UID),--build-arg UID)
 
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+ifeq ($(VCS_REF),)
 VCS_REF = $(eval VCS_REF := $(shell git -C athenz rev-parse --short HEAD 2>/dev/null))$(VCS_REF)
+endif
 ifeq ($(XPLATFORMS),)
 XPLATFORMS := linux/amd64,linux/arm64
 endif
 XPLATFORM_ARGS := --platform=$(XPLATFORMS)
+BUILDX_TAG_SUFFIX ?=
+BUILDX_MANIFEST_SUFFIXES ?= amd64 arm64
 
 BUILD_ARG = --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' --build-arg 'TRACKING_GIT_REPO=$(TRACKING_GIT_REPO)' --build-arg 'TRACKING_GIT_URL=$(TRACKING_GIT_URL)' --build-arg 'TRACKING_GIT_REF=$(TRACKING_GIT_REF)'
 
@@ -119,7 +123,7 @@ GOCACHE=$(shell go env GOCACHE | sed -e "s/'//g")
 export GOCACHE
 endif
 
-.PHONY: assert-version build buildx checkout checkout-source checkout-version submodule-initialize submodule-update version
+.PHONY: assert-version assert-version-value build buildx buildx-manifest checkout checkout-source checkout-version submodule-initialize submodule-update version
 
 .SILENT: version
 
@@ -162,33 +166,50 @@ build-athenz-cli: assert-version
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui
 
+define BUILDX_CREATE_MANIFEST
+	IMAGE_NAME=$(DOCKER_REGISTRY)$(1)$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)$(1):latest; \
+	IMAGE_SOURCES=""; \
+	for suffix in $(BUILDX_MANIFEST_SUFFIXES); do \
+		IMAGE_SOURCES="$$IMAGE_SOURCES $$IMAGE_NAME-$$suffix"; \
+	done; \
+	DOCKER_BUILDKIT=1 docker buildx imagetools create -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) $$IMAGE_SOURCES
+endef
+
+buildx-manifest: assert-version-value
+	$(call BUILDX_CREATE_MANIFEST,athenz-db)
+	$(call BUILDX_CREATE_MANIFEST,athenz-zms-server)
+	$(call BUILDX_CREATE_MANIFEST,athenz-zts-server)
+	$(call BUILDX_CREATE_MANIFEST,athenz-cli)
+	$(call BUILDX_CREATE_MANIFEST,athenz-ui)
+
 buildx-athenz-db: assert-version
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-zms-server: build-java
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-zts-server: build-java
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-ui: assert-version
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-cli: assert-version
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
@@ -321,7 +342,9 @@ checkout-source: submodule-update
 		git -C athenz checkout $$checkout_option "$$ref"; \
 	fi
 
-assert-version: checkout-source
+assert-version: checkout-source assert-version-value
+
+assert-version-value:
 	@if [ -z "$(VERSION)" ]; then \
 		echo "VERSION is required; set VERSION or make sure athenz/pom.xml contains a release version" >&2; \
 		exit 1; \

@@ -22,6 +22,21 @@ on:
         required: false
         default: ''
         type: string
+      target_version:
+        description: 'Target version to release this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      current_version:
+        description: 'Current released version of this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      publish_images:
+        description: 'Push images and publish multi-platform manifests'
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       tracking_git_repo:
@@ -34,6 +49,21 @@ on:
         required: false
         default: ''
         type: string
+      target_version:
+        description: 'Target version to release this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      current_version:
+        description: 'Current released version of this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      publish_images:
+        description: 'Push images and publish multi-platform manifests'
+        required: false
+        default: true
+        type: boolean
   pull_request:
     branches:
       - main
@@ -52,11 +82,23 @@ env:
   #DOCKER_BUILD_ARGS: |
   TRACKING_GIT_REPO: AthenZ/athenz
   TRACKING_GIT_REF: ''
+  LINUX_RUNNER: ubuntu-latest
+  LINUX_ARM64_RUNNER: ubuntu-24.04-arm
+  BUILDX_MANIFEST_SUFFIXES: amd64 arm64
 
 jobs:
-  build:
+  prepare:
 
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      docker_registry_url: ${{ steps.default_env.outputs.docker_registry_url }}
+      docker_registry_owner: ${{ steps.default_env.outputs.docker_registry_owner }}
+      java_version: ${{ steps.build_args.outputs.java_version }}
+      tracking_git_ref: ${{ steps.build_args.outputs.tracking_git_ref }}
+      tracking_git_repo: ${{ steps.build_args.outputs.tracking_git_repo }}
+      vcs_ref: ${{ steps.build_args.outputs.vcs_ref }}
+      version: ${{ steps.build_args.outputs.version }}
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
     permissions:
       actions: none
@@ -65,33 +107,30 @@ jobs:
       deployments: none
       issues: none
       discussions: none
-      packages: write
+      packages: none
       pull-requests: none
       repository-projects: none
       security-events: none
       statuses: none
 
     steps:
-      # A GitHub Action to expose useful environment variables.
-      # https://github.com/FranzDiebold/github-env-vars-action
-      -
-        name: GitHub Environment Variables Action
-        id: env
-        # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
-        uses: FranzDiebold/github-env-vars-action@v2
-
-      # A GitHub Action to prepare default environment variables.
       -
         name: Set Default Environment Variables
         id: default_env
+        env:
+          HAS_DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' }}
         run: |
-          # Use docker.io for Docker Hub if empty
-          [[ "${{ env.DOCKER_REGISTRY_URL}}" = "" ]] && echo "DOCKER_REGISTRY_URL=docker.io" >> $GITHUB_ENV
-          [[ "${{ env.DOCKER_REGISTRY_OWNER }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
-          [[ "${{ env.DOCKER_REGISTRY_IMAGE }}" = "" ]] && echo "DOCKER_REGISTRY_IMAGE=${{ env.CI_REPOSITORY_NAME }}" >> $GITHUB_ENV
-          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
-          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
-          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
+          set -euo pipefail
+          docker_registry_url="${DOCKER_REGISTRY_URL:-docker.io}"
+          docker_registry_owner="${DOCKER_REGISTRY_OWNER:-${GITHUB_REPOSITORY_OWNER}}"
+          if [[ "${HAS_DOCKER_REGISTRY_TOKEN}" != "true" ]]; then
+            docker_registry_url="ghcr.io"
+            docker_registry_owner="${GITHUB_REPOSITORY_OWNER}"
+          fi
+          printf "DOCKER_REGISTRY_URL=%s\n" "${docker_registry_url}" >> "$GITHUB_ENV"
+          printf "DOCKER_REGISTRY_OWNER=%s\n" "${docker_registry_owner}" >> "$GITHUB_ENV"
+          printf "docker_registry_url=%s\n" "${docker_registry_url}" >> "$GITHUB_OUTPUT"
+          printf "docker_registry_owner=%s\n" "${docker_registry_owner}" >> "$GITHUB_OUTPUT"
           if [[ "${{ inputs.tracking_git_repo || '' }}" != "" ]]; then
             echo "TRACKING_GIT_REPO=${{ inputs.tracking_git_repo }}" >> $GITHUB_ENV
           fi
@@ -110,12 +149,13 @@ jobs:
         with:
           submodules: recursive
 
-      # A GitHub Action to prepare default environment variables.
       -
-        name: Set dynamic docker build arguments
-        id: dynamic_docker_build_args
+        name: Resolve build metadata
+        id: build_args
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          set -exuo pipefail
+          set -euo pipefail
 
           if [[ -n "${TRACKING_GIT_REF}" ]]; then
             make checkout-source TRACKING_GIT_REPO="${TRACKING_GIT_REPO}" TRACKING_GIT_REF="${TRACKING_GIT_REF}"
@@ -125,16 +165,16 @@ jobs:
               echo "No valid package version found in ${TRACKING_GIT_REPO}@${TRACKING_GIT_REF}" >&2
               exit 1
             fi
-          elif [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} = true ]]; then
-            if [[ "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
-              PACKAGE_VERSION="$(echo "${{ github.event.inputs.target_version }}" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/g')"
+          elif [[ "${{ github.event_name != 'pull_request' && inputs.publish_images && inputs.target_version != '' && inputs.target_version != inputs.current_version }}" = "true" ]]; then
+            if [[ "${{ inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
+              PACKAGE_VERSION="$(echo "${{ inputs.target_version }}" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/g')"
               TAG_VERSION="v${PACKAGE_VERSION}"
             fi
-          elif [[ "${{ env.CI_REF }}" == "refs/tags/"* ]] && [[ "$(basename ${{ env.CI_REF }})" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
+          elif [[ "${{ github.ref }}" == "refs/tags/"* ]] && [[ "$(basename "${{ github.ref }}")" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
-            LATEST_TAG=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
+            LATEST_TAG=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" https://api.github.com/repos/${TRACKING_GIT_REPO}/releases \
               | jq -r '.[].tag_name' \
               | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
               | sort -ruV \
@@ -148,44 +188,74 @@ jobs:
             fi
           fi
 
-          # here we can place the command that will generate multi-line text
-          echo "DOCKER_BUILD_ARGS<<EOF" >> $GITHUB_ENV
-          printf "${{ env.DOCKER_BUILD_ARGS }}" >> $GITHUB_ENV
-          printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
-          printf "TAG_VERSION=${TAG_VERSION}\n" >> $GITHUB_ENV
-          printf "VCS_REF=${TAG_VERSION}\n" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          if [[ $(printf '%s\n' "1.12.0" "${PACKAGE_VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
+            JAVA_VERSION=17
+          else
+            JAVA_VERSION=11
+          fi
 
-          printf "VERSION=${PACKAGE_VERSION}\n" >> $GITHUB_ENV
-          printf "TRACKING_GIT_REPO=${TRACKING_GIT_REPO}\n" >> $GITHUB_ENV
-          printf "TRACKING_GIT_REF=${TRACKING_GIT_REF}\n" >> $GITHUB_ENV
+          printf "java_version=%s\n" "${JAVA_VERSION}" >> "$GITHUB_OUTPUT"
+          printf "tracking_git_ref=%s\n" "${TRACKING_GIT_REF}" >> "$GITHUB_OUTPUT"
+          printf "tracking_git_repo=%s\n" "${TRACKING_GIT_REPO}" >> "$GITHUB_OUTPUT"
+          printf "vcs_ref=%s\n" "${TAG_VERSION}" >> "$GITHUB_OUTPUT"
+          printf "version=%s\n" "${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
 
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
       -
-        name: Extract Docker metadata
-        id: meta
+        name: Resolve build matrix
+        id: matrix
+        env:
+          LINUX_RUNNER_OVERRIDE: ${{ vars.LINUX_RUNNER || '' }}
+          LINUX_ARM64_RUNNER_OVERRIDE: ${{ vars.LINUX_ARM64_RUNNER || '' }}
+        run: |
+          set -euo pipefail
+          linux_runner="${LINUX_RUNNER_OVERRIDE:-${LINUX_RUNNER}}"
+          linux_arm64_runner="${LINUX_ARM64_RUNNER_OVERRIDE:-${LINUX_ARM64_RUNNER}}"
+          matrix="$(jq -nc --arg linux_runner "${linux_runner}" --arg linux_arm64_runner "${linux_arm64_runner}" '{include:[{platform:"linux/amd64",runner:$linux_runner,tag_suffix:"amd64"},{platform:"linux/arm64",runner:$linux_arm64_runner,tag_suffix:"arm64"}]}')"
+          printf "matrix=%s\n" "${matrix}" >> "$GITHUB_OUTPUT"
+
+  build:
+
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    runs-on: ${{ matrix.runner }}
+    env:
+      DOCKER_REGISTRY_URL: ${{ needs.prepare.outputs.docker_registry_url }}
+      DOCKER_REGISTRY_OWNER: ${{ needs.prepare.outputs.docker_registry_owner }}
+      DOCKER_TAEGET_PLATFORMS: ${{ matrix.platform }}
+      BUILDX_TAG_SUFFIX: -${{ matrix.tag_suffix }}
+      TRACKING_GIT_REF: ${{ needs.prepare.outputs.tracking_git_ref }}
+      TRACKING_GIT_REPO: ${{ needs.prepare.outputs.tracking_git_repo }}
+      VCS_REF: ${{ needs.prepare.outputs.vcs_ref }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      XPLATFORMS: ${{ matrix.platform }}
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: write
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
         # You may pin to the exact commit or the version.
-        # uses: https://github.com/docker/metadata-action/tags
-        uses: docker/metadata-action@v6
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v7
         with:
-          images: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/${{ env.DOCKER_REGISTRY_IMAGE }}
-          # for latest tag
-          # latest=auto for tagging latest only for "master", "main" or "customized" branch
-          flavor: |
-            latest=true
-          # eg. refs/heads/master
-          # eg. refs/heads/customized
-          # eg. refs/pull/318/merge
-          # shorthand for {{major}}.{{minor}}.{{patch}} (can include pre-release)
-          tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'customized') }}
-            type=ref,event=pr
-            type=semver,pattern=v{{version}}
-            type=schedule,pattern=nightly
+          submodules: recursive
 
       # GitHub Action to login against a Docker registry.
       # Login against a Docker registry except on PR
@@ -193,6 +263,7 @@ jobs:
       -
         name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
         id: login
+        if: ${{ github.event_name != 'pull_request' && inputs.publish_images }}
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/login-action/tags
         uses: docker/login-action@v4
@@ -202,7 +273,7 @@ jobs:
           # Username used to log against the Docker registry
           username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
           # Password or personal access token used to log against the Docker registry
-          password: ${{ env.DOCKER_REGISTRY_TOKEN }} # optional
+          password: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' && secrets.DOCKER_REGISTRY_TOKEN || github.token }} # optional
           # Log out from the Docker registry at the end of a job
           logout: true # optional, default is true
 
@@ -211,6 +282,7 @@ jobs:
       -
         name: Set up QEMU
         id: qemu
+        if: ${{ matrix.platform == 'linux/arm64' && runner.arch != 'ARM64' }}
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/setup-qemu-action/tags
         uses: docker/setup-qemu-action@v4
@@ -260,19 +332,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      # A GitHub Action to select Java version
-      -
-        name: Select Java version
-        id: select-java-version
-        run: |
-          if [[ $(printf '%s\n' "1.12.0" "${VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
-            JAVA_VERSION=17
-          else
-            JAVA_VERSION=11
-          fi
-          echo "JAVA_VERSION=${JAVA_VERSION}" >> $GITHUB_ENV
-          echo "java-version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
-
       # This action provides the following functionality for GitHub Actions runners:
       # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
       # - Extracting and caching custom version of Java from a local file.
@@ -294,24 +353,29 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: ${{ steps.select-java-version.outputs.java-version }}
+          java-version: ${{ needs.prepare.outputs.java_version }}
           #cache: maven
 
-      # Build and push Docker image with Buildx (don't push on PR)
+      # Build Docker image with Buildx. Push only when publish_images is true.
       # https://github.com/docker/build-push-action
       -
-        name: Build and push Docker image for ${{ env.DOCKER_TAEGET_PLATFORMS }}
+        name: Build Docker image for ${{ matrix.platform }}
         id: build_and_push
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/build-push-action/tags
         run: |
-          if ${{ github.event_name != 'pull_request' }}; then \
+          if [[ "${{ github.event_name != 'pull_request' && inputs.publish_images }}" = "true" ]]; then \
             DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
-            PUSH=${{ github.event_name != 'pull_request' }} \
+            XPLATFORMS="${{ matrix.platform }}" \
+            BUILDX_TAG_SUFFIX="-${{ matrix.tag_suffix }}" \
+            PUSH=true \
             make buildx; \
           else \
             DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
-            make build; \
+            XPLATFORMS="${{ matrix.platform }}" \
+            BUILDX_TAG_SUFFIX="-${{ matrix.tag_suffix }}" \
+            PUSH=false \
+            make buildx; \
           fi
         #uses: docker/build-push-action@v4
         #with:
@@ -322,3 +386,78 @@ jobs:
         #  platforms: ${{ env.DOCKER_TAEGET_PLATFORMS }}
         #  build-args: ${{ env.DOCKER_BUILD_ARGS }}
         #  cache-from: ${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/${{ env.DOCKER_REGISTRY_IMAGE }}
+
+  manifest:
+
+    name: Publish Docker multi-platform manifests
+    needs:
+      - build
+      - prepare
+    if: ${{ github.event_name != 'pull_request' && inputs.publish_images }}
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_REGISTRY_URL: ${{ needs.prepare.outputs.docker_registry_url }}
+      DOCKER_REGISTRY_OWNER: ${{ needs.prepare.outputs.docker_registry_owner }}
+      TRACKING_GIT_REF: ${{ needs.prepare.outputs.tracking_git_ref }}
+      TRACKING_GIT_REPO: ${{ needs.prepare.outputs.tracking_git_repo }}
+      VCS_REF: ${{ needs.prepare.outputs.vcs_ref }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: write
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v7
+
+      # GitHub Action to login against a Docker registry.
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      -
+        name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
+        id: login
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/docker/login-action/tags
+        uses: docker/login-action@v4
+        with:
+          # Server address of Docker registry. If not set then will default to Docker Hub
+          registry: ${{ env.DOCKER_REGISTRY_URL }} # optional
+          # Username used to log against the Docker registry
+          username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
+          # Password or personal access token used to log against the Docker registry
+          password: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' && secrets.DOCKER_REGISTRY_TOKEN || github.token }} # optional
+          # Log out from the Docker registry at the end of a job
+          logout: true # optional, default is true
+
+      # GitHub Action to set up Docker Buildx.
+      # https://github.com/docker/setup-buildx-action
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/docker/setup-buildx-action/tags
+        uses: docker/setup-buildx-action@v4
+
+      -
+        name: Create Docker multi-platform manifests
+        id: manifest
+        run: |
+          DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
+          BUILDX_MANIFEST_SUFFIXES="${{ env.BUILDX_MANIFEST_SUFFIXES }}" \
+          make buildx-manifest

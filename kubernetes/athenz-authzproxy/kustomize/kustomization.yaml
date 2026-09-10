@@ -54,10 +54,3 @@ replacements:
       kind: Deployment
       name: authzproxy-deployment
       version: v1
-images:
-- name: docker.io/athenz/authorization-proxy:latest
-  newName: docker.io/tatyano/authorization-proxy
-  newTag: latest
-- name: ghcr.io/ctyano/athenz-cli:latest
-  newName: ghcr.io/ctyano/athenz-cli
-  newTag: source-AthenZ-athenz-e2eb8c5-v1.12.45-SNAPSHOT-e2eb8c52b

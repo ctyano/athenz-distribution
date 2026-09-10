@@ -11,7 +11,7 @@ on:
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   push:
-    # Publish semver tags as releases.
+    # Publish semver tags as releases to run this workflow.
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
@@ -54,6 +54,10 @@ jobs:
     needs: test-kubernetes
     if: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     uses: ./.github/workflows/docker-build-publish.yaml
+    with:
+      target_version: ${{ github.event.inputs.target_version || '' }}
+      current_version: ${{ github.event.inputs.current_version || '' }}
+      publish_images: true
     secrets: inherit
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
     permissions:
@@ -91,4 +95,3 @@ jobs:
       repository-projects: none
       security-events: none
       statuses: none
-

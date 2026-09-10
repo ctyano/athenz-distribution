@@ -22,6 +22,21 @@ on:
         required: false
         default: ''
         type: string
+      target_version:
+        description: 'Target version to release this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      current_version:
+        description: 'Current released version of this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      publish_images:
+        description: 'Push images and publish multi-platform manifests'
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       tracking_git_repo:
@@ -34,6 +49,21 @@ on:
         required: false
         default: ''
         type: string
+      target_version:
+        description: 'Target version to release this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      current_version:
+        description: 'Current released version of this repository e.g. 0.0.0'
+        required: false
+        default: ''
+        type: string
+      publish_images:
+        description: 'Push images and publish multi-platform manifests'
+        required: false
+        default: true
+        type: boolean
   pull_request:
     branches:
       - main
@@ -123,7 +153,7 @@ jobs:
         name: Resolve build metadata
         id: build_args
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -135,9 +165,9 @@ jobs:
               echo "No valid package version found in ${TRACKING_GIT_REPO}@${TRACKING_GIT_REF}" >&2
               exit 1
             fi
-          elif [[ ${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' && github.event.inputs.target_version != github.event.inputs.current_version }} = true ]]; then
-            if [[ "${{ github.event.inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
-              PACKAGE_VERSION="$(echo "${{ github.event.inputs.target_version }}" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/g')"
+          elif [[ "${{ github.event_name != 'pull_request' && inputs.publish_images && inputs.target_version != '' && inputs.target_version != inputs.current_version }}" = "true" ]]; then
+            if [[ "${{ inputs.target_version }}" =~ .*([0-9]+.[0-9]+.[0-9]+).* ]]; then
+              PACKAGE_VERSION="$(echo "${{ inputs.target_version }}" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/g')"
               TAG_VERSION="v${PACKAGE_VERSION}"
             fi
           elif [[ "${{ github.ref }}" == "refs/tags/"* ]] && [[ "$(basename "${{ github.ref }}")" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(-[a-z]+)?(\.[0-9]+)?$ ]]; then
@@ -180,11 +210,7 @@ jobs:
           set -euo pipefail
           linux_runner="${LINUX_RUNNER_OVERRIDE:-${LINUX_RUNNER}}"
           linux_arm64_runner="${LINUX_ARM64_RUNNER_OVERRIDE:-${LINUX_ARM64_RUNNER}}"
-          if [[ "${{ github.event_name }}" = "pull_request" ]]; then
-            matrix="$(jq -nc --arg runner "${linux_runner}" '{include:[{platform:"linux/amd64",runner:$runner,tag_suffix:"amd64"}]}')"
-          else
-            matrix="$(jq -nc --arg linux_runner "${linux_runner}" --arg linux_arm64_runner "${linux_arm64_runner}" '{include:[{platform:"linux/amd64",runner:$linux_runner,tag_suffix:"amd64"},{platform:"linux/arm64",runner:$linux_arm64_runner,tag_suffix:"arm64"}]}')"
-          fi
+          matrix="$(jq -nc --arg linux_runner "${linux_runner}" --arg linux_arm64_runner "${linux_arm64_runner}" '{include:[{platform:"linux/amd64",runner:$linux_runner,tag_suffix:"amd64"},{platform:"linux/arm64",runner:$linux_arm64_runner,tag_suffix:"arm64"}]}')"
           printf "matrix=%s\n" "${matrix}" >> "$GITHUB_OUTPUT"
 
   build:
@@ -237,7 +263,7 @@ jobs:
       -
         name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
         id: login
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name != 'pull_request' && inputs.publish_images }}
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/login-action/tags
         uses: docker/login-action@v4
@@ -247,7 +273,7 @@ jobs:
           # Username used to log against the Docker registry
           username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
           # Password or personal access token used to log against the Docker registry
-          password: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' && secrets.DOCKER_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }} # optional
+          password: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' && secrets.DOCKER_REGISTRY_TOKEN || github.token }} # optional
           # Log out from the Docker registry at the end of a job
           logout: true # optional, default is true
 
@@ -256,7 +282,7 @@ jobs:
       -
         name: Set up QEMU
         id: qemu
-        if: ${{ github.event_name != 'pull_request' && matrix.platform == 'linux/arm64' && runner.arch != 'ARM64' }}
+        if: ${{ matrix.platform == 'linux/arm64' && runner.arch != 'ARM64' }}
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/setup-qemu-action/tags
         uses: docker/setup-qemu-action@v4
@@ -266,7 +292,6 @@ jobs:
       -
         name: Set up Docker Buildx
         id: buildx
-        if: ${{ github.event_name != 'pull_request' }}
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/setup-buildx-action/tags
         uses: docker/setup-buildx-action@v4
@@ -331,23 +356,26 @@ jobs:
           java-version: ${{ needs.prepare.outputs.java_version }}
           #cache: maven
 
-      # Build and push Docker image with Buildx (don't push on PR)
+      # Build Docker image with Buildx. Push only when publish_images is true.
       # https://github.com/docker/build-push-action
       -
-        name: Build and push Docker image for ${{ matrix.platform }}
+        name: Build Docker image for ${{ matrix.platform }}
         id: build_and_push
         # You may pin to the exact commit or the version.
         # uses: https://github.com/docker/build-push-action/tags
         run: |
-          if ${{ github.event_name != 'pull_request' }}; then \
+          if [[ "${{ github.event_name != 'pull_request' && inputs.publish_images }}" = "true" ]]; then \
             DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
             XPLATFORMS="${{ matrix.platform }}" \
             BUILDX_TAG_SUFFIX="-${{ matrix.tag_suffix }}" \
-            PUSH=${{ github.event_name != 'pull_request' }} \
+            PUSH=true \
             make buildx; \
           else \
             DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
-            make build; \
+            XPLATFORMS="${{ matrix.platform }}" \
+            BUILDX_TAG_SUFFIX="-${{ matrix.tag_suffix }}" \
+            PUSH=false \
+            make buildx; \
           fi
         #uses: docker/build-push-action@v4
         #with:
@@ -365,7 +393,7 @@ jobs:
     needs:
       - build
       - prepare
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name != 'pull_request' && inputs.publish_images }}
     runs-on: ubuntu-latest
     env:
       DOCKER_REGISTRY_URL: ${{ needs.prepare.outputs.docker_registry_url }}
@@ -413,7 +441,7 @@ jobs:
           # Username used to log against the Docker registry
           username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
           # Password or personal access token used to log against the Docker registry
-          password: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' && secrets.DOCKER_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }} # optional
+          password: ${{ secrets.DOCKER_REGISTRY_TOKEN != '' && secrets.DOCKER_REGISTRY_TOKEN || github.token }} # optional
           # Log out from the Docker registry at the end of a job
           logout: true # optional, default is true
 

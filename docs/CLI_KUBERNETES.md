@@ -382,7 +382,7 @@ Run the `zts-usercert` command inside the `athenz-cli` container.
 kubectl -n athenz exec deployment/athenz-cli -it -- \
     zts-usercert \
     -zts-url https://athenz-zts-server.athenz:4443 \
-    -oidc-issuer http://keycloakx-http.keycloak:80/auth/realms/athenz \
+    -oidc-issuer http://keycloakx-http.keycloak:80/realms/athenz \
     -oidc-client-id athenz-user-cert \
     -oidc-client-secret athenz-user-cert \
     -ca-cert /var/run/athenz/athenz_admin.cert.pem \

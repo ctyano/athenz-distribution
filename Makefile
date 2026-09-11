@@ -13,8 +13,8 @@ TRACKING_POM_VERSION = $(eval TRACKING_POM_VERSION := $(shell sed -n -E 's/.*<ve
 TRACKING_LATEST_RELEASE_VERSION = $(eval TRACKING_LATEST_RELEASE_VERSION := $(shell curl -s https://api.github.com/repos/$(TRACKING_GIT_REPO)/releases/latest | sed -n 's/.*"tag_name": "$(TRACKING_VERSION_TAG_PREFIX)\([^"]*\)".*/\1/p'))$(TRACKING_LATEST_RELEASE_VERSION)
 ifeq ($(TRACKING_GIT_REF),)
 VERSION ?= $(TRACKING_LATEST_RELEASE_VERSION)
-else
-override VERSION = $(TRACKING_POM_VERSION)
+else ifeq ($(VERSION),)
+VERSION = $(TRACKING_POM_VERSION)
 endif
 TRACKING_GIT_CHECKOUT_REF = $(if $(TRACKING_GIT_REF),$(TRACKING_GIT_REF),$(TRACKING_VERSION_TAG_PREFIX)$(VERSION))
 TRACKING_GIT_REPO_TAG := $(shell slug=`printf '%s' '$(TRACKING_GIT_REPO)' | sed -E 's@^https?://github.com/@@; s@\.git$$@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-32`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'repo'; fi)
@@ -50,11 +50,15 @@ GID_ARG := $(if $(GID),--build-arg GID=$(GID),--build-arg GID)
 UID_ARG := $(if $(UID),--build-arg UID=$(UID),--build-arg UID)
 
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+ifeq ($(VCS_REF),)
 VCS_REF = $(eval VCS_REF := $(shell git -C athenz rev-parse --short HEAD 2>/dev/null))$(VCS_REF)
+endif
 ifeq ($(XPLATFORMS),)
 XPLATFORMS := linux/amd64,linux/arm64
 endif
 XPLATFORM_ARGS := --platform=$(XPLATFORMS)
+BUILDX_TAG_SUFFIX ?=
+BUILDX_MANIFEST_SUFFIXES ?= amd64 arm64
 
 BUILD_ARG = --build-arg 'BUILD_DATE=$(BUILD_DATE)' --build-arg 'VCS_REF=$(VCS_REF)' --build-arg 'VERSION=$(VERSION)' --build-arg 'TRACKING_GIT_REPO=$(TRACKING_GIT_REPO)' --build-arg 'TRACKING_GIT_URL=$(TRACKING_GIT_URL)' --build-arg 'TRACKING_GIT_REF=$(TRACKING_GIT_REF)'
 
@@ -119,7 +123,7 @@ GOCACHE=$(shell go env GOCACHE | sed -e "s/'//g")
 export GOCACHE
 endif
 
-.PHONY: assert-version build buildx checkout checkout-source checkout-version submodule-initialize submodule-update version
+.PHONY: assert-version assert-version-value build buildx buildx-manifest checkout checkout-source checkout-version submodule-initialize submodule-update version
 
 .SILENT: version
 
@@ -169,21 +173,38 @@ build-athenz-cli: assert-version
 
 buildx: buildx-athenz-db buildx-athenz-zms-server buildx-athenz-zts-server buildx-athenz-cli buildx-athenz-ui buildx-athenz-zms-syncer
 
+define BUILDX_CREATE_MANIFEST
+	IMAGE_NAME=$(DOCKER_REGISTRY)$(1)$(DOCKER_TAG); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)$(1):latest; \
+	IMAGE_SOURCES=""; \
+	for suffix in $(BUILDX_MANIFEST_SUFFIXES); do \
+		IMAGE_SOURCES="$$IMAGE_SOURCES $$IMAGE_NAME-$$suffix"; \
+	done; \
+	DOCKER_BUILDKIT=1 docker buildx imagetools create -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) $$IMAGE_SOURCES
+endef
+
+buildx-manifest: assert-version-value
+	$(call BUILDX_CREATE_MANIFEST,athenz-db)
+	$(call BUILDX_CREATE_MANIFEST,athenz-zms-server)
+	$(call BUILDX_CREATE_MANIFEST,athenz-zts-server)
+	$(call BUILDX_CREATE_MANIFEST,athenz-cli)
+	$(call BUILDX_CREATE_MANIFEST,athenz-ui)
+
 buildx-athenz-db: assert-version
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-db:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/db/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-zms-server: build-java
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-server:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/zms/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-zts-server: build-java
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zts-server:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/zts/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
@@ -194,14 +215,14 @@ buildx-athenz-zms-syncer: build-java
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-ui: assert-version
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-ui:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/ui/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-cli: assert-version
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-cli:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/cli/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
@@ -337,7 +358,9 @@ checkout-source: submodule-update
 		git -C athenz checkout $$checkout_option "$$ref"; \
 	fi
 
-assert-version: checkout-source
+assert-version: checkout-source assert-version-value
+
+assert-version-value:
 	@if [ -z "$(VERSION)" ]; then \
 		echo "VERSION is required; set VERSION or make sure athenz/pom.xml contains a release version" >&2; \
 		exit 1; \
@@ -543,6 +566,29 @@ load-kubernetes-images-external: version install-kustomize
 load-kubernetes-images-thirdparty: version install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-thirdparty
 
+set-kubernetes-athenz-build-env:
+	@if [ -z "$${GITHUB_ENV:-}" ]; then exit 0; fi; \
+set_env() { \
+	[ -z "$$2" ] && return 0; \
+	case "$$1" in \
+		ATHENZ_IMAGE_TAG) pattern='^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$$' ;; \
+		TRACKING_GIT_REPO) pattern='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$$' ;; \
+		TRACKING_GIT_REF) pattern='^[A-Za-z0-9._/@+-]+$$' ;; \
+		*) return 0 ;; \
+	esac; \
+	printf '%s' "$$2" | grep -Eq "$$pattern" || { echo "Invalid $$1: $$2" >&2; exit 1; }; \
+	printf '%s=%s\n' "$$1" "$$2" >> "$$GITHUB_ENV"; \
+	echo "$$1=$$2"; \
+}; \
+set_env ATHENZ_IMAGE_TAG "$${ATHENZ_IMAGE_TAG_INPUT:-}"; \
+set_env TRACKING_GIT_REPO "$${TRACKING_GIT_REPO_INPUT:-}"; \
+set_env TRACKING_GIT_REF "$${TRACKING_GIT_REF_INPUT:-}"; \
+if [ "$${GITHUB_EVENT_NAME:-}" = "pull_request" ] && [ -n "$${GITHUB_EVENT_PATH:-}" ]; then \
+	jq -r '.pull_request.body // ""' "$$GITHUB_EVENT_PATH" \
+	| sed -n -E 's/^[[:space:]]*(ATHENZ_IMAGE_TAG|TRACKING_GIT_REPO|TRACKING_GIT_REF)[[:space:]]*=[[:space:]]*([^[:space:]`]+).*/\1=\2/p' \
+	| while IFS='=' read -r key value; do set_env "$$key" "$$value"; done; \
+fi
+
 deploy-kubernetes-crypki-softhsm: generate-certificates
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-crypki-softhsm deploy-crypki-softhsm
 
@@ -684,6 +730,9 @@ test-kubernetes-athenz-envoy2authzproxy:
 
 test-kubernetes-athenz-showcases:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-showcases
+
+test-kubernetes-athenz-solution-template-reload: install-parsers
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-athenz-solution-template-reload
 
 check-kubernetes-athenz: install-parsers
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes check-athenz

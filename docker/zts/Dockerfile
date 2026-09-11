@@ -10,7 +10,7 @@ ARG UID=10001
 ARG BUILDER_IMAGE=default-jdk-base
 ARG RUNTIME_IMAGE=default-jdk-base
 
-FROM docker.io/library/openjdk:26-rc-slim-bookworm AS default-jdk-base
+FROM docker.io/library/openjdk:27-rc-slim-bookworm AS default-jdk-base
 
 FROM ${BUILDER_IMAGE} AS builder
 

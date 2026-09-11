@@ -25,6 +25,15 @@ endif
 export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
 export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL ATHENZ_IMAGE_TAG
 
+define KIND_LOAD_DOCKER_IMAGES
+	if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
+		echo "Loading Docker images into kind using docker image save and ctr import"; \
+		docker image save $(1) | docker exec --privileged -i kind-control-plane ctr --namespace=k8s.io images import --digests --snapshotter=overlayfs -; \
+	else \
+		kind load docker-image $(1); \
+	fi
+endef
+
 install-kustomize:
 	which kustomize \
 || (curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"| bash \
@@ -214,7 +223,7 @@ kind-load-images-check:
 	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 
 kind-load-images-internal: kind-load-images-check
-	kind load docker-image \
+	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
@@ -223,16 +232,16 @@ kind-load-images-internal: kind-load-images-check
 		$(DOCKER_REGISTRY)athenz-zms-syncer:latest
 
 kind-load-images-external: kind-load-images-check
-	kind load docker-image \
+	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-user-cert:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
+		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest)
 
 kind-load-images-thirdparty: kind-load-images-check
-	kind load docker-image \
+	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
@@ -251,9 +260,9 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
-		kind load docker-image $(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest; \
+		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest); \
 	else \
-		kind load docker-image $(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest; \
+		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/athenz/authorization-proxy:latest); \
 	fi
 
 kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
@@ -473,6 +482,27 @@ zms-cli \
 	-key /var/run/athenz/athenz_admin.private.pem \
 	-cert /var/run/athenz/athenz_admin.cert.pem \
 	show-domain sys.auth
+
+test-athenz-solution-template-reload:
+	SOLUTION_TEMPLATE=dynamic_reload_showcase; \
+solution_templates="$$(kubectl -n athenz get configmap athenz-zms-conf -o json | jq -rc --arg template "$${SOLUTION_TEMPLATE}" --arg timestamp "$$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" '.data["solution_templates.json"] | fromjson | .templates[$$template] as $$existing | .templates[$$template] = {"metadata":{"latestVersion":(($$existing.metadata.latestVersion // 0)+1),"timestamp":$$timestamp,"description":"dynamic reload showcase template","autoUpdate":false},"roles":[{"name":"_domain_:role.dynamic_reload_showcase","modified":"1970-01-01T00:00:00.000Z"}],"policies":[{"name":"_domain_:policy.dynamic_reload_showcase","modified":"1970-01-01T00:00:00.000Z","assertions":[{"resource":"_domain_:dynamic_reload_showcase","role":"_domain_:role.dynamic_reload_showcase","action":"showcase"}]}]} | tojson')"; \
+kubectl -n athenz patch configmap athenz-zms-conf --type merge -p "$$(jq -nc --arg solution_templates "$${solution_templates}" '{data: {"solution_templates.json": $$solution_templates}}')"; \
+kubectl -n athenz annotate pod -l app.kubernetes.io/name=athenz-zms-server athenz.io/configmap-refresh-ts="$$(date +%s)" --overwrite; \
+for i in $$(seq 1 6); do \
+	kubectl -n athenz exec deployment/athenz-cli -it -- zms-cli -z https://athenz-zms-server.athenz:4443/zms/v1 -key /var/run/athenz/athenz_admin.private.pem -cert /var/run/athenz/athenz_admin.cert.pem list-server-template > /tmp/athenz-server-templates; \
+	if grep -q "$${SOLUTION_TEMPLATE}" /tmp/athenz-server-templates; then \
+		echo "zms-cli list-server-template"; \
+		cat /tmp/athenz-server-templates; \
+		echo "zms-cli show-server-template $${SOLUTION_TEMPLATE}"; \
+		kubectl -n athenz exec deployment/athenz-cli -it -- zms-cli -z https://athenz-zms-server.athenz:4443/zms/v1 -key /var/run/athenz/athenz_admin.private.pem -cert /var/run/athenz/athenz_admin.cert.pem show-server-template "$${SOLUTION_TEMPLATE}"; \
+		exit 0; \
+	fi; \
+	echo "Waiting for ZMS to reload solution templates..."; \
+	sleep 5; \
+done; \
+cat /tmp/athenz-server-templates ||:; \
+kubectl -n athenz logs -l app.kubernetes.io/name=athenz-zms-server --all-containers=true --tail=200 ||:; \
+exit 1
 
 test-athenz-ui:
 	kubectl -n athenz exec deployment/athenz-cli -it -- \

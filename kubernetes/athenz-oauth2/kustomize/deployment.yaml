@@ -87,10 +87,22 @@ spec:
             - name: envoy
               containerPort: 10000
               protocol: TCP
+            - name: keycloak-http
+              containerPort: 18080
+              protocol: TCP
+            - name: keycloak-https
+              containerPort: 10001
+              protocol: TCP
           volumeMounts:
             - name: envoy-config
               mountPath: /etc/envoy/envoy.yaml
               subPath: envoy.yaml
+            - name: athenz-idp-keys
+              mountPath: /opt/athenz/envoy/keys
+              readOnly: true
+            - name: athenz-idp-certs
+              mountPath: /opt/athenz/envoy/certs
+              readOnly: true
         - name: athenz-user-cert
           image: ghcr.io/ctyano/athenz-user-cert:latest
           imagePullPolicy: IfNotPresent

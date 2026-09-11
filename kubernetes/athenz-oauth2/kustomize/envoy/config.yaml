@@ -90,6 +90,64 @@ static_resources:
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+    # Plain HTTP proxy for the athenzusercert CLI and the user's browser. The
+    # CLI runs inside the pod so 127.0.0.1 reaches this envoy listener while the
+    # browser reaches keycloak through `kubectl -n keycloak port-forward
+    # service/keycloakx-http 18080:80`, keeping the issuer URL identical for both.
+    - name: keycloak_http_proxy
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 18080 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: keycloak_http
+                route_config:
+                  name: keycloak_http_routes
+                  virtual_hosts:
+                    - name: keycloak_http_backend
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: keycloak }
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+    # HTTPS proxy for the ZTS ExternalMemberCertificateProvider, which requires
+    # https token and jwks endpoints to reach the keycloak IdP.
+    - name: keycloak_https_proxy
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 10001 }
+      filter_chains:
+        - transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              common_tls_context:
+                tls_certificates:
+                  - certificate_chain:
+                      filename: /opt/athenz/envoy/certs/idp.cert.pem
+                    private_key:
+                      filename: /opt/athenz/envoy/keys/idp.private.pem
+          filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: keycloak_https
+                route_config:
+                  name: keycloak_https_routes
+                  virtual_hosts:
+                    - name: keycloak_https_backend
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: keycloak }
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
     - name: crypki
       connect_timeout: 0.5s
@@ -103,4 +161,17 @@ static_resources:
                   address:
                     socket_address:
                       address: crypki-softhsm.crypki
+                      port_value: 80
+    - name: keycloak
+      connect_timeout: 0.5s
+      type: LOGICAL_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: keycloak
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: keycloakx-http.keycloak.svc.cluster.local
                       port_value: 80

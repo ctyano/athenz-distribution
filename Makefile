@@ -13,8 +13,8 @@ TRACKING_POM_VERSION = $(eval TRACKING_POM_VERSION := $(shell sed -n -E 's/.*<ve
 TRACKING_LATEST_RELEASE_VERSION = $(eval TRACKING_LATEST_RELEASE_VERSION := $(shell curl -s https://api.github.com/repos/$(TRACKING_GIT_REPO)/releases/latest | sed -n 's/.*"tag_name": "$(TRACKING_VERSION_TAG_PREFIX)\([^"]*\)".*/\1/p'))$(TRACKING_LATEST_RELEASE_VERSION)
 ifeq ($(TRACKING_GIT_REF),)
 VERSION ?= $(TRACKING_LATEST_RELEASE_VERSION)
-else
-override VERSION = $(TRACKING_POM_VERSION)
+else ifeq ($(VERSION),)
+VERSION = $(TRACKING_POM_VERSION)
 endif
 TRACKING_GIT_CHECKOUT_REF = $(if $(TRACKING_GIT_REF),$(TRACKING_GIT_REF),$(TRACKING_VERSION_TAG_PREFIX)$(VERSION))
 TRACKING_GIT_REPO_TAG := $(shell slug=`printf '%s' '$(TRACKING_GIT_REPO)' | sed -E 's@^https?://github.com/@@; s@\.git$$@@; s@[^A-Za-z0-9_.-]+@-@g; s@^[.-]+@@; s@[.-]+$$@@' | cut -c1-32`; if [ -n "$$slug" ]; then printf '%s' "$$slug"; else printf 'repo'; fi)

@@ -1,0 +1,14 @@
+{
+  "state_path": "${STATE_PATH}",
+  "aws_bucket": "${AWS_BUCKET}",
+  "aws_s3_endpoint": "${AWS_S3_ENDPOINT}",
+  "aws_s3_region": "${AWS_S3_REGION}",
+  "aws_cred_keyid": "${AWS_CRED_KEYID}",
+  "aws_cred_access_key": "${AWS_CRED_ACCESS_KEY}",
+  "key_file": "${KEY_FILE}",
+  "cert_file": "${CERT_FILE}",
+  "truststore_path": "${TRUSTSTORE_PATH}",
+  "truststore_password": "${TRUSTSTORE_PASSWORD}",
+  "domain_update_fetch_threads": "${DOMAIN_UPDATE_FETCH_THREADS}",
+  "domain_refresh_fetch_threads": "${DOMAIN_REFRESH_FETCH_THREADS}"
+}

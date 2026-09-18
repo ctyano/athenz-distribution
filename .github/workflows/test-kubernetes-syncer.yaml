@@ -1,4 +1,4 @@
-name: Test running on Kubernetes Cluster
+name: Test running on Kubernetes Cluster with ZMS Domain Syncer
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -12,24 +12,7 @@ on:
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
   workflow_dispatch:
-    inputs:
-      athenz_image_tag:
-        description: 'Athenz image tag to pull instead of building images locally'
-        required: false
-        default: ''
-        type: string
-      tracking_git_repo:
-        description: 'Tracking GitHub repository in owner/name format'
-        required: false
-        default: 'AthenZ/athenz'
-        type: string
-      tracking_git_ref:
-        description: 'Tracking git ref for resolving the Athenz source version'
-        required: false
-        default: ''
-        type: string
   pull_request:
-    types: [opened, synchronize, reopened, edited]
     branches:
       - main
     paths-ignore:
@@ -46,8 +29,6 @@ env:
   # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
   # DOCKER_BUILD_ARGS: |
   GITHUB_REPOSITORY: AthenZ/athenz
-  TRACKING_GIT_REPO: AthenZ/athenz
-  TRACKING_GIT_REF: ''
 
 jobs:
   build:
@@ -100,16 +81,6 @@ jobs:
         with:
           submodules: recursive
 
-      -
-        name: Set Kubernetes Athenz build parameters
-        id: kubernetes-athenz-build-params
-        env:
-          ATHENZ_IMAGE_TAG_INPUT: ${{ inputs.athenz_image_tag || '' }}
-          TRACKING_GIT_REPO_INPUT: ${{ inputs.tracking_git_repo || '' }}
-          TRACKING_GIT_REF_INPUT: ${{ inputs.tracking_git_ref || '' }}
-        run: |
-          make set-kubernetes-athenz-build-env
-
       # GitHub Action to login against a Docker registry.
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -155,10 +126,7 @@ jobs:
         name: Resolve Athenz version
         id: resolve-athenz-version
         run: |
-          if [[ -n "${TRACKING_GIT_REF}" ]]; then
-            make checkout-source TRACKING_GIT_REPO="${TRACKING_GIT_REPO}" TRACKING_GIT_REF="${TRACKING_GIT_REF}"
-            CURRENT_VERSION="$(sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml | head -n1)"
-          elif [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
+          if [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
             CURRENT_VERSION="${{ github.event.inputs.target_version }}"
           else
             CURRENT_VERSION="$( \
@@ -211,7 +179,7 @@ jobs:
       # - Caching dependencies managed by Gradle.
       # - Caching dependencies managed by sbt.
       # - [Maven Toolchains declaration](https://maven.apache.org/guides/mini/guide-using-toolchains.html) for specified JDK versions.
-      # 
+      #
       # This action allows you to work with Java and Scala projects.
       # https://github.com/actions/setup-java
       -
@@ -241,11 +209,7 @@ jobs:
         id: build
         run: |
           set -ex
-          if [[ -z "${ATHENZ_IMAGE_TAG:-}" ]]; then
-            VERSION=${VERSION} make build
-          else
-            echo "Using prebuilt Athenz images tagged ${ATHENZ_IMAGE_TAG}"
-          fi
+          VERSION=${VERSION} make build
 
       # A GitHub Action to pull container images
       -
@@ -253,9 +217,6 @@ jobs:
         id: pull
         run: |
           set -ex
-          if [[ -n "${ATHENZ_IMAGE_TAG:-}" ]]; then
-            make load-docker-images-internal
-          fi
           make load-docker-images-external
 
       # A GitHub Action to load container images to KinD cluster
@@ -276,13 +237,60 @@ jobs:
           make deploy-kubernetes-athenz
 
       # A GitHub Action to check and test application
+      # Only readiness is checked here -- the functional test suite runs
+      # further down, once ZTS has been switched to read from RustFS via
+      # the ZMS Domain Syncer, so it actually proves the syncer works.
+      -
+        name: Check Application
+        id: check
+        run: |
+          make check-kubernetes-athenz
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for RustFS
+        id: deploy-rustfs
+        run: |
+          make deploy-kubernetes-rustfs
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for RustFS
+        id: test-rustfs
+        run: |
+          make test-kubernetes-rustfs
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for ZMS Domain Syncer
+        id: deploy-athenz-zms-syncer
+        run: |
+          make deploy-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for ZMS Domain Syncer
+        id: test-athenz-zms-syncer
+        run: |
+          make test-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to switch athenz-zts-server to read domain data from
+      # RustFS via the ZMS Domain Syncer. Everything from this point on
+      # exercises the rest of the Athenz ecosystem against this ZTS.
+      -
+        name: Switch athenz-zts-server to read from RustFS via ZMS Domain Syncer
+        id: use-athenz-zms-syncer
+        run: |
+          make use-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to check and test application
       -
         name: Run Tests
         id: test
         run: |
           # Run tests against your deployed application in KinD
           # Replace this with your test command
-          make check-kubernetes-athenz test-kubernetes-athenz test-kubernetes-athenz-solution-template-reload
+          make test-kubernetes-athenz test-kubernetes-athenz-solution-template-reload
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -
@@ -290,6 +298,41 @@ jobs:
         id: deploy-identityprovider
         run: |
           make deploy-kubernetes-athenz-identityprovider
+          echo "SINCE_IDENTITYPROVIDER=$(date -u +%s)" >> $GITHUB_ENV
+
+      # A GitHub Action to wait for the ZMS Domain Syncer's own CronJob
+      # schedule (not a manually triggered job) to sync the service
+      # registered above for athenz-identityprovider, so it is visible to
+      # ZTS through RustFS before its test runs. The CronJob's schedule is
+      # capped at a 1-minute floor (standard Kubernetes CronJob syntax has
+      # no sub-minute granularity), so this polls the syncer's
+      # run_state.json (via `make show-kubernetes-athenz-zms-syncer-status`)
+      # for a successful run that completed after SINCE_IDENTITYPROVIDER,
+      # instead of assuming a fixed sleep is enough.
+      -
+        name: Wait for ZMS Domain Syncer to sync athenz-identityprovider
+        id: wait-athenz-zms-syncer-identityprovider
+        run: |
+          WAITING_TIMEOUT=90
+          SLEEP_SECONDS=5
+          i=0
+          while true; do
+            RUN_STATE="$(make show-kubernetes-athenz-zms-syncer-status)"
+            RUN_TIME="$(echo "${RUN_STATE}" | jq -r '."run-time" // empty')"
+            RUN_STATUS="$(echo "${RUN_STATE}" | jq -r '."run-status" // empty')"
+            RUN_EPOCH="$(date -u -d "${RUN_TIME}" +%s 2>/dev/null || echo 0)"
+            if [ -n "${RUN_TIME}" ] && [ "${RUN_EPOCH}" -gt "${SINCE_IDENTITYPROVIDER}" ] && [ "${RUN_STATUS}" = "0" ]; then
+              echo "ZMS Domain Syncer completed a scheduled run at ${RUN_TIME}"
+              break
+            fi
+            i=$(( i + 1 ))
+            if [ $(( i * SLEEP_SECONDS )) -ge ${WAITING_TIMEOUT} ]; then
+              echo "Timed out waiting for ZMS Domain Syncer to sync athenz-identityprovider" >&2
+              echo "${RUN_STATE}" >&2
+              exit 1
+            fi
+            sleep ${SLEEP_SECONDS}
+          done
 
       # A GitHub Action to check and test application
       -
@@ -306,6 +349,39 @@ jobs:
         id: deploy-workloads
         run: |
           make deploy-kubernetes-athenz-workloads
+          echo "SINCE_WORKLOADS=$(date -u +%s)" >> $GITHUB_ENV
+
+      # A GitHub Action to wait for the ZMS Domain Syncer's own CronJob
+      # schedule (not a manually triggered job) to sync the services
+      # registered above for athenz-authorizer, athenz-authzenvoy,
+      # athenz-authzwebhook, athenz-authzproxy, and athenz-client, so they
+      # are visible to ZTS through RustFS before their tests run. See the
+      # athenz-identityprovider wait step above for why this polls instead
+      # of assuming a fixed sleep is enough.
+      -
+        name: Wait for ZMS Domain Syncer to sync athenz-workloads
+        id: wait-athenz-zms-syncer-workloads
+        run: |
+          WAITING_TIMEOUT=90
+          SLEEP_SECONDS=5
+          i=0
+          while true; do
+            RUN_STATE="$(make show-kubernetes-athenz-zms-syncer-status)"
+            RUN_TIME="$(echo "${RUN_STATE}" | jq -r '."run-time" // empty')"
+            RUN_STATUS="$(echo "${RUN_STATE}" | jq -r '."run-status" // empty')"
+            RUN_EPOCH="$(date -u -d "${RUN_TIME}" +%s 2>/dev/null || echo 0)"
+            if [ -n "${RUN_TIME}" ] && [ "${RUN_EPOCH}" -gt "${SINCE_WORKLOADS}" ] && [ "${RUN_STATUS}" = "0" ]; then
+              echo "ZMS Domain Syncer completed a scheduled run at ${RUN_TIME}"
+              break
+            fi
+            i=$(( i + 1 ))
+            if [ $(( i * SLEEP_SECONDS )) -ge ${WAITING_TIMEOUT} ]; then
+              echo "Timed out waiting for ZMS Domain Syncer to sync athenz-workloads" >&2
+              echo "${RUN_STATE}" >&2
+              exit 1
+            fi
+            sleep ${SLEEP_SECONDS}
+          done
 
       # A GitHub Action to check and test application
       -

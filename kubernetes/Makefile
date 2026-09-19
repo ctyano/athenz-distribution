@@ -25,12 +25,23 @@ endif
 export DOCKERIO_REGISTRY GHCR_REGISTRY QUAYIO_REGISTRY
 export DOCKER_REGISTRY DOCKER_REGISTRY_EXTERNAL ATHENZ_IMAGE_TAG
 
+# Follow the selected kind context; allow an explicit KIND_CLUSTER_NAME override.
+KIND_CONTEXT := $(shell kubectl config current-context 2>/dev/null)
+KIND_CLUSTER_NAME ?= $(if $(filter kind-%,$(KIND_CONTEXT)),$(patsubst kind-%,%,$(KIND_CONTEXT)),kind)
+
 define KIND_LOAD_DOCKER_IMAGES
 	if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
 		echo "Loading Docker images into kind using docker image save and ctr import"; \
-		docker image save $(1) | docker exec --privileged -i kind-control-plane ctr --namespace=k8s.io images import --digests --snapshotter=overlayfs -; \
+		nodes="$$(kind get nodes --name "$(KIND_CLUSTER_NAME)")" || exit 1; \
+		if [ -z "$$nodes" ]; then \
+			echo "No nodes found for kind cluster '$(KIND_CLUSTER_NAME)'." >&2; \
+			exit 1; \
+		fi; \
+		for node in $$nodes; do \
+			docker image save $(1) | docker exec --privileged -i "$$node" ctr --namespace=k8s.io images import --digests --snapshotter=overlayfs - || exit 1; \
+		done; \
 	else \
-		kind load docker-image $(1); \
+		kind load docker-image --name "$(KIND_CLUSTER_NAME)" $(1); \
 	fi
 endef
 
@@ -170,10 +181,13 @@ switch-athenz-zts-cert-signer-vault: patch-athenz-zts-vault setup-vault-credenti
 	@$(MAKE) overwrite-certificates-with-vault
 
 kind-setup:
-	#which kind && (kind delete cluster ||:; kind create cluster --config kind.yaml)
-	which kind && (kind delete cluster ||:; kind create cluster)
+	which kind && (kind delete cluster --name "$(KIND_CLUSTER_NAME)" ||:; kind create cluster --name "$(KIND_CLUSTER_NAME)")
 
 kind-load-images-check:
+	@if [ "$(KIND_CONTEXT)" != "kind-$(KIND_CLUSTER_NAME)" ]; then \
+		echo "Expected kubectl context 'kind-$(KIND_CLUSTER_NAME)', found '$(KIND_CONTEXT)'." >&2; \
+		exit 1; \
+	fi
 	@# Check if Docker is using the problematic containerd-snapshotter
 	@# https://docs.rancherdesktop.io/how-to-guides/migrating-images/
 	@if [ "$$(docker info 2>/dev/null | grep -c 'containerd-snapshotter')" -eq 1 ]; then \
@@ -186,7 +200,6 @@ kind-load-images-check:
 	else \
 		echo "Environment is correct. No driver change needed."; \
 	fi
-	kubectl config get-contexts kind-kind --no-headers=true | grep -E "^\* +kind-kind"
 
 kind-load-images-internal: kind-load-images-check
 	$(call KIND_LOAD_DOCKER_IMAGES, \
@@ -229,7 +242,7 @@ kind-load-images-thirdparty: kind-load-images-check
 kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
 
 kind-shutdown:
-	kind delete cluster
+	kind delete cluster --name "$(KIND_CLUSTER_NAME)"
 
 setup-crypki-softhsm:
 	@$(MAKE) -C crypki-softhsm setup-crypki-softhsm

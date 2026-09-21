@@ -1,0 +1,24 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: jenkins-system
+
+resources:
+  - clusterrolebinding.yaml
+  - namespace.yaml
+
+helmCharts:
+    # https://github.com/jenkinsci/helm-charts/tree/main/charts/jenkins
+    # https://github.com/jenkinsci/helm-charts/tags
+  - repo: https://charts.jenkins.io
+    name: jenkins
+    releaseName: jenkins
+    version: v5.8.33
+    namespace: jenkins-system
+    # https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/values.yaml
+    valuesFile: helm/values.yaml
+    includeCRDs: true
+
+generatorOptions:
+  disableNameSuffixHash: true

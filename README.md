@@ -24,6 +24,16 @@ kubectl -n athenz port-forward deployment/athenz-ui 3000:3000
 
 To see how Athenz authorization scenarios work, check out the [Kubernetes Showcase](docs/SHOWCASES_KUBERNETES.md) to run the entire ecosystem.
 
+### Named kind clusters
+
+The kind targets use the cluster selected by the current kubectl context. For example, `kind-test` selects the cluster named `test`. Image loading checks that the context matches the selected cluster and loads images into that cluster's nodes.
+
+You can also select the cluster explicitly:
+
+```sh
+make load-kubernetes-images KIND_CLUSTER_NAME=test
+```
+
 ## Minimum setup on Docker 🐳
 
 ⚠️  Prerequisite: [Docker compose](https://docs.docker.com/compose/) must be set up before continuing to further steps.

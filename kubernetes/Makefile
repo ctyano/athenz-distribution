@@ -242,7 +242,7 @@ kind-load-images-internal: kind-load-images-check
 		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG) \
-		$(DOCKER_REGISTRY)athenz-zms-syncer:latest
+		$(DOCKER_REGISTRY)athenz-zms-syncer:latest)
 
 kind-load-images-external: kind-load-images-check
 	$(call KIND_LOAD_DOCKER_IMAGES, \
@@ -271,7 +271,7 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/rustfs/rustfs:latest \
 		$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
+		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest)
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest); \
 	else \

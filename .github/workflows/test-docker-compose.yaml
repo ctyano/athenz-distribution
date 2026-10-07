@@ -11,7 +11,19 @@ on:
   # workflows triggered on the push or pull_request events will be skipped.
   # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
   workflow_call:
+    inputs:
+      target_version:
+        description: 'Target version to test e.g. 1.12.48'
+        required: false
+        default: ''
+        type: string
   workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Target version to test e.g. 1.12.48'
+        required: false
+        default: ''
+        type: string
   pull_request:
     branches:
       - main
@@ -133,9 +145,9 @@ jobs:
         name: Resolve Athenz version
         id: resolve-athenz-version
         run: |
-          if [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
-            CURRENT_VERSION="${{ github.event.inputs.target_version }}"
-          else
+          if [[ -n "${{ inputs.target_version }}" ]]; then
+            CURRENT_VERSION="${{ inputs.target_version }}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
             CURRENT_VERSION="$( \
               curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
                 | jq -r .[].tag_name \
@@ -144,14 +156,23 @@ jobs:
                 | sort -ruV \
                 | head -n1 \
             )"
-          fi
-          if [[ -z "${CURRENT_VERSION}" ]]; then
+          else
             CURRENT_VERSION="$( \
               curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest \
               | jq -r '.tag_name // empty' \
               | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' \
               | sort -ruV \
               | head -n1 \
+            )"
+          fi
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
+                | jq -r .[].tag_name \
+                | grep -E "^v?[0-9]+\.[0-9]+\.[0-9]+" \
+                | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
+                | sort -ruV \
+                | head -n1 \
             )"
           fi
           CURRENT_VERSION="$(echo "${CURRENT_VERSION}" | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"

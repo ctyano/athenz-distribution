@@ -33,6 +33,8 @@ jobs:
   test-kubernetes:
     name: "Test running on Kubernetes Cluster"
     uses: ./.github/workflows/test-kubernetes.yaml
+    with:
+      target_version: ${{ github.event.inputs.target_version || '' }}
     secrets: inherit
     # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
     permissions:

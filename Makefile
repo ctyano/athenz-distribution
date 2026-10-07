@@ -226,7 +226,7 @@ mirror-athenz-amd64-images:
 	IMAGE=athenz-user-cert; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 
 patch:
-	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* athenz
+	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* $(wildcard patchfiles/.versions/$(TRACKING_GIT_REPO_TAG)/$(VERSION)/*) athenz
 
 build-java: assert-version patch install-rdl-tools
 	mvn -B clean install \

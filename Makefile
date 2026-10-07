@@ -247,6 +247,7 @@ build-java: assert-version patch install-rdl-tools
 		-pl libs/java/auth_core \
 		-pl libs/java/client_common \
 		-pl libs/java/server_common \
+		$(if $(filter 1.12.49,$(shell printf '%s\n' 1.12.49 '$(VERSION)' | sort -V | head -n1)),-pl libs/java/crypki) \
 		-pl libs/java/syncer_common \
 		-pl libs/java/server_aws_common \
 		-pl libs/java/server_k8s_common \

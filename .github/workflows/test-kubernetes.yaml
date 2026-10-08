@@ -243,6 +243,10 @@ jobs:
           set -ex
           if [[ -z "${ATHENZ_IMAGE_TAG:-}" ]]; then
             VERSION=${VERSION} make build
+            if [[ -n "${TRACKING_GIT_REF:-}" ]]; then
+              BUILT_ATHENZ_IMAGE_TAG="$(make -s print-tracking-docker-tag)"
+              echo "BUILT_ATHENZ_IMAGE_TAG=${BUILT_ATHENZ_IMAGE_TAG}" >> "$GITHUB_ENV"
+            fi
           else
             echo "Using prebuilt Athenz images tagged ${ATHENZ_IMAGE_TAG}"
           fi
@@ -257,6 +261,9 @@ jobs:
             make load-docker-images-internal
           fi
           make load-docker-images-external
+          if [[ -n "${BUILT_ATHENZ_IMAGE_TAG:-}" ]]; then
+            echo "ATHENZ_IMAGE_TAG=${BUILT_ATHENZ_IMAGE_TAG}" >> "$GITHUB_ENV"
+          fi
 
       # A GitHub Action to load container images to KinD cluster
       -

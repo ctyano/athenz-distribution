@@ -50,9 +50,9 @@ wait-athenz-zms-syncer-job:
 # rather than relying on --rm -i to stream output live.
 show-athenz-zms-syncer-status:
 	@NAME=zms-syncer-status-$$(date +%s); \
-	kubectl -n athenz run $$NAME --restart=Never \
+	kubectl -n athenz run $$NAME --restart=Never --image-pull-policy=IfNotPresent \
 		--image=$(DOCKER_REGISTRY)athenz-cli:latest \
-		--overrides='{"apiVersion":"v1","spec":{"volumes":[{"name":"state","persistentVolumeClaim":{"claimName":"athenz-zms-syncer-state","readOnly":true}}],"containers":[{"name":"'"$$NAME"'","image":"$(DOCKER_REGISTRY)athenz-cli:latest","command":["cat","/state/run_state.json"],"volumeMounts":[{"name":"state","mountPath":"/state","readOnly":true}]}]}}' >/dev/null; \
+		--overrides='{"apiVersion":"v1","spec":{"volumes":[{"name":"state","persistentVolumeClaim":{"claimName":"athenz-zms-syncer-state","readOnly":true}}],"containers":[{"name":"'"$$NAME"'","image":"$(DOCKER_REGISTRY)athenz-cli:latest","imagePullPolicy":"IfNotPresent","command":["cat","/state/run_state.json"],"volumeMounts":[{"name":"state","mountPath":"/state","readOnly":true}]}]}}' >/dev/null; \
 	kubectl -n athenz wait --for=jsonpath='{.status.phase}'=Succeeded --timeout=30s pod/$$NAME >/dev/null; \
 	kubectl -n athenz logs $$NAME | jq .; \
 	kubectl -n athenz delete pod $$NAME --ignore-not-found >/dev/null

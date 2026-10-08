@@ -317,7 +317,7 @@ jobs:
           SLEEP_SECONDS=5
           i=0
           while true; do
-            RUN_STATE="$(make show-kubernetes-athenz-zms-syncer-status)"
+            RUN_STATE="$(make --no-print-directory show-kubernetes-athenz-zms-syncer-status)"
             RUN_TIME="$(echo "${RUN_STATE}" | jq -r '."run-time" // empty')"
             RUN_STATUS="$(echo "${RUN_STATE}" | jq -r '."run-status" // empty')"
             RUN_EPOCH="$(date -u -d "${RUN_TIME}" +%s 2>/dev/null || echo 0)"
@@ -366,7 +366,7 @@ jobs:
           SLEEP_SECONDS=5
           i=0
           while true; do
-            RUN_STATE="$(make show-kubernetes-athenz-zms-syncer-status)"
+            RUN_STATE="$(make --no-print-directory show-kubernetes-athenz-zms-syncer-status)"
             RUN_TIME="$(echo "${RUN_STATE}" | jq -r '."run-time" // empty')"
             RUN_STATUS="$(echo "${RUN_STATE}" | jq -r '."run-status" // empty')"
             RUN_EPOCH="$(date -u -d "${RUN_TIME}" +%s 2>/dev/null || echo 0)"

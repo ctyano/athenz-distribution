@@ -123,7 +123,7 @@ GOCACHE=$(shell go env GOCACHE | sed -e "s/'//g")
 export GOCACHE
 endif
 
-.PHONY: assert-version assert-version-value build buildx buildx-manifest checkout checkout-source checkout-version submodule-initialize submodule-update version
+.PHONY: assert-version assert-version-value build buildx buildx-manifest checkout checkout-source checkout-version print-tracking-docker-tag submodule-initialize submodule-update version
 
 .SILENT: version
 
@@ -225,10 +225,10 @@ mirror-athenz-amd64-images:
 	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=athenz-user-cert; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 
-patch:
+patch: assert-version
 	$(PATCH) && rsync -av --exclude=".gitkeep" patchfiles/* $(wildcard patchfiles/.versions/$(TRACKING_GIT_REPO_TAG)/$(VERSION)/*) athenz
 
-build-java: assert-version patch install-rdl-tools
+build-java: patch install-rdl-tools
 	mvn -B clean install \
 		-f athenz/pom.xml \
 		$(if $(TRACKING_GIT_REF),--also-make) \
@@ -313,10 +313,6 @@ submodule-initialize:
 	@if [ ! -e athenz/.git ]; then \
 		git clone "$(TRACKING_GIT_URL)" athenz; \
 	else \
-		if [ "$(TRACKING_GIT_FORCE_CHECKOUT)" != "true" ] && [ -n "$$(git -C athenz status --porcelain)" ]; then \
-			echo "athenz has local changes; commit/stash them or set TRACKING_GIT_FORCE_CHECKOUT=true" >&2; \
-			exit 1; \
-		fi; \
 		git -C athenz remote set-url origin "$(TRACKING_GIT_URL)"; \
 	fi
 
@@ -333,17 +329,21 @@ checkout-source: submodule-update
 		echo "TRACKING_GIT_REF or VERSION is required" >&2; \
 		exit 1; \
 	fi; \
-	if [ -n "$(TRACKING_GIT_REF)" ]; then \
-		if git -C athenz fetch --force --tags origin "$$ref"; then \
-			git -C athenz checkout $$checkout_option FETCH_HEAD; \
-		else \
-			git -C athenz checkout $$checkout_option "$$ref"; \
+	target="$$ref"; \
+	if [ -n "$(TRACKING_GIT_REF)" ] && git -C athenz fetch --force --tags origin "$$ref"; then \
+		target=FETCH_HEAD; \
+	fi; \
+	if [ "$(TRACKING_GIT_FORCE_CHECKOUT)" != "true" ] && [ -n "$$(git -C athenz status --porcelain)" ]; then \
+		if [ "$$(git -C athenz rev-parse HEAD)" = "$$(git -C athenz rev-parse --verify "$${target}^{commit}")" ]; then \
+			exit 0; \
 		fi; \
-	else \
-		git -C athenz checkout $$checkout_option "$$ref"; \
-	fi
+		echo "athenz has local changes and does not match the requested ref; commit/stash them before checkout" >&2; \
+		exit 1; \
+	fi; \
+	git -C athenz checkout $$checkout_option "$$target"
 
-assert-version: checkout-source assert-version-value
+assert-version: checkout-source
+	@$(MAKE) --no-print-directory assert-version-value
 
 assert-version-value:
 	@if [ -z "$(VERSION)" ]; then \
@@ -358,6 +358,9 @@ version: assert-version
 	@echo "Tracking Git Repository: $(TRACKING_GIT_REPO)"
 	@echo "Tracking Git Ref: $(TRACKING_GIT_CHECKOUT_REF)"
 	@echo "Docker Tag: $(DOCKER_TAG)"
+
+print-tracking-docker-tag: assert-version-value
+	@printf '%s\n' '$(TRACKING_DOCKER_TAG)'
 
 install-pathman:
 	test -x "$$HOME/.local/bin/pathman" \
@@ -528,16 +531,16 @@ load-docker-images-external:
 deploy-kubernetes-in-docker:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-setup
 
-load-kubernetes-images: version install-kustomize
+load-kubernetes-images: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images
 
-load-kubernetes-images-internal: version install-kustomize
+load-kubernetes-images-internal: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-internal
 
-load-kubernetes-images-external: version install-kustomize
+load-kubernetes-images-external: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-external
 
-load-kubernetes-images-thirdparty: version install-kustomize
+load-kubernetes-images-thirdparty: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-thirdparty
 
 set-kubernetes-athenz-build-env:

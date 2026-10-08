@@ -1,0 +1,465 @@
+name: Test running on Kubernetes Cluster with ZMS Domain Syncer
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  # If any commit message in your push or the HEAD commit of your PR contains the strings
+  # [skip ci], [ci skip], [no ci], [skip actions], or [actions skip]
+  # workflows triggered on the push or pull_request events will be skipped.
+  # https://github.blog/changelog/2021-02-08-github-actions-skip-pull-request-and-push-workflows-with-skip-ci/
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '.gemini/**'
+      - '*.md'
+      - 'docs/**'
+
+env:
+  # Use docker.io for Docker Hub if empty
+  DOCKER_REGISTRY_URL: ghcr.io
+  # DOCKER_REGISTRY_OWNER: ${{ env.CI_REPOSITORY_OWNER }}
+  # DOCKER_REGISTRY_IMAGE: ${{ env.CI_REPOSITORY_NAME }}
+  # DOCKER_REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
+  # DOCKER_TAEGET_PLATFORMS: linux/amd64,linux/arm64
+  # DOCKER_BUILD_ARGS: |
+  GITHUB_REPOSITORY: AthenZ/athenz
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+    permissions:
+      actions: none
+      checks: none
+      contents: read
+      deployments: none
+      issues: none
+      discussions: none
+      packages: read
+      pull-requests: none
+      repository-projects: none
+      security-events: none
+      statuses: none
+
+    steps:
+      # A GitHub Action to expose useful environment variables.
+      # https://github.com/FranzDiebold/github-env-vars-action
+      -
+        name: GitHub Environment Variables Action
+        id: env
+        # uses: https://github.com/FranzDiebold/github-env-vars-action/tags
+        uses: FranzDiebold/github-env-vars-action@v2
+
+      # A GitHub Action to prepare default environment variables.
+      -
+        name: Set Default Environment Variables
+        id: default_env
+        run: |
+          # Use docker.io for Docker Hub if empty
+          [[ "${{ env.DOCKER_REGISTRY_URL}}" = "" ]] && echo "DOCKER_REGISTRY_URL=docker.io" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_OWNER }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ env.DOCKER_REGISTRY_IMAGE }}" = "" ]] && echo "DOCKER_REGISTRY_IMAGE=${{ env.CI_REPOSITORY_NAME }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_URL=ghcr.io" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_OWNER=${{ env.CI_REPOSITORY_OWNER }}" >> $GITHUB_ENV
+          [[ "${{ secrets.DOCKER_REGISTRY_TOKEN }}" = "" ]] && echo "DOCKER_REGISTRY_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV || echo "DOCKER_REGISTRY_TOKEN=${{ secrets.DOCKER_REGISTRY_TOKEN }}" >> $GITHUB_ENV
+
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # GitHub Action to login against a Docker registry.
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      -
+        name: Docker Login to registry ${{ env.DOCKER_REGISTRY_URL }}
+        id: login
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/docker/login-action/tags
+        uses: docker/login-action@v4
+        with:
+          # Server address of Docker registry. If not set then will default to Docker Hub
+          registry: ${{ env.DOCKER_REGISTRY_URL }} # optional
+          # Username used to log against the Docker registry
+          username: ${{ env.DOCKER_REGISTRY_OWNER }} # optional
+          # Password or personal access token used to log against the Docker registry
+          password: ${{ env.DOCKER_REGISTRY_TOKEN }} # optional
+          # Log out from the Docker registry at the end of a job
+          logout: true # optional, default is true
+
+      # This action sets up a go environment for use in actions by:
+      # - Optionally downloading and caching a version of Go by version and adding to PATH.
+      # - Registering problem matchers for error output.
+      # https://github.com/actions/setup-go
+      -
+        name: Setup Golang
+        id: setup-go
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/setup-go/tags
+        uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+
+      # A GitHub Action to set environment variables for Go
+      -
+        name: Set Golang env
+        id: go-env
+        run: |
+          go env | grep GOPATH | sed -e "s/'//g" >> $GITHUB_ENV
+
+      # A GitHub Action to resolve Athenz version
+      -
+        name: Resolve Athenz version
+        id: resolve-athenz-version
+        run: |
+          if [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
+            CURRENT_VERSION="${{ github.event.inputs.target_version }}"
+          else
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
+                | jq -r .[].tag_name \
+                | grep -E "^v?[0-9]+\.[0-9]+\.[0-9]+" \
+                | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
+                | sort -ruV \
+                | head -n1 \
+            )"
+          fi
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            CURRENT_VERSION="$( \
+              curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest \
+              | jq -r '.tag_name // empty' \
+              | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' \
+              | sort -ruV \
+              | head -n1 \
+            )"
+          fi
+          CURRENT_VERSION="$(echo "${CURRENT_VERSION}" | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            echo "No valid Athenz version found" >&2
+            exit 1
+          fi
+          echo "VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
+          echo "version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+
+      # A GitHub Action to select Java version
+      -
+        name: Select Java version
+        id: select-java-version
+        run: |
+          if [[ $(printf '%s\n' "1.12.0" "${VERSION}" | sort -V | head -n1) = "1.12.0" ]]; then
+            JAVA_VERSION=17
+          else
+            JAVA_VERSION=11
+          fi
+          echo "JAVA_VERSION=${JAVA_VERSION}" >> $GITHUB_ENV
+          echo "java-version=${JAVA_VERSION}" >> $GITHUB_OUTPUT
+
+      # This action provides the following functionality for GitHub Actions runners:
+      # - Downloading and setting up a requested version of Java. See [Usage](#usage) for a list of supported distributions.
+      # - Extracting and caching custom version of Java from a local file.
+      # - Configuring runner for publishing using Apache Maven.
+      # - Configuring runner for publishing using Gradle.
+      # - Configuring runner for using GPG private key.
+      # - Registering problem matchers for error output.
+      # - Caching dependencies managed by Apache Maven.
+      # - Caching dependencies managed by Gradle.
+      # - Caching dependencies managed by sbt.
+      # - [Maven Toolchains declaration](https://maven.apache.org/guides/mini/guide-using-toolchains.html) for specified JDK versions.
+      #
+      # This action allows you to work with Java and Scala projects.
+      # https://github.com/actions/setup-java
+      -
+        name: Setup Java
+        id: setup-java
+        # uses: https://github.com/actions/setup-java/tags
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ steps.select-java-version.outputs.java-version }}
+          #cache: maven
+
+      # A GitHub Action for Kubernetes IN Docker
+      # https://github.com/helm/kind-action
+      -
+        name: Create KinD Cluster
+        id: kind
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/helm/kind-action/tags
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
+
+      # A GitHub Action to build Docker container images
+      -
+        name: Build Docker container images
+        id: build
+        run: |
+          set -ex
+          VERSION=${VERSION} make build
+
+      # A GitHub Action to pull container images
+      -
+        name: Pull container images
+        id: pull
+        run: |
+          set -ex
+          make load-docker-images-external
+
+      # A GitHub Action to load container images to KinD cluster
+      -
+        name: Load container images to KinD cluster
+        id: load
+        run: |
+          set -ex
+          df -h
+          make load-kubernetes-images
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application
+        id: deploy
+        run: |
+          set -ex
+          make deploy-kubernetes-athenz
+
+      # A GitHub Action to check and test application
+      # Only readiness is checked here -- the functional test suite runs
+      # further down, once ZTS has been switched to read from RustFS via
+      # the ZMS Domain Syncer, so it actually proves the syncer works.
+      -
+        name: Check Application
+        id: check
+        run: |
+          make check-kubernetes-athenz
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for RustFS
+        id: deploy-rustfs
+        run: |
+          make deploy-kubernetes-rustfs
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for RustFS
+        id: test-rustfs
+        run: |
+          make test-kubernetes-rustfs
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for ZMS Domain Syncer
+        id: deploy-athenz-zms-syncer
+        run: |
+          make deploy-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for ZMS Domain Syncer
+        id: test-athenz-zms-syncer
+        run: |
+          make test-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to switch athenz-zts-server to read domain data from
+      # RustFS via the ZMS Domain Syncer. Everything from this point on
+      # exercises the rest of the Athenz ecosystem against this ZTS.
+      -
+        name: Switch athenz-zts-server to read from RustFS via ZMS Domain Syncer
+        id: use-athenz-zms-syncer
+        run: |
+          make use-kubernetes-athenz-zms-syncer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests
+        id: test
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz test-kubernetes-athenz-solution-template-reload
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Applicationfor athenz-identityprovider
+        id: deploy-identityprovider
+        run: |
+          make deploy-kubernetes-athenz-identityprovider
+          echo "SINCE_IDENTITYPROVIDER=$(date -u +%s)" >> $GITHUB_ENV
+
+      # A GitHub Action to wait for the ZMS Domain Syncer's own CronJob
+      # schedule (not a manually triggered job) to sync the service
+      # registered above for athenz-identityprovider, so it is visible to
+      # ZTS through RustFS before its test runs. The CronJob's schedule is
+      # capped at a 1-minute floor (standard Kubernetes CronJob syntax has
+      # no sub-minute granularity), so this polls the syncer's
+      # run_state.json (via `make show-kubernetes-athenz-zms-syncer-status`)
+      # for a successful run that completed after SINCE_IDENTITYPROVIDER,
+      # instead of assuming a fixed sleep is enough.
+      -
+        name: Wait for ZMS Domain Syncer to sync athenz-identityprovider
+        id: wait-athenz-zms-syncer-identityprovider
+        run: |
+          WAITING_TIMEOUT=90
+          SLEEP_SECONDS=5
+          i=0
+          while true; do
+            RUN_STATE="$(make --no-print-directory show-kubernetes-athenz-zms-syncer-status)"
+            RUN_TIME="$(echo "${RUN_STATE}" | jq -r '."run-time" // empty')"
+            RUN_STATUS="$(echo "${RUN_STATE}" | jq -r '."run-status" // empty')"
+            RUN_EPOCH="$(date -u -d "${RUN_TIME}" +%s 2>/dev/null || echo 0)"
+            if [ -n "${RUN_TIME}" ] && [ "${RUN_EPOCH}" -gt "${SINCE_IDENTITYPROVIDER}" ] && [ "${RUN_STATUS}" = "0" ]; then
+              echo "ZMS Domain Syncer completed a scheduled run at ${RUN_TIME}"
+              break
+            fi
+            i=$(( i + 1 ))
+            if [ $(( i * SLEEP_SECONDS )) -ge ${WAITING_TIMEOUT} ]; then
+              echo "Timed out waiting for ZMS Domain Syncer to sync athenz-identityprovider" >&2
+              echo "${RUN_STATE}" >&2
+              exit 1
+            fi
+            sleep ${SLEEP_SECONDS}
+          done
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-identityprovider
+        id: test-identityprovider
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-identityprovider
+
+      # A GitHub Action to deploy application to a Kubernetes cluster
+      -
+        name: Deploy Application for athenz-workloads
+        id: deploy-workloads
+        run: |
+          make deploy-kubernetes-athenz-workloads
+          echo "SINCE_WORKLOADS=$(date -u +%s)" >> $GITHUB_ENV
+
+      # A GitHub Action to wait for the ZMS Domain Syncer's own CronJob
+      # schedule (not a manually triggered job) to sync the services
+      # registered above for athenz-authorizer, athenz-authzenvoy,
+      # athenz-authzwebhook, athenz-authzproxy, and athenz-client, so they
+      # are visible to ZTS through RustFS before their tests run. See the
+      # athenz-identityprovider wait step above for why this polls instead
+      # of assuming a fixed sleep is enough.
+      -
+        name: Wait for ZMS Domain Syncer to sync athenz-workloads
+        id: wait-athenz-zms-syncer-workloads
+        run: |
+          WAITING_TIMEOUT=90
+          SLEEP_SECONDS=5
+          i=0
+          while true; do
+            RUN_STATE="$(make --no-print-directory show-kubernetes-athenz-zms-syncer-status)"
+            RUN_TIME="$(echo "${RUN_STATE}" | jq -r '."run-time" // empty')"
+            RUN_STATUS="$(echo "${RUN_STATE}" | jq -r '."run-status" // empty')"
+            RUN_EPOCH="$(date -u -d "${RUN_TIME}" +%s 2>/dev/null || echo 0)"
+            if [ -n "${RUN_TIME}" ] && [ "${RUN_EPOCH}" -gt "${SINCE_WORKLOADS}" ] && [ "${RUN_STATUS}" = "0" ]; then
+              echo "ZMS Domain Syncer completed a scheduled run at ${RUN_TIME}"
+              break
+            fi
+            i=$(( i + 1 ))
+            if [ $(( i * SLEEP_SECONDS )) -ge ${WAITING_TIMEOUT} ]; then
+              echo "Timed out waiting for ZMS Domain Syncer to sync athenz-workloads" >&2
+              echo "${RUN_STATE}" >&2
+              exit 1
+            fi
+            sleep ${SLEEP_SECONDS}
+          done
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authorizer
+        id: test-authorizer
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authorizer
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzenvoy
+        id: test-authzenvoy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzenvoy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzwebhook
+        id: test-authzwebhook
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzwebhook
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-authzproxy
+        id: test-authzproxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-authzproxy
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for athenz-client
+        id: test-client
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-client
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with ExtAuthz filter
+        id: test-extauthzfilter
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoyextauthz
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter as webhook with ZTS
+        id: test-luafilterwebhook
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoywebhook
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to Envoy with JWT filter and Lua filter
+        id: test-jwtfilter
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2envoyfilter
+
+      # A GitHub Action to check and test application
+      -
+        name: Run Tests for Athenz Envoy Showcase with Envoy to authorization-proxy
+        id: test-envoy2authzproxy
+        run: |
+          # Run tests against your deployed application in KinD
+          # Replace this with your test command
+          make test-kubernetes-athenz-envoy2authzproxy

@@ -21,6 +21,9 @@ Primary Docker(OCI) image distributions:
   - [athenz-ui](https://github.com/users/ctyano/packages/container/package/athenz-ui)
     - This image includes a functional Athenz Web UI.
     - This image includes additional compatibility with an OIDC auth proxy (e.g., [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)).
+  - [athenz-zms-syncer](https://github.com/users/ctyano/packages/container/package/athenz-zms-syncer)
+    - This image provides the [Athenz ZMS AWS Domain Syncer](https://github.com/AthenZ/athenz/tree/master/syncers/zms_aws_domain_syncer), a one-shot batch process that reads signed domain data from ZMS and writes it to an S3-compatible object store.
+    - Used together with an S3-compatible store (e.g. [RustFS](https://rustfs.com/)), this lets ZTS read domain data from that store instead of pulling it directly from ZMS. See the [ZMS Domain Syncer Kubernetes showcase](../kubernetes/athenz-zms-syncer).
 
 External Docker(OCI) image distributions:
 
@@ -51,6 +54,8 @@ Third-party Docker(OCI) images:
   - [oauth2-proxy](https://quay.io/repository/oauth2-proxy/oauth2-proxy)
   - [dex](https://github.com/dexidp/dex/pkgs/container/dex)
   - [cfssl](https://hub.docker.com/r/cfssl/cfssl)
+  - [rustfs](https://hub.docker.com/r/rustfs/rustfs) (used by the [ZMS Domain Syncer showcase](../kubernetes/athenz-zms-syncer) as the S3-compatible backing store)
+  - [amazon/aws-cli](https://hub.docker.com/r/amazon/aws-cli) (S3-compatible client, used to pre-create and verify the RustFS bucket)
 
 ## Homebrew formulas
 

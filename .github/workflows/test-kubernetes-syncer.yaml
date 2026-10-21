@@ -227,6 +227,7 @@ jobs:
           set -ex
           df -h
           make load-kubernetes-images
+          make load-kubernetes-image-athenz-zms-syncer
 
       # A GitHub Action to deploy application to a Kubernetes cluster
       -

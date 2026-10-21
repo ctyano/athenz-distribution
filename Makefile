@@ -187,6 +187,7 @@ buildx-manifest: assert-version-value
 	$(call BUILDX_CREATE_MANIFEST,athenz-db)
 	$(call BUILDX_CREATE_MANIFEST,athenz-zms-server)
 	$(call BUILDX_CREATE_MANIFEST,athenz-zts-server)
+	$(call BUILDX_CREATE_MANIFEST,athenz-zms-syncer)
 	$(call BUILDX_CREATE_MANIFEST,athenz-cli)
 	$(call BUILDX_CREATE_MANIFEST,athenz-ui)
 
@@ -209,8 +210,8 @@ buildx-athenz-zts-server: build-java
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
 buildx-athenz-zms-syncer: build-java
-	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer$(DOCKER_TAG); \
-	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer:latest; \
+	IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer$(DOCKER_TAG)$(BUILDX_TAG_SUFFIX); \
+	LATEST_IMAGE_NAME=$(DOCKER_REGISTRY)athenz-zms-syncer:latest$(BUILDX_TAG_SUFFIX); \
 	DOCKERFILE_PATH=./docker/zms-syncer/Dockerfile; \
 	DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARG) $(XPLATFORM_ARGS) $(PUSH_OPTION) $(GID_ARG) $(UID_ARG) --cache-from $$IMAGE_NAME -t $$IMAGE_NAME $(LATEST_DOCKER_TAG_OPTION) -f $$DOCKERFILE_PATH .
 
@@ -525,6 +526,10 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
 	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
 	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+
+# The syncer is an optional showcase and its published latest image currently
+# has no arm64 manifest. Load it explicitly when deploying that showcase.
+load-docker-image-athenz-zms-syncer:
 	docker pull $(DOCKER_REGISTRY)athenz-zms-syncer:latest
 
 load-docker-images-external:
@@ -563,6 +568,9 @@ load-kubernetes-images: install-kustomize
 
 load-kubernetes-images-internal: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-internal
+
+load-kubernetes-image-athenz-zms-syncer: install-kustomize
+	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-image-athenz-zms-syncer
 
 load-kubernetes-images-external: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-external

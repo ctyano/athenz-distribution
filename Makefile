@@ -521,11 +521,11 @@ clean-kubernetes-vault:
 load-docker-images: load-docker-images-internal load-docker-images-external
 
 load-docker-images-internal:
-	docker pull $(DOCKER_REGISTRY)athenz-db:latest
-	docker pull $(DOCKER_REGISTRY)athenz-zms-server:latest
-	docker pull $(DOCKER_REGISTRY)athenz-zts-server:latest
-	docker pull $(DOCKER_REGISTRY)athenz-cli:latest
-	docker pull $(DOCKER_REGISTRY)athenz-ui:latest
+	docker pull $(DOCKER_REGISTRY)athenz-db:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG)
+	docker pull $(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
 
 # The syncer is an optional showcase and its published latest image currently
 # has no arm64 manifest. Load it explicitly when deploying that showcase.

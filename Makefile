@@ -526,11 +526,7 @@ load-docker-images-internal:
 	docker pull $(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG)
 	docker pull $(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG)
 	docker pull $(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG)
-
-# The syncer is an optional showcase and its published latest image currently
-# has no arm64 manifest. Load it explicitly when deploying that showcase.
-load-docker-image-athenz-zms-syncer:
-	docker pull $(DOCKER_REGISTRY)athenz-zms-syncer:latest
+	docker pull $(DOCKER_REGISTRY)athenz-zms-syncer:$(ATHENZ_IMAGE_TAG)
 
 load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest
@@ -568,9 +564,6 @@ load-kubernetes-images: install-kustomize
 
 load-kubernetes-images-internal: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-internal
-
-load-kubernetes-image-athenz-zms-syncer: install-kustomize
-	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-image-athenz-zms-syncer
 
 load-kubernetes-images-external: install-kustomize
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes kind-load-images-external

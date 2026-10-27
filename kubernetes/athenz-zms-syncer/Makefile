@@ -4,6 +4,9 @@ endif
 ifeq ($(DOCKERIO_REGISTRY),)
 DOCKERIO_REGISTRY=docker.io
 endif
+ifeq ($(ATHENZ_IMAGE_TAG),)
+ATHENZ_IMAGE_TAG=latest
+endif
 
 RUSTFS_BUCKET=zms-domains
 JOB_NAME := athenz-zms-syncer-manual-$(shell date +%s)
@@ -12,11 +15,11 @@ clean-athenz-zms-syncer:
 	kubectl delete -k kustomize ||:
 
 kustomize-edit-athenz-zms-syncer-image:
-	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ]; then \
+	if [ "$(DOCKER_REGISTRY)" != "ghcr.io/ctyano/" ] || [ "$(ATHENZ_IMAGE_TAG)" != "latest" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-syncer:latest=$(DOCKER_REGISTRY)athenz-zms-syncer:latest \
-	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:latest \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-zms-syncer:latest=$(DOCKER_REGISTRY)athenz-zms-syncer:$(ATHENZ_IMAGE_TAG) \
+	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
 
@@ -51,8 +54,8 @@ wait-athenz-zms-syncer-job:
 show-athenz-zms-syncer-status:
 	@NAME=zms-syncer-status-$$(date +%s); \
 	kubectl -n athenz run $$NAME --restart=Never --image-pull-policy=IfNotPresent \
-		--image=$(DOCKER_REGISTRY)athenz-cli:latest \
-		--overrides='{"apiVersion":"v1","spec":{"volumes":[{"name":"state","persistentVolumeClaim":{"claimName":"athenz-zms-syncer-state","readOnly":true}}],"containers":[{"name":"'"$$NAME"'","image":"$(DOCKER_REGISTRY)athenz-cli:latest","imagePullPolicy":"IfNotPresent","command":["cat","/state/run_state.json"],"volumeMounts":[{"name":"state","mountPath":"/state","readOnly":true}]}]}}' >/dev/null; \
+		--image=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
+		--overrides='{"apiVersion":"v1","spec":{"volumes":[{"name":"state","persistentVolumeClaim":{"claimName":"athenz-zms-syncer-state","readOnly":true}}],"containers":[{"name":"'"$$NAME"'","image":"$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG)","imagePullPolicy":"IfNotPresent","command":["cat","/state/run_state.json"],"volumeMounts":[{"name":"state","mountPath":"/state","readOnly":true}]}]}}' >/dev/null; \
 	kubectl -n athenz wait --for=jsonpath='{.status.phase}'=Succeeded --timeout=30s pod/$$NAME >/dev/null; \
 	kubectl -n athenz logs $$NAME | jq .; \
 	kubectl -n athenz delete pod $$NAME --ignore-not-found >/dev/null

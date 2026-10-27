@@ -241,10 +241,8 @@ kind-load-images-internal: kind-load-images-check
 		$(DOCKER_REGISTRY)athenz-zms-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-zts-server:$(ATHENZ_IMAGE_TAG) \
 		$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
-		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG))
-
-kind-load-image-athenz-zms-syncer: kind-load-images-check
-	$(call KIND_LOAD_DOCKER_IMAGES, $(DOCKER_REGISTRY)athenz-zms-syncer:latest)
+		$(DOCKER_REGISTRY)athenz-ui:$(ATHENZ_IMAGE_TAG) \
+		$(DOCKER_REGISTRY)athenz-zms-syncer:$(ATHENZ_IMAGE_TAG))
 
 kind-load-images-external: kind-load-images-check
 	$(call KIND_LOAD_DOCKER_IMAGES, \

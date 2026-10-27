@@ -41,9 +41,9 @@ deploy-athenz-loadtest: kustomize-edit-athenz-loadtest-image
 
 test-athenz-loadtest:
 	WAITING_TIMEOUT=60s; \
-	kubectl -n athenz wait --for=condition=available --timeout=$${WAITING_TIMEOUT} deployment/vegeta \
+	kubectl -n athenz rollout status deployment/vegeta --timeout=$${WAITING_TIMEOUT} \
 	|| ( \
-		printf "\n\n** vegeta deployment did not become available within $${WAITING_TIMEOUT} **\n\n"; \
+		printf "\n\n** vegeta deployment did not complete rollout within $${WAITING_TIMEOUT} **\n\n"; \
 		kubectl -n athenz get all; \
 		kubectl -n athenz logs deployment/vegeta --all-containers=true --tail=200 ||:; \
 		kubectl -n athenz describe deployment vegeta ||:; \

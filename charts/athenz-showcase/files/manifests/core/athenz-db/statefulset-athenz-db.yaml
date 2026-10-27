@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: athenz-db
+    app.kubernetes.io/name: athenz-db
+  name: athenz-db
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: athenz-db
+      app.kubernetes.io/name: athenz-db
+  serviceName: athenz-db
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: athenz-db
+        app.kubernetes.io/name: athenz-db
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Asia/Tokyo
+        - name: PUID
+          value: '1000'
+        - name: PGID
+          value: '1000'
+        - name: MYSQL_ROOT_PASSWORD
+          value: ''
+        image: ghcr.io/ctyano/athenz-db:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-db
+        ports:
+        - containerPort: 3306
+          name: mysql
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 3306
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: "/config/databases/"
+          name: databases
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: databases

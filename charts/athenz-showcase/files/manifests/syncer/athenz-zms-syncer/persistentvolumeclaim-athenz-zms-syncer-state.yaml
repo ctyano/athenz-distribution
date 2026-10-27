@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app.kubernetes.io/instance: athenz-zms-syncer
+    app.kubernetes.io/name: athenz-zms-syncer
+  name: athenz-zms-syncer-state
+  namespace: athenz
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 64Mi

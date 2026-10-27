@@ -1,0 +1,85 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: athenz-cli
+    app.kubernetes.io/name: athenz-cli
+  name: athenz-cli
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: athenz-cli
+      app.kubernetes.io/name: athenz-cli
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: athenz-cli
+        app.kubernetes.io/name: athenz-cli
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Asia/Tokyo
+        - name: ZMS
+          value: https://athenz-zms-server.athenz:4443/zms/v1
+        - name: ZTS
+          value: https://athenz-zts-server.athenz:4443/zts/v1
+        - name: ZMS_CLI_KEY_FILE
+          value: "/var/run/athenz/athenz_admin.private.pem"
+        - name: ZMS_CLI_CERT_FILE
+          value: "/var/run/athenz/athenz_admin.cert.pem"
+        image: ghcr.io/ctyano/athenz-cli:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-cli
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: "/var/run/athenz"
+          name: athenz-admin-keys
+          readOnly: true
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+        - mountPath: "/usr/local/bin/zms-cli"
+          name: zms-cli-wrapper
+          readOnly: true
+          subPath: zms-cli
+      restartPolicy: Always
+      volumes:
+      - name: athenz-admin-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: athenz_admin.cert.pem
+            path: athenz_admin.cert.pem
+          - key: athenz_admin.private.pem
+            path: athenz_admin.private.pem
+          secretName: athenz-admin-keys
+      - name: athenz-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-cacert
+      - configMap:
+          defaultMode: 365
+          items:
+          - key: zms-cli
+            path: zms-cli
+          name: zms-cli-wrapper
+        name: zms-cli-wrapper

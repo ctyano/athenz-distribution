@@ -1,0 +1,42 @@
+---
+apiVersion: v1
+data:
+  ATHENZ_DOMAIN: ''
+  ATHENZ_PREFIX: ''
+  ATHENZ_SUFFIX: ''
+  AUTHORIZATION_CACHE_INTERVAL: 30s
+  AUTHORIZATION_POLICY_DOMAINS: athenz
+  AUTHORIZATION_SERVER_ADDR: :8280
+  BACKUP: '""'
+  CA_CERT_FILE: "/var/run/athenz/ca.crt"
+  CERT_FILE: "/var/run/athenz/tls.crt"
+  CERT_SECRET: authorizer-tls
+  DELAY_JITTER_SECONDS: '0'
+  DELETE_INSTANCE_ID: 'true'
+  DNS_SUFFIX: svc.cluster.local
+  ENDPOINT: https://athenz-zts-server.athenz:4443/zts/v1
+  KEY_FILE: "/var/run/athenz/tls.key"
+  LOG_DIR: "/dev/null"
+  LOG_LEVEL: DEBUG
+  METRICS_SERVER_ADDR: :9999
+  MODE: init
+  NAMESPACE: ''
+  POD_IP: ''
+  POD_UID: ''
+  POLICY_REFRESH_INTERVAL: 30s
+  PROVIDER_SERVICE: athenz.identityprovider
+  PUBLICKEY_REFRESH_INTERVAL: 30s
+  REFRESH_INTERVAL: 30s
+  ROLECERT_DIR: ''
+  SA_TOKEN_FILE: "/var/run/secrets/kubernetes.io/bound-serviceaccount/token"
+  SERVER_CA_CERT: "/etc/ssl/certs/ca-certificates.crt"
+  SERVICEACCOUNT: authorizer
+  TARGET_DOMAIN_ROLES: ''
+  TOKEN_DIR: ''
+  TOKEN_REFRESH_INTERVAL: 30s
+  TOKEN_SERVER_ADDR: :8180
+  TOKEN_TYPE: roletoken+accesstoken
+kind: ConfigMap
+metadata:
+  name: authorizer-sia
+  namespace: athenz

@@ -1,0 +1,410 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: athenz-zts-server
+    app.kubernetes.io/name: athenz-zts-server
+  name: athenz-zts-server
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: athenz-zts-server
+      app.kubernetes.io/name: athenz-zts-server
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: athenz-zts-server
+        app.kubernetes.io/name: athenz-zts-server
+    spec:
+      containers:
+      - env:
+        - name: DEBUG
+          value: 'true'
+        - name: TZ
+          value: Asia/Tokyo
+        - name: ROOT
+          value: "/opt/athenz/zts"
+        - name: CLASSPATH
+          value: "/opt/athenz/zts/lib/jars/*"
+        - name: CONF_PATH
+          value: "/opt/athenz/zts/conf/zts_server"
+        - name: JAVA_OPTS
+          value: "-Dathenz.root_dir=/opt/athenz/zts -Dathenz.jetty_home=/opt/athenz/zts
+            -Dathenz.access_log_dir=/opt/athenz/zts/logs"
+        - name: USER_CLASSPATH
+          value: "/usr/lib/jars/*:/athenz/plugins/*"
+        - name: ZTS_STOP_TIMEOUT
+          value: '30'
+        - name: ZTS_PRIVATE_KEY
+          value: "/opt/athenz/zts/var/keys/zts.private.pem"
+        - name: ZTS_RSA_PRIVATE_KEY
+          value: "/opt/athenz/zts/var/keys/zts.private.pem"
+        - name: ZTS_EC_PRIVATE_KEY
+          value: "/opt/athenz/zts/var/keys/zts.private.pem"
+        - name: ZTS_PRIVATE_KEY_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ZTS_RSA_PRIVATE_KEY_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ZTS_EC_PRIVATE_KEY_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ZTS_SELF_SIGNER_PRIVATE_KEY
+          value: "/opt/athenz/zts/var/keys/zts.private.pem"
+        - name: ZTS_TRUSTSTORE_PEM_PATH
+          value: "/etc/ssl/certs/ca-certificates.crt"
+        - name: ZTS_SIGNER_TRUSTSTORE_PEM_PATH
+          value: "/opt/athenz/zts/var/certs/selfsign.ca.cert.pem"
+        - name: ZMS_CLIENT_TRUSTSTORE_PEM_PATH
+          value: "/etc/ssl/certs/ca-certificates.crt"
+        - name: ZTS_KEYSTORE_CERT_PEM_PATH
+          value: "/opt/athenz/zts/var/certs/zts.cert.pem"
+        - name: ZTS_KEYSTORE_KEY_PEM_PATH
+          value: "/opt/athenz/zts/var/keys/zts.private.pem"
+        - name: ZMS_CLIENT_KEYSTORE_CERT_PEM_PATH
+          value: "/opt/athenz/zts/var/certs/zts.cert.pem"
+        - name: ZMS_CLIENT_KEYSTORE_KEY_PEM_PATH
+          value: "/opt/athenz/zts/var/keys/zts.private.pem"
+        - name: ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH
+          value: "/opt/athenz/zts/var/certs/selfsign.ca.cert.pem"
+        - name: ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH
+          value: "/opt/athenz/zts/var/keys/ca.private.pem"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: RUSTFS_ACCESS_KEY
+              name: rustfs-credentials
+              optional: true
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: RUSTFS_SECRET_KEY
+              name: rustfs-credentials
+              optional: true
+        image: ghcr.io/ctyano/athenz-zts-server:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - "-s"
+            - "--fail"
+            - "--resolve"
+            - athenz-zts-server.athenz:4443:127.0.0.1
+            - https://athenz-zts-server.athenz:4443/zts/v1/status
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: athenz-zts-server
+        ports:
+        - containerPort: 4443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - "-s"
+            - "--fail"
+            - "--resolve"
+            - athenz-zts-server.athenz:4443:127.0.0.1
+            - https://athenz-zts-server.athenz:4443/zts/v1/status
+          failureThreshold: 5
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 2
+            memory: 2Gi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: "/opt/athenz/zts/var/keys"
+          name: athenz-zts-keys
+          readOnly: true
+        - mountPath: "/opt/athenz/zts/var/certs"
+          name: athenz-zts-certs
+          readOnly: true
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+        - mountPath: "/var/run/athenz/keystore"
+          name: athenz-key-store
+        - mountPath: "/var/run/athenz/truststore"
+          name: athenz-trust-store
+        - mountPath: "/opt/athenz/zts/conf/zts_server"
+          name: athenz-zts-conf
+          readOnly: true
+        - mountPath: "/opt/athenz/zts/conf/athenz"
+          name: athenz-conf
+          readOnly: true
+        - mountPath: "/athenz/plugins"
+          name: athenz-plugins
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - args:
+        - |
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            show-service zts \
+          && \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            add-public-key zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
+          || \
+          ( \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            add-service zts "${HOSTNAME}" /athenz/zts/zts.public.pem \
+          && \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            set-service-endpoint zts class://com.yahoo.athenz.instance.provider.impl.InstanceZTSProvider \
+          && \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            set-domain-template instance_provider dnssuffix=zts.athenz.cloud provider=sys.auth.zts \
+          ) \
+          && \
+          ( \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            show-service usercertprovider \
+          || \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            add-service usercertprovider "${HOSTNAME}" /athenz/zts/zts.public.pem \
+          ) \
+          && \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            set-service-endpoint usercertprovider class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider \
+          && \
+          ( \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            show-service extmembercertprovider \
+          || \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+            add-service extmembercertprovider "${HOSTNAME}" /athenz/zts/zts.public.pem \
+          ) \
+          && \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d sys.auth \
+             set-service-endpoint extmembercertprovider class://com.yahoo.athenz.instance.provider.impl.PluginUserCertificateProvider \
+          && \
+          curl \
+            -sv \
+            -d"{\"name\":\"keycloak\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+            -H"Content-Type: application/json" \
+            --key /athenz/admin/${USER}.private.pem \
+            --cert /athenz/admin/${USER}.cert.pem \
+            --cacert /etc/ssl/certs/ca-certificates.crt \
+            "${ZMS}/domain" \
+          && \
+          zms-cli \
+            -key /athenz/admin/${USER}.private.pem \
+            -cert /athenz/admin/${USER}.cert.pem \
+            -c /etc/ssl/certs/ca-certificates.crt \
+            -z ${ZMS} \
+            -d keycloak \
+            set-external-member-validator com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+        command:
+        - "/bin/sh"
+        - "-c"
+        env:
+        - name: TZ
+          value: Asia/Tokyo
+        - name: ZMS
+          value: https://athenz-zms-server.athenz:4443/zms/v1
+        - name: ZTS
+          value: https://athenz-zts-server.athenz:4443/zts/v1
+        - name: USER
+          value: athenz_admin
+        image: ghcr.io/ctyano/athenz-cli:latest
+        imagePullPolicy: IfNotPresent
+        name: zms-cli
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 50m
+            memory: 16Mi
+        volumeMounts:
+        - mountPath: "/athenz/admin"
+          name: athenz-admin-keys
+          readOnly: true
+        - mountPath: "/athenz/zts"
+          name: athenz-zts-keys
+          readOnly: true
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      - args:
+        - |
+          athenz-conf \
+            -svc-key-file /athenz/admin/athenz_admin.private.pem \
+            -svc-cert-file /athenz/admin/athenz_admin.cert.pem \
+            -z https://athenz-zms-server.athenz:4443/zms/v1 \
+            -t https://athenz-zms-server.athenz:4443/zts/v1 \
+            -o /athenz/conf/athenz.conf
+        command:
+        - "/bin/sh"
+        - "-c"
+        env:
+        - name: TZ
+          value: Asia/Tokyo
+        - name: ZMS
+          value: https://athenz-zms-server.athenz:4443/zms/v1
+        - name: ZTS
+          value: https://athenz-zts-server.athenz:4443/zts/v1
+        - name: USER
+          value: athenz_admin
+        image: ghcr.io/ctyano/athenz-cli:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-conf
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 50m
+            memory: 16Mi
+        volumeMounts:
+        - mountPath: "/athenz/admin"
+          name: athenz-admin-keys
+          readOnly: true
+        - mountPath: "/athenz/conf"
+          name: athenz-conf
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      - env:
+        - name: JAR_DESTINATION
+          value: "/athenz/plugins/"
+        image: ghcr.io/ctyano/athenz-plugins:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-plugins
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 16Mi
+        volumeMounts:
+        - mountPath: "/athenz/plugins"
+          name: athenz-plugins
+      restartPolicy: Always
+      volumes:
+      - name: athenz-zts-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: zts.private.pem
+            path: zts.private.pem
+          - key: zts.public.pem
+            path: zts.public.pem
+          - key: ca.private.pem
+            path: ca.private.pem
+          - key: crypki.private.pem
+            path: crypki.private.pem
+          secretName: athenz-zts-keys
+      - name: athenz-zts-certs
+        secret:
+          defaultMode: 365
+          items:
+          - key: zts.cert.pem
+            path: zts.cert.pem
+          - key: selfsign.ca.cert.pem
+            path: selfsign.ca.cert.pem
+          secretName: athenz-zts-certs
+      - name: athenz-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-cacert
+      - name: athenz-admin-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: athenz_admin.cert.pem
+            path: athenz_admin.cert.pem
+          - key: athenz_admin.private.pem
+            path: athenz_admin.private.pem
+          secretName: athenz-admin-keys
+      - configMap:
+          name: athenz-zts-conf
+        name: athenz-zts-conf
+      - emptyDir: {}
+        name: athenz-conf
+      - emptyDir: {}
+        name: athenz-plugins
+      - emptyDir: {}
+        name: athenz-key-store
+      - emptyDir: {}
+        name: athenz-trust-store

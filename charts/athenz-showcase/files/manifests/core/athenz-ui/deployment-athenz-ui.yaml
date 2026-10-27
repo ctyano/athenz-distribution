@@ -1,0 +1,163 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: athenz-ui
+    app.kubernetes.io/name: athenz-ui
+  name: athenz-ui
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: athenz-ui
+      app.kubernetes.io/name: athenz-ui
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: athenz-ui
+        app.kubernetes.io/name: athenz-ui
+    spec:
+      containers:
+      - env:
+        - name: NODE_ENV
+          value: production
+        - name: DEBUG
+          value: AthenzUI:*
+        - name: STATIC_USER_NAME
+          value: athenz_admin
+        - name: PORT
+          value: '4443'
+        - name: ZMS_SERVER_URL
+          value: https://athenz-zms-server.athenz:4443/zms/v1/
+        - name: UI_CERT_KEY_PATH
+          value: "/home/athenz/tls/ui.private.pem"
+        - name: UI_CERT_PATH
+          value: "/home/athenz/tls/ui.cert.pem"
+        - name: ATHENZ_PRIVATE_KEY
+          value: "/home/athenz/tls/ui.private.pem"
+        - name: ATHENZ_PUBLIC_CERT
+          value: "/home/athenz/tls/ui.cert.pem"
+        - name: NODE_EXTRA_CA_CERTS
+          value: "/etc/ssl/certs/ca-certificates.crt"
+        image: ghcr.io/ctyano/athenz-ui:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - "-s"
+            - "-H"
+            - 'X-Auth-Request-Preferred-Username: liveness_probe'
+            - "-H"
+            - 'X-Auth-Request-Email: liveness_probe@www.athenz.io'
+            - "--fail"
+            - "--resolve"
+            - athenz-ui.athenz:4443:127.0.0.1
+            - https://athenz-ui.athenz:4443/
+          failureThreshold: 3
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        name: athenz-ui
+        ports:
+        - containerPort: 4443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - "-s"
+            - "-H"
+            - 'X-Auth-Request-Preferred-Username: readiness_probe'
+            - "-H"
+            - 'X-Auth-Request-Email: readiness_probe@www.athenz.io'
+            - "--fail"
+            - "--resolve"
+            - athenz-ui.athenz:4443:127.0.0.1
+            - https://athenz-ui.athenz:4443/
+          failureThreshold: 5
+          initialDelaySeconds: 5
+          periodSeconds: 3
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/home/athenz/tls"
+          name: athenz-ui-keys
+          readOnly: true
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+        - mountPath: "/home/athenz/src/config/extended-config.js"
+          name: athenz-ui-config
+          readOnly: true
+          subPath: extended-config.js
+      - args:
+        - client
+        - "--listen"
+        - localhost:3000
+        - "--target"
+        - localhost:4443
+        - "--override-server-name"
+        - athenz-ui.athenz
+        - "--cacert"
+        - "/etc/ssl/certs/ca-certificates.crt"
+        - "--disable-authentication"
+        image: docker.io/ghostunnel/ghostunnel:latest
+        imagePullPolicy: IfNotPresent
+        name: ghostunnel
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+          requests:
+            cpu: 5m
+            memory: 16Mi
+        volumeMounts:
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - name: athenz-ui-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: ui.private.pem
+            path: ui.private.pem
+          - key: ui.public.pem
+            path: ui.public.pem
+          - key: ui.cert.pem
+            path: ui.cert.pem
+          secretName: athenz-ui-keys
+      - configMap:
+          items:
+          - key: extended-config.js
+            path: extended-config.js
+          name: athenz-ui-config
+        name: athenz-ui-config
+      - name: athenz-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-cacert

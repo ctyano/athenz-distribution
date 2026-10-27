@@ -1,0 +1,169 @@
+{{- if eq .Values.phase "oauth2" }}
+{{- if .Values.namespaces.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+---
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: keycloak
+data:
+  realm.json: {{ default (.Files.Get "files/keycloak/realm.json") .Values.keycloak.realmJSON | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-db-password
+  namespace: keycloak
+type: Opaque
+stringData:
+  password: {{ .Values.keycloak.dbPassword | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-admin-password
+  namespace: keycloak
+type: Opaque
+stringData:
+  password: {{ .Values.keycloak.adminPassword | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloakx-http
+  namespace: keycloak
+spec:
+  selector:
+    app.kubernetes.io/name: keycloakx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloakx-headless
+  namespace: keycloak
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: keycloakx
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloakx
+  namespace: keycloak
+spec:
+  replicas: 1
+  serviceName: keycloakx-headless
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloakx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloakx
+        app.kubernetes.io/instance: keycloakx
+      annotations:
+        checksum/showcase-keycloak-settings: {{ printf "%s|%s|%s" (default (.Files.Get "files/keycloak/realm.json") .Values.keycloak.realmJSON) .Values.keycloak.adminPassword .Values.keycloak.dbPassword | sha256sum }}
+    spec:
+      volumes:
+        - name: realm
+          configMap:
+            name: keycloak-realm
+        - name: postgresql
+          {{- if .Values.keycloak.postgresExistingClaim }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.keycloak.postgresExistingClaim | quote }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      containers:
+        - name: keycloak
+          image: {{ include "athenz-showcase.image" (list . .Values.keycloak.image) | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["/opt/keycloak/bin/kc.sh"]
+          args: ["start", "--http-enabled=true", "--hostname-strict=false", "--import-realm", "--health-enabled=true"]
+          env:
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: jdbc:postgresql://127.0.0.1:5432/{{ .Values.keycloak.dbName }}
+            - name: KC_DB_USERNAME
+              value: {{ .Values.keycloak.dbUser | quote }}
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-password
+                  key: password
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: {{ .Values.keycloak.adminUser | quote }}
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-password
+                  key: password
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 9000
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+            failureThreshold: 120
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+            periodSeconds: 10
+            timeoutSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: management
+            periodSeconds: 10
+            timeoutSeconds: 10
+          volumeMounts:
+            - name: realm
+              mountPath: /opt/keycloak/data/import/realm.json
+              subPath: realm.json
+              readOnly: true
+        - name: postgresql
+          image: {{ include "athenz-showcase.image" (list . .Values.keycloak.postgresImage) | quote }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: POSTGRES_USER
+              value: {{ .Values.keycloak.dbUser | quote }}
+            - name: POSTGRES_DB
+              value: {{ .Values.keycloak.dbName | quote }}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/db-files
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-password
+                  key: password
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          readinessProbe:
+            tcpSocket:
+              port: postgresql
+          volumeMounts:
+            - name: postgresql
+              mountPath: /var/lib/postgresql/data
+{{- end }}

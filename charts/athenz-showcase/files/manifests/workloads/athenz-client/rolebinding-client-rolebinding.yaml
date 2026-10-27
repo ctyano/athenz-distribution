@@ -1,0 +1,14 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: client-rolebinding
+  namespace: athenz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: client-role
+subjects:
+- kind: ServiceAccount
+  name: client
+  namespace: athenz

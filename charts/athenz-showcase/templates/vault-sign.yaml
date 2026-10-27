@@ -1,0 +1,138 @@
+{{- if eq .Values.phase "vault" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-sign-certificates
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-pki
+      volumes:
+        - name: pki
+          secret:
+            secretName: showcase-pki
+        - name: csr
+          emptyDir: {}
+      initContainers:
+        - name: create-csrs
+          image: {{ include "athenz-showcase.image" (list . .Values.pki.publicKeyImage) | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              for entry in \
+                'zms:sys.auth.zms:DNS:localhost,DNS:athenz-zms-server,DNS:athenz-zms-server.athenz,IP:127.0.0.1' \
+                'zts:sys.auth.zts:DNS:localhost,DNS:athenz-zts-server,DNS:athenz-zts-server.athenz,IP:127.0.0.1' \
+                'athenz_admin:user.athenz_admin:DNS:localhost,IP:127.0.0.1' \
+                'ui:sys.auth.webui:DNS:localhost,DNS:athenz-ui,DNS:athenz-ui.athenz,IP:127.0.0.1' \
+                'idp:idp:DNS:localhost,DNS:oauth2,DNS:oauth2.athenz,IP:127.0.0.1' \
+                'zms-syncer:sys.auth.zms-syncer:DNS:localhost,IP:127.0.0.1'; do
+                name=${entry%%:*}
+                rest=${entry#*:}
+                cn=${rest%%:*}
+                sans=${rest#*:}
+                eku=serverAuth,clientAuth
+                [ "$name" = zms-syncer ] && eku=clientAuth
+                openssl req -new -key "/pki/${name}.private.pem" -out "/csr/${name}.csr.pem" \
+                  -subj "/CN=${cn}" -addext "subjectAltName=${sans}" \
+                  -addext 'basicConstraints=CA:FALSE' \
+                  -addext 'keyUsage=nonRepudiation,digitalSignature,keyEncipherment' \
+                  -addext "extendedKeyUsage=${eku}"
+              done
+          volumeMounts:
+            - name: pki
+              mountPath: /pki
+              readOnly: true
+            - name: csr
+              mountPath: /csr
+        - name: wait-for-vault
+          image: {{ include "athenz-showcase.image" (list . .Values.hooks.apiImage) | quote }}
+          command: ["python3", "-c"]
+          env:
+            - name: VAULT_TOKEN
+              value: {{ .Values.vault.rootToken | quote }}
+          args:
+            - |
+              import os, time, urllib.request
+              url = 'http://vault.vault.svc.cluster.local:8200/v1/auth/approle/role/athenz/role-id'
+              for attempt in range(60):
+                  try:
+                      request = urllib.request.Request(url, headers={'X-Vault-Token': os.environ['VAULT_TOKEN']})
+                      with urllib.request.urlopen(request, timeout=5) as response:
+                          if response.status == 200:
+                              break
+                  except Exception:
+                      pass
+                  time.sleep(2)
+              else:
+                  raise RuntimeError('Vault AppRole bootstrap did not finish')
+      containers:
+        - name: sign-and-store
+          image: {{ include "athenz-showcase.image" (list . .Values.hooks.apiImage) | quote }}
+          command: ["python3", "-c"]
+          env:
+            - name: VAULT_TOKEN
+              value: {{ .Values.vault.rootToken | quote }}
+          args:
+            - |
+              import json, os, pathlib, ssl, urllib.error, urllib.request
+              vault_url = 'http://vault.vault.svc.cluster.local:8200/v1'
+              vault_headers = {'X-Vault-Token': os.environ['VAULT_TOKEN']}
+              def vault(path, method='GET', body=None, raw=False):
+                  headers = dict(vault_headers)
+                  if body is not None:
+                      headers['Content-Type'] = 'application/json'
+                  request = urllib.request.Request(vault_url + path,
+                      data=json.dumps(body).encode() if body is not None else None,
+                      method=method, headers=headers)
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      return response.read().decode() if raw else json.load(response)
+              ca = vault('/pki/ca/pem', raw=True)
+              role_id = vault('/auth/approle/role/athenz/role-id')['data']['role_id']
+              secret_id = vault('/auth/approle/role/athenz/secret-id', 'POST', {})['data']['secret_id']
+              signed = {}
+              for name in ('zms', 'zts', 'athenz_admin', 'ui', 'idp', 'zms-syncer'):
+                  csr = pathlib.Path(f'/csr/{name}.csr.pem').read_text()
+                  signed[name] = vault('/pki/sign/athenz', 'POST', {'csr': csr, 'ttl': '720h'})['data']['certificate']
+              service_account = pathlib.Path('/var/run/secrets/kubernetes.io/serviceaccount')
+              token = (service_account / 'token').read_text().strip()
+              context = ssl.create_default_context(cafile=str(service_account / 'ca.crt'))
+              base = 'https://kubernetes.default.svc/api/v1/namespaces/athenz/secrets'
+              def kubernetes(url, method, body=None, content_type='application/json'):
+                  request = urllib.request.Request(url,
+                      data=json.dumps(body).encode() if body is not None else None,
+                      method=method, headers={'Authorization': f'Bearer {token}', 'Content-Type': content_type})
+                  with urllib.request.urlopen(request, context=context, timeout=30) as response:
+                      return response.status
+              def upsert(name, data):
+                  url = f'{base}/{name}'
+                  try:
+                      kubernetes(url, 'GET')
+                  except urllib.error.HTTPError as error:
+                      if error.code != 404:
+                          raise
+                      kubernetes(base, 'POST', {'metadata': {'name': name}, 'type': 'Opaque', 'stringData': data})
+                  else:
+                      kubernetes(url, 'PATCH', {'stringData': data}, 'application/merge-patch+json')
+              upsert('vault-approle', {'role_id': role_id, 'secret_id': secret_id})
+              upsert('athenz-cacert', {'ca.cert.pem': ca})
+              upsert('athenz-zms-certs', {'zms.cert.pem': signed['zms']})
+              upsert('athenz-zts-certs', {'zts.cert.pem': signed['zts'], 'selfsign.ca.cert.pem': ca})
+              upsert('athenz-admin-keys', {'athenz_admin.cert.pem': signed['athenz_admin']})
+              upsert('athenz-ui-keys', {'ui.cert.pem': signed['ui']})
+              upsert('athenz-idp-certs', {'idp.cert.pem': signed['idp']})
+              upsert('athenz-zms-syncer-certs', {'zms-syncer.cert.pem': signed['zms-syncer']})
+              upsert('showcase-pki', {'ca.cert.pem': ca, **{
+                  f'{name}.cert.pem': certificate for name, certificate in signed.items()
+              }})
+          volumeMounts:
+            - name: csr
+              mountPath: /csr
+              readOnly: true
+{{- end }}

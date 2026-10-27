@@ -1,0 +1,124 @@
+name: Test Kubernetes Helm showcases
+
+on:
+  workflow_call:
+    inputs:
+      athenz_image_tag:
+        description: Prebuilt Athenz image tag; build locally when empty
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      athenz_image_tag:
+        description: Prebuilt Athenz image tag; build locally when empty
+        required: false
+        default: ''
+        type: string
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-kubernetes-helm.yaml'
+      - 'charts/**'
+      - 'kubernetes/**'
+      - 'Makefile'
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  DOCKER_REGISTRY: ghcr.io/ctyano/
+  DOCKER_REGISTRY_EXTERNAL: ghcr.io/ctyano/
+  DOCKERIO_REGISTRY: docker.io
+  QUAYIO_REGISTRY: quay.io
+  ATHENZ_IMAGE_TAG_INPUT: ${{ inputs.athenz_image_tag || '' }}
+
+jobs:
+  showcase:
+    name: Helm ${{ matrix.scenario }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [basic, crypki, syncer, userauth, vault]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint every Helm phase
+        run: |
+          set -euo pipefail
+          for phase in pki crypki vault core identityprovider workloads oauth2 rustfs syncer; do
+            helm lint charts/athenz-showcase --strict --set "phase=$phase"
+          done
+          helm lint charts/athenz-showcase --strict --set phase=core --set zts.certSigner=crypki
+          helm lint charts/athenz-showcase --strict --set phase=core --set zts.certSigner=vault
+          helm lint charts/athenz-showcase --strict --set phase=core --set zts.changeLogStore=s3
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+
+      - name: Set Go environment
+        run: echo "GOPATH=$(go env GOPATH)" >> "$GITHUB_ENV"
+
+      - name: Resolve Athenz version and Java version
+        id: versions
+        run: |
+          set -euo pipefail
+          tag=$(curl -fsSL https://api.github.com/repos/AthenZ/athenz/releases/latest | jq -r '.tag_name // empty')
+          version=$(printf '%s' "$tag" | sed -nE 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')
+          if [[ -z "$version" ]]; then
+            echo "Could not resolve an Athenz release version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if [[ $(printf '%s\n' 1.12.0 "$version" | sort -V | head -n1) == 1.12.0 ]]; then
+            echo 'java_version=17' >> "$GITHUB_OUTPUT"
+          else
+            echo 'java_version=11' >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java_version }}
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
+
+      - name: Build or pull Athenz images
+        run: |
+          set -euo pipefail
+          if [[ -n "$ATHENZ_IMAGE_TAG_INPUT" ]]; then
+            [[ "$ATHENZ_IMAGE_TAG_INPUT" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || exit 1
+            echo "ATHENZ_IMAGE_TAG=$ATHENZ_IMAGE_TAG_INPUT" >> "$GITHUB_ENV"
+            make load-docker-images-internal ATHENZ_IMAGE_TAG="$ATHENZ_IMAGE_TAG_INPUT"
+          else
+            make build VERSION="$VERSION"
+          fi
+          make load-docker-images-external
+
+      - name: Load images into KinD
+        run: make -C kubernetes kind-load-images
+
+      - name: Install and test ${{ matrix.scenario }} with Helm
+        run: bash charts/athenz-showcase/scripts/test-kind.sh '${{ matrix.scenario }}'
+
+      - name: Show cluster state on failure
+        if: failure()
+        run: |
+          helm list --all-namespaces || true
+          kubectl get pods --all-namespaces || true
+          kubectl get events --all-namespaces --sort-by=.lastTimestamp | tail -100 || true

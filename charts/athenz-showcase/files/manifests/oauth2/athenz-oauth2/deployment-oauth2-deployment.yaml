@@ -1,0 +1,125 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: oauth2-deployment
+  name: oauth2-deployment
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oauth2-deployment
+  template:
+    metadata:
+      labels:
+        app: oauth2-deployment
+    spec:
+      containers:
+      - image: docker.io/dexidp/dex:latest
+        imagePullPolicy: IfNotPresent
+        name: dex
+        ports:
+        - containerPort: 5556
+          name: dex
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/etc/dex/config.docker.yaml"
+          name: dex-config
+          subPath: config.docker.yaml
+        - mountPath: "/opt/athenz/dex/keys"
+          name: athenz-idp-keys
+          readOnly: true
+        - mountPath: "/opt/athenz/dex/certs"
+          name: athenz-idp-certs
+          readOnly: true
+      - command:
+        - envoy
+        - "-c"
+        - "/etc/envoy/envoy.yaml"
+        - "-l"
+        - debug
+        image: ghcr.io/ctyano/certsigner-envoy:latest
+        imagePullPolicy: IfNotPresent
+        name: envoy
+        ports:
+        - containerPort: 10000
+          name: envoy
+          protocol: TCP
+        - containerPort: 18080
+          name: keycloak-http
+          protocol: TCP
+        - containerPort: 10001
+          name: keycloak-https
+          protocol: TCP
+        volumeMounts:
+        - mountPath: "/etc/envoy/envoy.yaml"
+          name: envoy-config
+          subPath: envoy.yaml
+        - mountPath: "/opt/athenz/envoy/keys"
+          name: athenz-idp-keys
+          readOnly: true
+        - mountPath: "/opt/athenz/envoy/certs"
+          name: athenz-idp-certs
+          readOnly: true
+      - command:
+        - tail
+        - "-f"
+        image: ghcr.io/ctyano/athenz-user-cert:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-user-cert
+        ports:
+        - containerPort: 8080
+          name: callback
+          protocol: TCP
+        volumeMounts:
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+        - mountPath: "/root/.athenz/config.yaml"
+          name: athenz-user-cert-config
+          readOnly: true
+          subPath: config.yaml
+      volumes:
+      - name: athenz-idp-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: idp.private.pem
+            path: idp.private.pem
+          secretName: athenz-idp-keys
+      - name: athenz-idp-certs
+        secret:
+          defaultMode: 365
+          items:
+          - key: idp.cert.pem
+            path: idp.cert.pem
+          secretName: athenz-idp-certs
+      - configMap:
+          name: dex-config
+        name: dex-config
+      - configMap:
+          name: oauth2-envoy-config
+        name: envoy-config
+      - name: athenz-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-cacert
+      - configMap:
+          name: athenz-user-cert-config
+        name: athenz-user-cert-config

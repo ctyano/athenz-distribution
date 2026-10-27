@@ -1,0 +1,307 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: identityprovider-deployment
+  name: identityprovider-deployment
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identityprovider-deployment
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: identityprovider-deployment
+    spec:
+      containers:
+      - args:
+        - "--mode=refresh"
+        - "--provider-service=sys.auth.zts"
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: SERVICEACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: PROVIDER_SERVICE
+          value: ''
+        - name: BACKUP
+          value: read
+        envFrom:
+        - configMapRef:
+            name: identityprovider-sia
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        imagePullPolicy: IfNotPresent
+        name: sia
+        ports:
+        - containerPort: 8180
+          name: token-sidecar
+          protocol: TCP
+        - containerPort: 8280
+          name: authorization
+          protocol: TCP
+        - containerPort: 9999
+          name: exporter
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/var/run/athenz/attestation-data"
+          name: attestation-data
+          readOnly: true
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      - args:
+        - run
+        - "--server"
+        - "--log-format=$(IDENTITYPROVIDER_OPA_LOG_FORMAT)"
+        - "--log-level=$(IDENTITYPROVIDER_OPA_LOG_LEVEL)"
+        - "--config-file=/etc/opa/config/config.yaml"
+        - "--authentication=token"
+        - "--authorization=basic"
+        - "--addr"
+        - http://127.0.0.1:8181
+        - "--ignore"
+        - ".*"
+        - "--skip-version-check"
+        - "/etc/opa/policy"
+        envFrom:
+        - configMapRef:
+            name: athenz-identityprovider
+        image: docker.io/openpolicyagent/opa:0.66.0-static
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: "/health"
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 300
+          periodSeconds: 30
+        name: opa
+        ports:
+        - containerPort: 8181
+          name: opa
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: "/health"
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 0
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/etc/opa/policy"
+          name: policy
+          readOnly: true
+        - mountPath: "/etc/opa/config"
+          name: config
+          readOnly: true
+      - args:
+        - "--opa-url=http://127.0.0.1:8080/v1"
+        - "--opa-auth-token-file=/var/run/secrets/kubernetes.io/serviceaccount/token"
+        - "--enable-policies=false"
+        - "--enable-data=false"
+        - "--policies=''"
+        - "--replicate=v1/pods"
+        - "--replicate-path=kubernetes"
+        image: docker.io/openpolicyagent/kube-mgmt:latest
+        imagePullPolicy: IfNotPresent
+        name: kube-mgmt
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      - args:
+        - kubectl
+        - proxy
+        env:
+        - name: TZ
+          value: Asia/Tokyo
+        image: docker.io/portainer/kubectl-shell:latest
+        imagePullPolicy: IfNotPresent
+        name: kubectl
+        ports:
+        - containerPort: 8001
+          name: kubectl-proxy
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+          readOnly: true
+      - args:
+        - "-c"
+        - "/etc/envoy/config.yaml"
+        - "-l"
+        - debug
+        command:
+        - "/usr/local/bin/envoy"
+        image: docker.io/envoyproxy/envoy:v1.34-latest
+        imagePullPolicy: IfNotPresent
+        name: envoy
+        ports:
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/etc/envoy"
+          name: envoy
+          readOnly: true
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+          readOnly: true
+      - env:
+        - name: PORT
+          value: '3000'
+        image: docker.io/ealen/echo-server:latest
+        imagePullPolicy: IfNotPresent
+        name: echoserver
+        ports:
+        - containerPort: 3000
+          name: echoserver
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      initContainers:
+      - args:
+        - 'while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443
+          && break; done
+
+'
+        command:
+        - sh
+        - "-c"
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        imagePullPolicy: IfNotPresent
+        name: sia-wait
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+      - args:
+        - "--mode=init"
+        - "--delay-jitter-seconds=5"
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: SERVICEACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: PROVIDER_SERVICE
+          value: ''
+        - name: BACKUP
+          value: read
+        envFrom:
+        - configMapRef:
+            name: identityprovider-sia
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        imagePullPolicy: IfNotPresent
+        name: sia-init
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/var/run/athenz/attestation-data"
+          name: attestation-data
+          readOnly: true
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      securityContext:
+        fsGroup: 1000
+      serviceAccountName: identityprovider
+      volumes:
+      - configMap:
+          name: identityprovider-envoy
+        name: envoy
+      - name: attestation-data
+        secret:
+          defaultMode: 365
+          items:
+          - key: identitydocument.jwt
+            path: identitydocument.jwt
+          secretName: identityprovider-jwt
+      - emptyDir: {}
+        name: athenz-tls-certs
+      - configMap:
+          name: identityprovider-policy
+        name: policy
+      - configMap:
+          name: identityprovider-config
+        name: config
+      - name: athenz-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-cacert

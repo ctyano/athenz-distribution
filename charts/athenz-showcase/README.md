@@ -131,6 +131,6 @@ Omit release names that do not exist. Uninstalling `showcase-vault` also deletes
 
 ## CI tests
 
-[test-kubernetes-helm.yaml](../../.github/workflows/test-kubernetes-helm.yaml) installs the `basic`, `crypki`, `syncer`, `userauth`, and `vault` scenarios separately on KinD and runs the existing Kubernetes functional tests. [test-kind.sh](scripts/test-kind.sh) contains the Helm commands that install and switch phases. Set `athenz_image_tag` in `workflow_dispatch` to skip the local Athenz build.
+[test-kubernetes-helm.yaml](../../.github/workflows/test-kubernetes-helm.yaml) installs the `basic`, `crypki`, `syncer`, `userauth`, and `vault` scenarios separately on KinD and runs the existing Kubernetes functional tests. The workflow contains the Helm commands that install and switch phases. Set `athenz_image_tag` in `workflow_dispatch` to skip the local Athenz build.
 
 This chart's Secrets are stored in Kubernetes and in Helm release history. The default Keycloak password and RustFS credentials are the same test values as in the original showcase; change them through values on shared clusters. The `rustfs` CoreDNS change requires access to the ConfigMap and Deployment in `kube-system`. The `syncer` PVC requires a StorageClass that supports dynamic provisioning.

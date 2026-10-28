@@ -747,3 +747,98 @@ report-athenz-loadtest:
 	@$(MAKE) -C loadtest report-athenz-envoy-loadtest report-athenz-sidecar-loadtest report-athenz-envoyfilter-loadtest report-athenz-envoywebhook-loadtest report-athenz-authzproxy-loadtest report-athenz-echoserver-loadtest report-athenz-loadtest
 
 test-athenz: test-athenz-servers test-zms-cli test-athenz-ui test-zts-accesstoken test-policies test-verify
+
+# Rebuild the chart's vendored, non-secret manifests from Kustomize sources.
+# Generated local files required by the source Kustomizations must exist first.
+HELM_MANIFESTS_DEST ?= ../charts/athenz-showcase/files/manifests
+.PHONY: sync-helm-manifests
+sync-helm-manifests: export HELM_MANIFESTS_BASH = $(HELM_MANIFESTS_BASH_SOURCE)
+sync-helm-manifests:
+	@HELM_MANIFESTS_DEST="$(HELM_MANIFESTS_DEST)" bash -c "$$HELM_MANIFESTS_BASH"
+
+define HELM_MANIFESTS_BASH_SOURCE
+set -euo pipefail
+
+target=$${HELM_MANIFESTS_DEST:?}
+mkdir -p "$$(dirname "$$target")"
+staging=$$(mktemp -d "$${target}.tmp.XXXXXX")
+trap 'if [[ -d "$$staging" ]]; then find "$$staging" -depth -delete; fi' EXIT
+
+for component in \
+    crypki:crypki-softhsm vault:vault \
+    core:athenz-db core:athenz-cli core:athenz-zms-server \
+    core:athenz-zts-server core:athenz-ui \
+    identityprovider:athenz-identityprovider \
+    workloads:athenz-authorizer workloads:athenz-authzenvoy \
+    workloads:athenz-authzwebhook workloads:athenz-authzproxy workloads:athenz-client \
+    oauth2:athenz-oauth2 rustfs:rustfs syncer:athenz-zms-syncer; do
+  phase=$${component%%:*}
+  name=$${component#*:}
+  destination=$$staging/$$phase/$$name
+  mkdir -p "$$destination"
+  kustomize build "$$name/kustomize" | awk -v outdir="$$destination" -v phase="$$phase" '
+    function emit(    path) {
+      if (document == "") return
+      if (kind == "" || name == "" || kind !~ /^[A-Za-z]+$$/ || name !~ /^[A-Za-z0-9.-]+$$/) {
+        print "Invalid Kustomize resource metadata" > "/dev/stderr"
+        failed = 1
+        return
+      }
+      if (kind == "Secret" || kind == "Namespace" || (phase == "vault" && kind == "ConfigMap")) return
+      path = outdir "/" tolower(kind) "-" name ".yaml"
+      print "---" > path
+      printf "%s", document >> path
+      close(path)
+    }
+    /^---[[:space:]]*$$/ {
+      emit()
+      document = ""
+      kind = ""
+      name = ""
+      in_metadata = 0
+      next
+    }
+    {
+      document = document $$0 "\n"
+      if ($$0 ~ /^kind:[[:space:]]/) {
+        kind = $$0
+        sub(/^kind:[[:space:]]*/, "", kind)
+        sub(/[[:space:]]+$$/, "", kind)
+      }
+      if ($$0 ~ /^metadata:[[:space:]]*$$/) in_metadata = 1
+      else if ($$0 ~ /^[^[:space:]]/) in_metadata = 0
+      if (in_metadata && $$0 ~ /^  name:[[:space:]]/) {
+        name = $$0
+        sub(/^  name:[[:space:]]*/, "", name)
+        sub(/[[:space:]]+$$/, "", name)
+      }
+    }
+    END {
+      emit()
+      if (failed) exit 1
+    }
+  '
+done
+
+# The authorizer Deployment also mounts policy ConfigMaps from the gRPC example.
+policy=athenz-grpc-authorizer/policy
+kubectl -n athenz create configmap authorizer-config \
+  --from-file=config.yaml="$$policy/envoy/config.yaml" \
+  --dry-run=client -o yaml > "$$staging/workloads/athenz-authorizer/configmap-authorizer-config.yaml"
+kubectl -n athenz create configmap authorizer-policy \
+  --from-file=envoy.authz.rego="$$policy/envoy/envoy.authz.rego" \
+  --from-file=functions.rego="$$policy/envoy/functions.rego" \
+  --from-file=system_log.rego="$$policy/system.log.rego" \
+  --from-file=data.yaml="$$policy/envoy/data.yaml" \
+  --dry-run=client -o yaml > "$$staging/workloads/athenz-authorizer/configmap-authorizer-policy.yaml"
+
+backup=$${target}.backup.$$$$
+if [[ -d "$$target" ]]; then mv "$$target" "$$backup"; fi
+if mv "$$staging" "$$target"; then
+  trap - EXIT
+  if [[ -d "$$backup" ]]; then find "$$backup" -depth -delete; fi
+else
+  if [[ -d "$$backup" ]]; then mv "$$backup" "$$target"; fi
+  exit 1
+fi
+endef

@@ -34,7 +34,8 @@ env:
   ATHENZ_IMAGE_TAG_INPUT: ${{ inputs.athenz_image_tag || '' }}
 
 jobs:
-  showcase:
+  build:
+
     name: Helm ${{ matrix.scenario }}
     runs-on: ubuntu-latest
     timeout-minutes: 120

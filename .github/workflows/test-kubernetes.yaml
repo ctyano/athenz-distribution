@@ -154,15 +154,22 @@ jobs:
       -
         name: Resolve Athenz version
         id: resolve-athenz-version
+        env:
+          GH_API_TOKEN: ${{ github.token }}
         run: |
+          github_api_get() {
+            curl -fsSL --retry 3 --retry-all-errors --retry-delay 10 --retry-max-time 180 \
+              -H "Authorization: Bearer ${GH_API_TOKEN}" "$1"
+          }
           if [[ -n "${TRACKING_GIT_REF}" ]]; then
             make checkout-source TRACKING_GIT_REPO="${TRACKING_GIT_REPO}" TRACKING_GIT_REF="${TRACKING_GIT_REF}"
             CURRENT_VERSION="$(sed -n -E 's/.*<version>([0-9]+\.[0-9]+\.[0-9]+[^<]*)<\/version>.*/\1/p' athenz/pom.xml | head -n1)"
           elif [[ "${{ github.event_name != 'pull_request' && github.event.inputs.target_version != '' }}" = "true" ]]; then
             CURRENT_VERSION="${{ github.event.inputs.target_version }}"
           else
+            release_json=$(github_api_get "https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases") || exit 1
             CURRENT_VERSION="$( \
-              curl -s https://api.github.com/repos/${{ env.CI_REPOSITORY_OWNER }}/${{ env.CI_REPOSITORY_NAME }}/releases \
+              printf '%s' "$release_json" \
                 | jq -r .[].tag_name \
                 | grep -E "^v?[0-9]+\.[0-9]+\.[0-9]+" \
                 | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' \
@@ -171,8 +178,9 @@ jobs:
             )"
           fi
           if [[ -z "${CURRENT_VERSION}" ]]; then
+            release_json=$(github_api_get "https://api.github.com/repos/AthenZ/athenz/releases/latest") || exit 1
             CURRENT_VERSION="$( \
-              curl -s https://api.github.com/repos/AthenZ/athenz/releases/latest \
+              printf '%s' "$release_json" \
               | jq -r '.tag_name // empty' \
               | sed -n -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' \
               | sort -ruV \

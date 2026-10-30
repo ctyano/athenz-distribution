@@ -69,9 +69,13 @@ jobs:
 
       - name: Resolve Athenz version and Java version
         id: versions
+        env:
+          GH_API_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag=$(curl -fsSL https://api.github.com/repos/AthenZ/athenz/releases/latest | jq -r '.tag_name // empty')
+          tag=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 10 --retry-max-time 180 \
+            -H "Authorization: Bearer ${GH_API_TOKEN}" https://api.github.com/repos/AthenZ/athenz/releases/latest \
+            | jq -r '.tag_name // empty')
           version=$(printf '%s' "$tag" | sed -nE 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')
           if [[ -z "$version" ]]; then
             echo "Could not resolve an Athenz release version" >&2

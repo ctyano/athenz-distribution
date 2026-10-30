@@ -213,13 +213,14 @@ jobs:
           matrix="$(jq -nc --arg linux_runner "${linux_runner}" --arg linux_arm64_runner "${linux_arm64_runner}" '{include:[{platform:"linux/amd64",runner:$linux_runner,tag_suffix:"amd64"},{platform:"linux/arm64",runner:$linux_arm64_runner,tag_suffix:"arm64"}]}')"
           printf "matrix=%s\n" "${matrix}" >> "$GITHUB_OUTPUT"
 
-  build:
+  platform_build:
 
     needs: prepare
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
+    name: Docker ${{ matrix.platform }}
     runs-on: ${{ matrix.runner }}
     env:
       DOCKER_REGISTRY_URL: ${{ needs.prepare.outputs.docker_registry_url }}
@@ -391,7 +392,7 @@ jobs:
 
     name: Publish Docker multi-platform manifests
     needs:
-      - build
+      - platform_build
       - prepare
     if: ${{ github.event_name != 'pull_request' && inputs.publish_images }}
     runs-on: ubuntu-latest
@@ -461,3 +462,27 @@ jobs:
           DOCKER_REGISTRY="${{ env.DOCKER_REGISTRY_URL }}/${{ env.DOCKER_REGISTRY_OWNER }}/" \
           BUILDX_MANIFEST_SUFFIXES="${{ env.BUILDX_MANIFEST_SUFFIXES }}" \
           make buildx-manifest
+
+  build:
+    name: build
+    needs:
+      - prepare
+      - platform_build
+      - manifest
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all image builds and requested publishing to succeed
+        env:
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          PLATFORM_BUILD_RESULT: ${{ needs.platform_build.result }}
+          MANIFEST_RESULT: ${{ needs.manifest.result }}
+          PUBLISH_IMAGES: ${{ github.event_name != 'pull_request' && inputs.publish_images }}
+        run: |
+          test "$PREPARE_RESULT" = success
+          test "$PLATFORM_BUILD_RESULT" = success
+          if [[ "$PUBLISH_IMAGES" == true ]]; then
+            test "$MANIFEST_RESULT" = success
+          else
+            test "$MANIFEST_RESULT" = skipped
+          fi

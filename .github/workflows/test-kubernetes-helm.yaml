@@ -34,9 +34,9 @@ env:
   ATHENZ_IMAGE_TAG_INPUT: ${{ inputs.athenz_image_tag || '' }}
 
 jobs:
-  build:
+  helm_scenarios:
 
-    name: build
+    name: Helm ${{ matrix.scenario }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
@@ -258,3 +258,14 @@ jobs:
           helm list --all-namespaces || true
           kubectl get pods --all-namespaces || true
           kubectl get events --all-namespaces --sort-by=.lastTimestamp | tail -100 || true
+
+  build:
+    name: build
+    needs: helm_scenarios
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Helm scenario to succeed
+        env:
+          HELM_SCENARIOS_RESULT: ${{ needs.helm_scenarios.result }}
+        run: test "$HELM_SCENARIOS_RESULT" = success

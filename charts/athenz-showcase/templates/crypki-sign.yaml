@@ -1,0 +1,145 @@
+{{- if eq .Values.phase "crypki" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: showcase-crypki-sign
+  namespace: athenz
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-crypki-sign
+  namespace: athenz
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - athenz-cacert
+      - athenz-zms-certs
+      - athenz-zts-certs
+      - athenz-admin-keys
+      - athenz-ui-keys
+      - athenz-idp-certs
+      - athenz-zms-syncer-certs
+      - showcase-pki
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-crypki-sign
+  namespace: athenz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-crypki-sign
+subjects:
+  - kind: ServiceAccount
+    name: showcase-crypki-sign
+    namespace: athenz
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-sign-certificates
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-crypki-sign
+      volumes:
+        - name: pki
+          secret:
+            secretName: showcase-pki
+        - name: client
+          secret:
+            secretName: crypki-client
+        - name: csr
+          emptyDir: {}
+      initContainers:
+        - name: create-csrs
+          image: {{ include "athenz-showcase.image" (list . .Values.pki.publicKeyImage) | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              for entry in \
+                'zms:sys.auth.zms:DNS:localhost,DNS:athenz-zms-server,DNS:athenz-zms-server.athenz,IP:127.0.0.1' \
+                'zts:sys.auth.zts:DNS:localhost,DNS:athenz-zts-server,DNS:athenz-zts-server.athenz,IP:127.0.0.1' \
+                'athenz_admin:user.athenz_admin:DNS:localhost,IP:127.0.0.1' \
+                'ui:sys.auth.webui:DNS:localhost,DNS:athenz-ui,DNS:athenz-ui.athenz,IP:127.0.0.1' \
+                'idp:idp:DNS:localhost,DNS:oauth2,DNS:oauth2.athenz,IP:127.0.0.1' \
+                'zms-syncer:sys.auth.zms-syncer:DNS:localhost,IP:127.0.0.1'; do
+                name=${entry%%:*}
+                rest=${entry#*:}
+                cn=${rest%%:*}
+                sans=${rest#*:}
+                eku=serverAuth,clientAuth
+                [ "$name" = zms-syncer ] && eku=clientAuth
+                openssl req -new -key "/pki/${name}.private.pem" -out "/csr/${name}.csr.pem" \
+                  -subj "/CN=${cn}" -addext "subjectAltName=${sans}" \
+                  -addext 'basicConstraints=CA:FALSE' \
+                  -addext 'keyUsage=nonRepudiation,digitalSignature,keyEncipherment' \
+                  -addext "extendedKeyUsage=${eku}"
+              done
+          volumeMounts:
+            - name: pki
+              mountPath: /pki
+              readOnly: true
+            - name: csr
+              mountPath: /csr
+      containers:
+        - name: sign-and-store
+          image: {{ include "athenz-showcase.image" (list . .Values.pki.apiImage) | quote }}
+          command: ["python3", "-c"]
+          args:
+            - |
+              import json, pathlib, ssl, urllib.request
+              base = 'https://crypki-softhsm.crypki/v3/sig/x509-cert/keys/x509-key'
+              client = ssl.create_default_context(cafile='/client/ca.crt')
+              client.load_cert_chain('/client/client.crt', '/client/client.key')
+              service_account = pathlib.Path('/var/run/secrets/kubernetes.io/serviceaccount')
+              token = (service_account / 'token').read_text().strip()
+              api = ssl.create_default_context(cafile=str(service_account / 'ca.crt'))
+              def crypki(method, body=None):
+                  headers = {'Content-Type': 'application/json'} if body else {}
+                  request = urllib.request.Request(base, data=json.dumps(body).encode() if body else None,
+                                                   method=method, headers=headers)
+                  with urllib.request.urlopen(request, context=client, timeout=30) as response:
+                      return json.load(response)['cert']
+              def patch(name, data):
+                  url = f'https://kubernetes.default.svc/api/v1/namespaces/athenz/secrets/{name}'
+                  request = urllib.request.Request(url, data=json.dumps({'stringData': data}).encode(),
+                      method='PATCH', headers={'Authorization': f'Bearer {token}',
+                                               'Content-Type': 'application/merge-patch+json'})
+                  with urllib.request.urlopen(request, context=api, timeout=30) as response:
+                      assert response.status == 200
+              root = crypki('GET')
+              signed = {}
+              for name in ('zms', 'zts', 'athenz_admin', 'ui', 'idp', 'zms-syncer'):
+                  csr = pathlib.Path(f'/csr/{name}.csr.pem').read_text()
+                  signed[name] = crypki('POST', {'csr': csr, 'key_meta': {'identifier': 'athenz'},
+                                                 'validity': 30 * 24 * 60 * 60})
+              patch('athenz-cacert', {'ca.cert.pem': root})
+              patch('athenz-zms-certs', {'zms.cert.pem': signed['zms']})
+              patch('athenz-zts-certs', {'zts.cert.pem': signed['zts']})
+              patch('athenz-admin-keys', {'athenz_admin.cert.pem': signed['athenz_admin']})
+              patch('athenz-ui-keys', {'ui.cert.pem': signed['ui']})
+              patch('athenz-idp-certs', {'idp.cert.pem': signed['idp']})
+              patch('athenz-zms-syncer-certs', {'zms-syncer.cert.pem': signed['zms-syncer']})
+              patch('showcase-pki', {'ca.cert.pem': root, **{
+                  f'{name}.cert.pem': certificate for name, certificate in signed.items()
+              }})
+          volumeMounts:
+            - name: client
+              mountPath: /client
+              readOnly: true
+            - name: csr
+              mountPath: /csr
+              readOnly: true
+{{- end }}

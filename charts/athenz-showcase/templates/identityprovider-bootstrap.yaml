@@ -1,0 +1,143 @@
+{{- if eq .Values.phase "identityprovider" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-register
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-pki
+      securityContext:
+        fsGroup: 1001
+      volumes:
+        - name: admin
+          secret:
+            secretName: athenz-admin-keys
+        - name: ca
+          secret:
+            secretName: athenz-cacert
+        - name: service-keys
+          secret:
+            secretName: showcase-service-keys
+        - name: generated
+          emptyDir: {}
+      initContainers:
+        - name: register-and-issue
+          image: {{ include "athenz-showcase.cliImage" . | quote }}
+          command: ["/bin/sh", "-ec"]
+          env:
+            - name: DOMAIN
+              value: {{ .Values.identityProvider.domain | quote }}
+            - name: SERVICE
+              value: {{ .Values.identityProvider.service | quote }}
+            - name: PROVIDER
+              value: {{ .Values.identityProvider.provider | quote }}
+            - name: DNS_SUFFIX
+              value: {{ .Values.identityProvider.dnsSuffix | quote }}
+            - name: ENDPOINT_HOST
+              value: {{ .Values.identityProvider.endpointHost | quote }}
+          args:
+            - |
+              ZMS=https://athenz-zms-server.athenz:4443/zms/v1
+              ZTS=https://athenz-zts-server.athenz:4443/zts/v1
+              key=/admin/athenz_admin.private.pem
+              cert=/admin/athenz_admin.cert.pem
+              ca=/ca/ca.cert.pem
+              zms() { zms-cli -z "$ZMS" -key "$key" -cert "$cert" -c "$ca" "$@"; }
+              if ! curl -fsS --key "$key" --cert "$cert" --cacert "$ca" \
+                   "$ZMS/domain/$DOMAIN" >/dev/null; then
+                curl -fsS --key "$key" --cert "$cert" --cacert "$ca" \
+                  -H 'Content-Type: application/json' \
+                  -d "{\"name\":\"$DOMAIN\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                  "$ZMS/domain" >/dev/null
+              fi
+              public=/service-keys/identityprovider.public.pem
+              zms -d "$DOMAIN" show-service "$SERVICE" >/dev/null 2>&1 || \
+                zms -d "$DOMAIN" add-service "$SERVICE" 0 "$public"
+              zms -d "$DOMAIN" add-public-key "$SERVICE" 0 "$public" || true
+              zms -d "$DOMAIN" set-service-endpoint "$SERVICE" "https://$ENDPOINT_HOST/v0/data/identityprovider"
+              zms -d sys.auth set-domain-template instance_provider \
+                "provider=$DOMAIN.$SERVICE" "dnssuffix=$DNS_SUFFIX"
+              zms -d "$DOMAIN" set-domain-template instance_registration \
+                instanceregisterer=user.athenz_admin "service=$SERVICE"
+              zms -d "$DOMAIN" set-domain-template identity_provisioning \
+                instanceprovider=sys.auth.zts "service=$SERVICE"
+              zms -d "$DOMAIN" set-domain-template identity_provisioning \
+                "instanceprovider=$DOMAIN.$SERVICE" "service=$SERVICE"
+              i=0
+              until curl -fsS --key "$key" --cert "$cert" --cacert "$ca" \
+                "$ZTS/domain/$DOMAIN/service/$SERVICE" >/dev/null; do
+                i=$((i+1)); [ "$i" -le 36 ] || exit 1; sleep 5
+              done
+              zts-svccert -get-instance-register-token \
+                -zts "$ZTS" -cacert "$ca" -domain "$DOMAIN" -service "$SERVICE" \
+                -provider "$PROVIDER" -instance "$DOMAIN.$SERVICE" \
+                -svc-key-file "$key" -svc-cert-file "$cert" \
+                -attestation-data /generated/identitydocument.jwt
+              zts-svccert -zts "$ZTS" -cacert "$ca" -domain "$DOMAIN" -service "$SERVICE" \
+                -provider "$PROVIDER" -instance "$DOMAIN.$SERVICE" \
+                -attestation-data /generated/identitydocument.jwt \
+                -dns-domain "$DNS_SUFFIX" -private-key "$key" \
+                -cert-file /generated/tls.crt -signer-cert-file /generated/signer.crt
+              cp "$key" /generated/tls.key
+          volumeMounts:
+            - name: admin
+              mountPath: /admin
+              readOnly: true
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+            - name: service-keys
+              mountPath: /service-keys
+              readOnly: true
+            - name: generated
+              mountPath: /generated
+      containers:
+        - name: create-secrets
+          image: {{ include "athenz-showcase.image" (list . .Values.hooks.apiImage) | quote }}
+          command: ["python3", "-c"]
+          args:
+            - |
+              import json, pathlib, ssl, urllib.error, urllib.request
+              base = 'https://kubernetes.default.svc/api/v1/namespaces/athenz/secrets'
+              service_account = pathlib.Path('/var/run/secrets/kubernetes.io/serviceaccount')
+              token = (service_account / 'token').read_text().strip()
+              context = ssl.create_default_context(cafile=str(service_account / 'ca.crt'))
+              headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+              def send(url, method, body=None, content_type='application/json'):
+                  h = dict(headers, **{'Content-Type': content_type})
+                  request = urllib.request.Request(url, data=json.dumps(body).encode() if body else None,
+                                                   method=method, headers=h)
+                  with urllib.request.urlopen(request, context=context, timeout=30) as response:
+                      return response.status
+              def upsert(name, data, kind='Opaque'):
+                  url = f'{base}/{name}'
+                  try:
+                      send(url, 'GET')
+                  except urllib.error.HTTPError as error:
+                      if error.code != 404:
+                          raise
+                      send(base, 'POST', {'metadata': {'name': name}, 'type': kind, 'stringData': data})
+                  else:
+                      send(url, 'PATCH', {'stringData': data}, 'application/merge-patch+json')
+              work = pathlib.Path('/generated')
+              upsert('identityprovider-jwt', {'identitydocument.jwt': (work / 'identitydocument.jwt').read_text()})
+              upsert('identityprovider-tls', {
+                  'tls.key': (work / 'tls.key').read_text(),
+                  'tls.crt': (work / 'tls.crt').read_text().rstrip() + '\n' + pathlib.Path('/ca/ca.cert.pem').read_text(),
+              }, 'kubernetes.io/tls')
+          volumeMounts:
+            - name: generated
+              mountPath: /generated
+              readOnly: true
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+{{- end }}

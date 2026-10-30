@@ -1,0 +1,28 @@
+{{- if eq .Values.phase "syncer" }}
+{{- $cronjob := fromYaml (.Files.Get "files/manifests/syncer/athenz-zms-syncer/cronjob-athenz-zms-syncer.yaml") -}}
+{{- include "athenz-showcase.walk" (list . $cronjob) -}}
+{{- $pod := $cronjob.spec.jobTemplate.spec.template.spec -}}
+{{- $container := index $pod.containers 0 -}}
+{{- range $container.env -}}
+  {{- if eq .name "AWS_BUCKET" -}}{{- $_ := set . "value" $.Values.rustfs.bucket -}}{{- end -}}
+  {{- if eq .name "AWS_S3_ENDPOINT" -}}{{- $_ := set . "value" $.Values.rustfs.endpoint -}}{{- end -}}
+  {{- if eq .name "AWS_S3_REGION" -}}{{- $_ := set . "value" $.Values.rustfs.region -}}{{- end -}}
+{{- end -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-first-run
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    metadata:
+      labels:
+{{ include "athenz-showcase.hookLabels" . | indent 8 }}
+    spec:
+{{ toYaml $pod | indent 6 }}
+{{- end }}

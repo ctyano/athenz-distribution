@@ -1,0 +1,45 @@
+{{- if eq .Values.phase "oauth2" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-register
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-pki
+      volumes:
+        - name: admin
+          secret:
+            secretName: athenz-admin-keys
+        - name: ca
+          secret:
+            secretName: athenz-cacert
+      containers:
+        - name: register
+          image: {{ include "athenz-showcase.cliImage" . | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              zms-cli -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -key /admin/athenz_admin.private.pem -cert /admin/athenz_admin.cert.pem \
+                -c /ca/ca.cert.pem -d keycloak \
+                set-external-member-validator com.yahoo.athenz.auth.impl.EmailClaimExternalMemberValidator
+              zms-cli -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -key /admin/athenz_admin.private.pem -cert /admin/athenz_admin.cert.pem \
+                -c /ca/ca.cert.pem -d keycloak add-member admin \
+                'keycloak:ext.athenz_admin@athenz.io' 'keycloak:ext.athenz_user@athenz.io' || true
+          volumeMounts:
+            - name: admin
+              mountPath: /admin
+              readOnly: true
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+{{- end }}

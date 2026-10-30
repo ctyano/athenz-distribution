@@ -1,0 +1,241 @@
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    config:
+      debug: true
+      constraints:
+        athenz:
+          domain:
+            name: ""
+            prefix: ""
+            suffix: ""
+          namespace:
+            trimprefix: ""
+            trimsuffix: ""
+          identityprovider:
+            service: athenz.identityprovider
+        cert:
+          expiry:
+            defaultminutes: 43200
+            maxminutes: 43200
+          refresh: true
+          sandns: # leave this as an empty array to disable checking
+            - glob: "*.*.svc.cluster.local"
+            - glob: "*.instanceid.*.svc.cluster.local"
+            - glob: "*.instanceid.zts.athenz.cloud"
+        keys:
+          jwks:
+            url: http://127.0.0.1:8001/openid/v1/jwks
+            cacert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            force_cache_duration_seconds: 3600
+          apinodes:
+            url: http://127.0.0.1:8001/api/v1/nodes
+          static: ""
+        kubernetes:
+          namespaces: [] # leave this as an empty array to disable checking
+          serviceaccount:
+            names: [] # leave this as an empty array to disable checking
+            token:
+              issuer: https://kubernetes.default.svc.cluster.local
+              audience: https://kubernetes.default.svc
+  identityprovider.rego: "package identityprovider\n\nimport data.config.constraints.athenz.domain.name
+    as athenz_domain_name\nimport data.config.constraints.athenz.domain.prefix as
+    athenz_domain_prefix\nimport data.config.constraints.athenz.domain.suffix as athenz_domain_suffix\nimport
+    data.config.constraints.athenz.namespace.trimprefix as athenz_namespace_trimprefix\nimport
+    data.config.constraints.athenz.namespace.trimsuffix as athenz_namespace_trimsuffix\nimport
+    data.config.constraints.athenz.identityprovider.service as expected_athenz_provider\nimport
+    data.config.constraints.cert.expiry.maxminutes as cert_expiry_time_max\nimport
+    data.config.constraints.cert.expiry.defaultminutes as cert_expiry_time_default\nimport
+    data.config.constraints.cert.refresh as cert_refresh_default\nimport data.config.constraints.cert.sandns
+    as expected_cert_sandns\nimport data.config.constraints.keys.jwks.url as jwks_url\nimport
+    data.config.constraints.keys.jwks.cacert as jwks_cacert_file\nimport data.config.constraints.keys.jwks.force_cache_duration_seconds
+    as jwks_force_cache_duration_seconds\nimport data.config.constraints.keys.jwks.apinodes.url
+    as api_node_url\nimport data.config.constraints.keys.static as public_key\nimport
+    data.config.constraints.kubernetes.namespaces as expected_namespaces\nimport data.config.constraints.kubernetes.serviceaccount.names
+    as expected_serviceaccounts\nimport data.config.constraints.kubernetes.serviceaccount.token.issuer
+    as service_account_token_issuer\nimport data.config.constraints.kubernetes.serviceaccount.token.audience
+    as service_account_token_audience\nimport data.config.debug\nimport data.kubernetes.pods\n\nimport
+    future.keywords.every\n\n# we are preparing a logger function\nlog(prefix, value)
+    = true {\n    debug\n    prefix\n    value\n    print(\"Debug identityprovider.rego:\",
+    sprintf(\"%s: %v\", [prefix, value]))\n} else = true\n\n# first, we are extracting
+    the attestation data from the input\njwt := object.get(input, \"attestationData\",
+    \"\")\n\n# if we got the attestation data, then we are getting the public key
+    for jwt verification\n# to get the public key, we are first decoding the jwt from
+    attestation data without public key verification\nunverified_jwt := decoded_jwt
+    {\n    decoded_jwt := io.jwt.decode(jwt)\n} else = [{}, {}]\n\n# and then we are
+    extracting the verification key id from the decoded jwt to figure out which public
+    key to use for the jwt verification\nkeys := jwks_cached {\n    jwks_cached :=
+    http.send({\n        \"url\": jwks_url,\n        \"method\": \"GET\",\n        \"force_cache\":
+    (jwks_force_cache_duration_seconds > 0),\n        \"force_cache_duration_seconds\":
+    jwks_force_cache_duration_seconds,\n    }).raw_body\n    json.unmarshal(jwks_cached).keys[_].kid
+    == unverified_jwt[0].kid \n    log(\"Key ID matched in JWKs\", sprintf(\"JWT kid:%s,
+    JWK Set:%s\", [unverified_jwt[0].kid, json.marshal(jwks_cached)]))\n# if we fail
+    to retrieve the jwk set from the api, we will still try to get them from the each
+    host\n} else := jwks_each_node {\n    raw_node_list := http.send({\n        \"url\":
+    api_node_url,\n        \"method\": \"GET\",\n    }).raw_body\n    node_list :=
+    json.unmarshal(raw_node_list)\n    node_list.items[i].status.addresses[j].type
+    == \"InternalIP\"\n    node_jwks_url := sprintf(\"https://%s/openid/v1/jwks\",
+    [node_list.items[i].status.addresses[j].address])\n    log(\"Querying each Node
+    URL\", node_jwks_url)\n    jwks_each_node := http.send({\n        \"url\": node_jwks_url,\n
+    \       \"method\": \"GET\",\n        \"tls_insecure_skip_verify\": true,\n    }).raw_body\n
+    \   json.unmarshal(jwks_each_node).keys[_].kid == unverified_jwt[0].kid \n    log(\"Key
+    ID matched in JWKs\", sprintf(\"Node:%s, JWT kid:%s, JWK Set:%s\", [node_jwks_url,
+    unverified_jwt[0].kid, json.marshal(jwks_each_node)]))\n# if we fail to retrieve
+    the jwk set with the key id even reaching to the each host, we will give up and
+    use the pre-defined static key\n} else = public_key {\n    log(\"Failed to retrieve
+    JWKs. Using the default public_key:\", json.marshal(public_key))\n}\n\n# if we
+    got the public key, then we are preparing the constraints for the jwt verification\nconstraints
+    := {\n    \"iss\": service_account_token_issuer,\n    \"aud\": service_account_token_audience,\n
+    \   \"cert\": keys,\n} {\n    service_account_token_issuer\n    service_account_token_audience\n
+    \   keys\n}\n\n# after the constraints is set, we are verifying the jwt\nverified_jwt
+    := io.jwt.decode_verify(jwt, constraints)\n\n# if the jwt is successfully verified,
+    then we are extracting the \"kubernetes.io\" claim for further verification\njwt_kubernetes_claim
+    := extracted_claim {\n    extracted_claim := object.get(verified_jwt[2], \"kubernetes.io\",
+    {})\n} else = {}\n\n# first, we are preparing an expected athenz domain for the
+    verification\nexpected_athenz_domain := concat(\"\", [athenz_domain_prefix, athenz_domain_name,
+    athenz_domain_suffix]) {\n    athenz_domain_name != \"\"\n} else = concat(\"\",
+    [athenz_domain_prefix, trimed_namespace, athenz_domain_suffix]) {\n    jwt_kubernetes_claim.namespace\n
+    \   some phrase in [athenz_namespace_trimprefix, athenz_namespace_trimsuffix]\n
+    \   phrase != \"\"\n    trimed_namespace := trim_suffix(trim_prefix(jwt_kubernetes_claim.namespace,
+    athenz_namespace_trimprefix), athenz_namespace_trimsuffix)\n} else = concat(\"\",
+    [athenz_domain_prefix, jwt_kubernetes_claim.namespace, athenz_domain_suffix])
+    {\n    jwt_kubernetes_claim.namespace\n}\n\n# we are also checking if the service
+    accout token is from the expected kubernetes namespaces (optional)\nnamespace_attestation
+    := true {\n    count(expected_namespaces) > 0\n    expected_namespaces[_] == jwt_kubernetes_claim.namespace\n}
+    else = true {\n    count(expected_namespaces) == 0\n}\n\n# we are also checking
+    if the service accout token represents the expected kubernetes sercice account
+    (optional)\nserviceaccount_attestation := true {\n    count(expected_serviceaccounts)
+    > 0\n    expected_serviceaccounts[_] == jwt_kubernetes_claim.serviceaccount.name\n}
+    else = true {\n    count(expected_serviceaccounts) == 0\n}\n\n# we are also checking
+    if the certificate request only includes the expected pattern of san dns (optional)\nsandns_attestation
+    := true {\n    count(expected_cert_sandns) > 0\n    sandns := split(input.attributes.sanDNS,
+    \",\")\n    # this check expects each san dns entry to match one of the expected
+    certificate san dns glob pattens\n    every dns in sandns {\n        glob.match(expected_cert_sandns[_].glob,
+    [], dns)\n    }\n} else = true {\n    count(expected_cert_sandns) == 0\n}\n\n#
+    next, we are checking if the service account token jwt claim matches with the
+    pod information from kube-apiserver\n# this checking expects the k8s service account
+    information to match with the pod information registered in the kube-apiserver\nattestated_pod
+    := pod {\n    namespace_pods := object.get(pods, jwt_kubernetes_claim.namespace,
+    {})\n    pod := object.get(namespace_pods, jwt_kubernetes_claim.pod.name, {})\n
+    \   input.attributes.sanIP == pod.status.podIP\n    # this checking fails when
+    athenz zts is running inside the same k8s cluster since \"input.attributes.clientIP\"
+    will be the pod ip instead of the host ip\n    # TODO: so for now, we are commenting
+    this line out\n    #input.attributes.clientIP == pod.status.hostIP\n    jwt_kubernetes_claim.namespace
+    == pod.metadata.namespace\n    jwt_kubernetes_claim.pod.uid == pod.metadata.uid\n
+    \   jwt_kubernetes_claim.serviceaccount.name == pod.spec.serviceAccountName\n}
+    else = false\n\ncert_expiry_time := cert_expiry {\n    input.attributes.certExpiryTime
+    <= cert_expiry_time_max\n    cert_expiry := input.attributes.certExpiryTime\n}
+    else = cert_expiry {\n    input.attributes.certExpiryTime > cert_expiry_time_max\n
+    \   cert_expiry := cert_expiry_time_max\n} else = cert_expiry_time_default\n\n#
+    if all the attestation is complete, then finally, we are setting the zts response\ninstance
+    := response\nrefresh := response\nresponse = {\n    \"domain\": input.domain,\n
+    \   \"service\": input.service,\n    \"provider\": input.provider,\n    \"attributes\":
+    attributes,\n} {\n    # supported attributes\n    # https://github.com/AthenZ/athenz/blob/2c55452d6001aef85ac1111082436fd0a944a98c/libs/java/instance_provider/src/main/java/com/yahoo/athenz/instance/provider/InstanceProvider.java#L31-L82\n
+    \   attributes := {\n        \"instanceId\": input.attributes.instanceId,\n        \"sanIP\":
+    input.attributes.sanIP,\n        \"clientIP\": input.attributes.clientIP,\n        \"sanURI\":
+    input.attributes.sanURI,\n        \"sanDNS\": input.attributes.sanDNS,\n        \"certExpiryTime\":
+    cert_expiry_time,\n        \"certRefresh\": cert_refresh_default\n    }\n\n    verified_jwt\n
+    \   input.domain == expected_athenz_domain\n    input.service == jwt_kubernetes_claim.serviceaccount.name\n
+    \   input.provider == expected_athenz_provider\n    namespace_attestation\n    serviceaccount_attestation\n
+    \   sandns_attestation\n    attestated_pod\n\n# if any attestation factor fails,
+    then we are setting the zts response with error message\n# this error response
+    represents empty input\n} else = {\n    \"allow\": false,\n    \"status\": {\n
+    \       \"reason\": \"empty input\"\n    },\n} {\n    not input\n    log(\"response\",
+    \"empty input\")\n\n# this error response represents empty attesttation data\n}
+    else = {\n    \"allow\": false,\n    \"status\": {\n        \"reason\": \"empty
+    input: empty attestation data\"\n    },\n} {\n    object.get(input, \"attestationData\",
+    \"\") == \"\"\n    log(\"response\", \"empty input: empty attestation data\")\n\n#
+    this error response represents invalid jwt\n} else = {\n    \"allow\": false,\n
+    \   \"status\": {\n        \"reason\": sprintf(\"invalid jwt: failed to verify
+    the service account token signature, or failed to attest jwt claims: claims[%v],
+    constraints[%v]\", [unverified_jwt[1], constraints])\n    },\n} {\n    verified_jwt[0]
+    == false\n    log(\"response\", sprintf(\"invalid jwt: failed to verify the service
+    account token signature, or failed to attest jwt claims: claims[%v], constraints[%v]\",
+    [unverified_jwt[1], constraints]))\n\n# this error response represents invalid
+    athenz provider service\n} else = {\n    \"allow\": false,\n    \"status\": {\n
+    \       \"reason\": sprintf(\"invalid input: input athenz provider service mismatched:
+    input[%v], configuration[%v]\", [object.get(input, \"provider\", \"\"), expected_athenz_provider])\n
+    \   },\n} {\n    input.provider != expected_athenz_provider\n    log(\"response\",
+    sprintf(\"invalid input: input athenz provider service mismatched: input[%v],
+    configuration[%v]\", [object.get(input, \"provider\", \"\"), expected_athenz_provider]))\n\n#
+    this error response represents invalid athenz domain\n} else = {\n    \"allow\":
+    false,\n    \"status\": {\n        \"reason\": sprintf(\"invalid input: input
+    athenz domain mismatched: input[%v], configuration[%v]\", [object.get(input, \"domain\",
+    \"\"), expected_athenz_domain])\n    },\n} {\n    input.domain != expected_athenz_domain\n
+    \   log(\"response\", sprintf(\"invalid input: input athenz domain mismatched:
+    input[%v], configuration[%v]\", [object.get(input, \"domain\", \"\"), expected_athenz_domain]))\n\n#
+    this error response represents invalid athenz service\n} else = {\n    \"allow\":
+    false,\n    \"status\": {\n        \"reason\": sprintf(\"invalid input: input
+    athenz service mismatched: input[%v], token_claims[%v]\", [object.get(input, \"service\",
+    \"\"), jwt_kubernetes_claim])\n    },\n} {\n    input.service != jwt_kubernetes_claim.serviceaccount.name\n
+    \   log(\"response\", sprintf(\"invalid input: input athenz service mismatched:
+    input[%v], token_claims[%v]\", [object.get(input, \"service\", \"\"), jwt_kubernetes_claim]))\n\n#
+    this error response represents invalid input attributes\n} else = {\n    \"allow\":
+    false,\n    \"status\": {\n        \"reason\": sprintf(\"invalid input: input
+    attributes mismatched: input[%v], kube-apiserver[%v]\", [object.get(input, \"attributes\",
+    \"\"), attestated_pod])\n    },\n} {\n    attestated_pod == false\n    log(\"response\",
+    sprintf(\"invalid input: input attributes mismatched: input[%v], kube-apiserver[%v]\",
+    [object.get(input, \"attributes\", \"\"), attestated_pod]))\n\n# otherwise, we
+    are sending an error response with no matching validations found\n} else = {\n
+    \   \"allow\": false,\n    \"status\": {\n        \"reason\": \"no matching validations
+    found\",\n    },\n} {\n    log(\"response\", \"no matching validations found\")\n
+    \   log(\"data.config\", data.config)\n    log(\"input\", input)\n    log(\"constraints\",
+    constraints)\n    log(\"unverified_jwt\", unverified_jwt)\n    log(\"jwt_kubernetes_claim\",
+    jwt_kubernetes_claim)\n    log(\"attestated_pod\", attestated_pod)\n}\n"
+  system.authz.rego: "package system.authz\n\nimport data.config.constraints.keys.jwks.url
+    as jwks_url\nimport data.config.constraints.keys.jwks.cacert as jwks_cacert_file\nimport
+    data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_force_cache_duration_seconds\nimport
+    data.config.constraints.keys.jwks.apinodes.url as api_node_url\nimport data.config.constraints.keys.static
+    as public_key\nimport data.config.constraints.kubernetes.serviceaccount.token.issuer
+    as service_account_token_issuer\nimport data.config.constraints.kubernetes.serviceaccount.token.audience
+    as service_account_token_audience\nimport data.config.debug\nimport data.kubernetes.pods\n\n#
+    we are preparing a logger function\nlog(prefix, value) = true {\n    debug\n    prefix\n
+    \   value\n    print(\"Debug system.authz.rego:\", sprintf(\"%s: %v\", [prefix,
+    value]))\n} else = true\n\n# first, we are extracting the identity from the input\njwt
+    := input.identity\n\n# if we got the identity, then we are getting the public
+    key for jwt verification\n# to get the public key, we are first decoding the jwt
+    from identity without public key verification\nunverified_jwt := decoded_jwt {\n
+    \   decoded_jwt := io.jwt.decode(jwt)\n}\n\n# and then we are extracting the verification
+    key id from the decoded jwt to figure out which public key to use for the jwt
+    verification\nkeys := jwks_cached {\n    jwks_cached := http.send({\n        \"url\":
+    jwks_url,\n        \"method\": \"GET\",\n        \"force_cache\": (jwks_force_cache_duration_seconds
+    > 0),\n        \"force_cache_duration_seconds\": jwks_force_cache_duration_seconds,\n
+    \   }).raw_body\n    json.unmarshal(jwks_cached).keys[_].kid == unverified_jwt[0].kid
+    \n    log(\"Key ID matched in JWKs\", sprintf(\"JWT kid:%s, JWK Set:%s\", [unverified_jwt[0].kid,
+    json.marshal(jwks_cached)]))\n# if we fail to retrieve the jwk set from the api,
+    we will still try to get them from the each host\n} else := jwks_each_node {\n
+    \   raw_node_list := http.send({\n        \"url\": api_node_url,\n        \"method\":
+    \"GET\",\n    }).raw_body\n    node_list := json.unmarshal(raw_node_list)\n    node_list.items[i].status.addresses[j].type
+    == \"InternalIP\"\n    node_jwks_url := sprintf(\"https://%s/openid/v1/jwks\",
+    [node_list.items[i].status.addresses[j].address])\n    jwks_each_node := http.send({\n
+    \       \"url\": node_jwks_url,\n        \"method\": \"GET\",\n        \"tls_insecure_skip_verify\":
+    true,\n    }).raw_body\n    json.unmarshal(jwks_each_node).keys[_].kid == unverified_jwt[0].kid
+    \n    log(\"Key ID matched in JWKs\", sprintf(\"Node:%s, JWT kid:%s, JWK Set:%s\",
+    [node_jwks_url, unverified_jwt[0].kid, json.marshal(jwks_each_node)]))\n# if we
+    fail to retrieve the jwk set with the key id even reaching to the each host, we
+    will give up and use the pre-defined static key\n} else = public_key {\n    log(\"Failed
+    to retrieve JWKs. Using the default public_key:\", json.marshal(public_key))\n}\n\n#
+    if we got the public key, then we are preparing the constraints for the jwt verification\nconstraints
+    := {\n    \"iss\": service_account_token_issuer,\n    \"aud\": service_account_token_audience,\n
+    \   \"cert\": keys,\n} {\n    service_account_token_issuer\n    service_account_token_audience\n
+    \   keys\n}\n\n# after the constraints is set, we are verifying the jwt\nverified_jwt
+    := io.jwt.decode_verify(jwt, constraints)\n\ndefault allow = false\n\nallow {\n
+    \   \"POST\" == input.method\n    [\"v0\", \"data\", \"identityprovider\", \"instance\"]
+    == input.path\n}\nallow {\n    \"POST\" == input.method\n    [\"v0\", \"data\",
+    \"identityprovider\", \"refresh\"] == input.path\n}\n\nallow {\n    \"PUT\" ==
+    input.method\n    [\"v1\", \"data\", \"kubernetes\", \"pods\"] == array.slice(input.path,
+    0, 4)\n    verified_jwt\n}\nallow {\n    \"PATCH\" == input.method\n    [\"v1\",
+    \"data\"] == input.path\n    verified_jwt\n}\n\nallow {\n    \"GET\" == input.method\n
+    \   [\"health\"] == input.path\n    count(pods) > 0\n}\n\nallow {\n    \"GET\"
+    == input.method\n    [\"metrics\"] == input.path\n}\n"
+  system.log.rego: |
+    package system.log
+
+    # To mask certain fields unconditionally, omit the rule body.
+    mask["/input/identity"]
+    mask["/input/attestationData"]
+kind: ConfigMap
+metadata:
+  name: identityprovider-policy
+  namespace: athenz

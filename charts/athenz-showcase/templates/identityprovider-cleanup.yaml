@@ -1,0 +1,37 @@
+{{- if eq .Values.phase "identityprovider" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-cleanup
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-pki
+      containers:
+        - name: remove-generated-secrets
+          image: {{ include "athenz-showcase.image" (list . .Values.hooks.apiImage) | quote }}
+          command: ["python3", "-c"]
+          args:
+            - |
+              import pathlib, ssl, urllib.error, urllib.request
+              service_account = pathlib.Path('/var/run/secrets/kubernetes.io/serviceaccount')
+              token = (service_account / 'token').read_text().strip()
+              context = ssl.create_default_context(cafile=str(service_account / 'ca.crt'))
+              for name in ('identityprovider-jwt', 'identityprovider-tls'):
+                  url = f'https://kubernetes.default.svc/api/v1/namespaces/athenz/secrets/{name}'
+                  request = urllib.request.Request(url, method='DELETE',
+                      headers={'Authorization': f'Bearer {token}'})
+                  try:
+                      with urllib.request.urlopen(request, context=context, timeout=30):
+                          pass
+                  except urllib.error.HTTPError as error:
+                      if error.code != 404:
+                          raise
+{{- end }}

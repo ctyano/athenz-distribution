@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    decision_logs:
+      console: true
+      mask_decision: system/log/mask
+
+    status:
+      console: true
+
+    default_authorization_decision: /system/authz/allow
+    default_decision: /identityprovider
+
+    caching:
+      inter_query_builtin_cache:
+        max_size_bytes: 10000000 # 10GB
+kind: ConfigMap
+metadata:
+  name: identityprovider-config
+  namespace: athenz

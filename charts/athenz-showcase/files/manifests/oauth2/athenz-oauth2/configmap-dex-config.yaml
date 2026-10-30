@@ -1,0 +1,55 @@
+---
+apiVersion: v1
+data:
+  config.docker.yaml: |
+    # This is a sample configuration file for Dex. You can use it as a starting point for your own configuration. For more information on the available options, see the Dex documentation.
+    # For more information on how to configure Dex, see the official documentation: https://dexidp.io/docs/configuration/
+    issuer: http://127.0.0.1:5556/dex
+    storage:
+      type: memory
+    web:
+      http: 0.0.0.0:5556
+      https: 0.0.0.0:443
+      tlsKey: /opt/athenz/dex/keys/idp.private.pem
+      tlsCert: /opt/athenz/dex/certs/idp.cert.pem
+    oauth2:
+      grantTypes:
+        - authorization_code
+        - refresh_token
+        - password
+      passwordConnector: local
+      responseTypes:
+        - code
+      skipApprovalScreen: true
+      alwaysShowLoginScreen: false
+    enablePasswordDB: true
+    staticClients:
+      - id: athenz-user-cert
+        name: Athenz User Certificate CLI
+        redirectURIs:
+          - http://127.0.0.1:8080
+          - urn:ietf:wg:oauth:2.0:oob
+        secret: athenz-user-cert
+      - id: vault
+        name: HashiCorp Vault
+        redirectURIs:
+          - http://localhost:8200/v1/auth/dex/oidc/callback
+          - http://127.0.0.1:8200/v1/auth/dex/oidc/callback
+          - http://localhost:8200/ui/vault/auth/dex/oidc/callback
+          - http://127.0.0.1:8200/ui/vault/auth/dex/oidc/callback
+        secret: vault
+    staticPasswords:
+      - email: "athenz_admin@athenz.io"
+        # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo
+        hash: "$2y$12$JB0ulvDqDFxoK8BeaIYeo.pU87MFSgCV/fFqQJ0xzgIlXdm9ZNJs." # hash for password as "password"
+        username: "athenz_admin"
+        userID: "athenz_admin"
+      - email: "athenz_user@athenz.io"
+        # htpasswd -bnBC 12 "" password | tr -d ':\n'; echo
+        hash: "$2y$12$JB0ulvDqDFxoK8BeaIYeo.pU87MFSgCV/fFqQJ0xzgIlXdm9ZNJs." # hash for password as "password"
+        username: "athenz_user"
+        userID: "athenz_user"
+kind: ConfigMap
+metadata:
+  name: dex-config
+  namespace: athenz

@@ -1,0 +1,220 @@
+{{- if eq .Values.phase "pki" }}
+{{- if .Values.namespaces.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: athenz
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crypki
+{{- end }}
+{{- if not .Values.pki.existing }}
+{{- $stored := lookup "v1" "Secret" "athenz" "showcase-pki" -}}
+{{- $material := dict -}}
+{{- if and $stored $stored.data -}}
+  {{- range $name, $encoded := $stored.data -}}
+    {{- $_ := set $material $name ($encoded | b64dec) -}}
+  {{- end -}}
+{{- else -}}
+  {{- $ca := genCA .Values.pki.caCommonName (int .Values.pki.validityDays) -}}
+  {{- $_ := set $material "ca.cert.pem" $ca.Cert -}}
+  {{- $_ := set $material "crypki-tls-ca.cert.pem" $ca.Cert -}}
+  {{- $_ := set $material "ca.private.pem" $ca.Key -}}
+  {{- $certs := list
+    (dict "name" "zms" "cn" "sys.auth.zms" "dns" (list "localhost" "athenz-zms-server" "athenz-zms-server.athenz"))
+    (dict "name" "zts" "cn" "sys.auth.zts" "dns" (list "localhost" "athenz-zts-server" "athenz-zts-server.athenz"))
+    (dict "name" "athenz_admin" "cn" "user.athenz_admin" "dns" (list "localhost"))
+    (dict "name" "ui" "cn" "sys.auth.webui" "dns" (list "localhost" "athenz-ui" "athenz-ui.athenz"))
+    (dict "name" "crypki" "cn" "crypki" "dns" (list "localhost" "crypki-softhsm" "crypki-softhsm.crypki"))
+    (dict "name" "idp" "cn" "idp" "dns" (list "localhost" "oauth2" "oauth2.athenz"))
+    (dict "name" "zms-syncer" "cn" "sys.auth.zms-syncer" "dns" (list "localhost"))
+  -}}
+  {{- range $certs -}}
+    {{- $pair := genSignedCert .cn (list "127.0.0.1") .dns (int $.Values.pki.validityDays) $ca -}}
+    {{- $_ := set $material (printf "%s.cert.pem" .name) $pair.Cert -}}
+    {{- $_ := set $material (printf "%s.private.pem" .name) $pair.Key -}}
+  {{- end -}}
+  {{- range (list "identityprovider" "authorizer" "authzenvoy" "authzwebhook" "authzproxy" "client") -}}
+    {{- $_ := set $material (printf "%s.private.pem" .) (genPrivateKey "rsa") -}}
+  {{- end -}}
+  {{- $_ := set $material "crypki-tls-admin.cert.pem" (index $material "athenz_admin.cert.pem") -}}
+{{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: showcase-pki
+  namespace: athenz
+type: Opaque
+data:
+{{- range $name, $value := $material }}
+  {{ $name }}: {{ $value | b64enc | quote }}
+{{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-cacert
+  namespace: athenz
+type: Opaque
+stringData:
+  ca.cert.pem: {{ index $material "ca.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-zms-keys
+  namespace: athenz
+type: Opaque
+stringData:
+  zms.private.pem: {{ index $material "zms.private.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-zms-certs
+  namespace: athenz
+type: Opaque
+stringData:
+  zms.cert.pem: {{ index $material "zms.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-zts-keys
+  namespace: athenz
+type: Opaque
+stringData:
+  zts.private.pem: {{ index $material "zts.private.pem" | quote }}
+  zts.public.pem: ""
+  ca.private.pem: {{ index $material "ca.private.pem" | quote }}
+  crypki.private.pem: {{ index $material "crypki.private.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-zts-certs
+  namespace: athenz
+type: Opaque
+stringData:
+  zts.cert.pem: {{ index $material "zts.cert.pem" | quote }}
+  selfsign.ca.cert.pem: {{ index $material "crypki-tls-ca.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-admin-keys
+  namespace: athenz
+type: Opaque
+stringData:
+  athenz_admin.private.pem: {{ index $material "athenz_admin.private.pem" | quote }}
+  athenz_admin.cert.pem: {{ index $material "athenz_admin.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-ui-keys
+  namespace: athenz
+type: Opaque
+stringData:
+  ui.private.pem: {{ index $material "ui.private.pem" | quote }}
+  ui.public.pem: ""
+  ui.cert.pem: {{ index $material "ui.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-idp-keys
+  namespace: athenz
+type: Opaque
+stringData:
+  idp.private.pem: {{ index $material "idp.private.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-idp-certs
+  namespace: athenz
+type: Opaque
+stringData:
+  idp.cert.pem: {{ index $material "idp.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-zms-syncer-keys
+  namespace: athenz
+type: Opaque
+stringData:
+  zms-syncer.private.pem: {{ index $material "zms-syncer.private.pem" | quote }}
+  zms-syncer.public.pem: ""
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-zms-syncer-certs
+  namespace: athenz
+type: Opaque
+stringData:
+  zms-syncer.cert.pem: {{ index $material "zms-syncer.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: showcase-service-keys
+  namespace: athenz
+type: Opaque
+stringData:
+{{- range (list "identityprovider" "authorizer" "authzenvoy" "authzwebhook" "authzproxy" "client") }}
+  {{ . }}.private.pem: {{ index $material (printf "%s.private.pem" .) | quote }}
+  {{ . }}.public.pem: ""
+{{- end }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: crypki-client
+  namespace: athenz
+type: Opaque
+stringData:
+  ca.crt: {{ index $material "crypki-tls-ca.cert.pem" | quote }}
+  client.crt: {{ index $material "crypki.cert.pem" | quote }}
+  client.key: {{ index $material "crypki.private.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: crypki-keys
+  namespace: crypki
+type: Opaque
+stringData:
+  ca.key: {{ index $material "ca.private.pem" | quote }}
+  ca.public.key: ""
+  server.key: {{ index $material "crypki.private.pem" | quote }}
+  client.key: {{ index $material "crypki.private.pem" | quote }}
+  ca.crt: {{ index $material "crypki-tls-ca.cert.pem" | quote }}
+  server.crt: {{ index $material "crypki.cert.pem" | quote }}
+  client.crt: {{ index $material "crypki.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-admin-keys
+  namespace: crypki
+type: Opaque
+stringData:
+  athenz_admin.private.pem: {{ index $material "athenz_admin.private.pem" | quote }}
+  athenz_admin.cert.pem: {{ index $material "crypki-tls-admin.cert.pem" | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: athenz-crypki-cacert
+  namespace: crypki
+type: Opaque
+stringData:
+  ca.cert.pem: {{ index $material "crypki-tls-ca.cert.pem" | quote }}
+{{- end }}
+{{- end }}

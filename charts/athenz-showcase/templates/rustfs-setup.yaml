@@ -1,0 +1,238 @@
+{{- if eq .Values.phase "rustfs" }}
+{{- if .Values.rustfs.createCredentialsSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rustfs-credentials
+  namespace: athenz
+type: Opaque
+stringData:
+  RUSTFS_ACCESS_KEY: {{ .Values.rustfs.accessKey | quote }}
+  RUSTFS_SECRET_KEY: {{ .Values.rustfs.secretKey | quote }}
+---
+{{- end }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: showcase-rustfs
+  namespace: athenz
+{{- if .Values.rustfs.patchCoreDNS }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-rustfs-coredns
+  namespace: {{ .Values.rustfs.coreDNSNamespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: [{{ .Values.rustfs.coreDNSConfigMap | quote }}]
+    verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: [{{ .Values.rustfs.coreDNSDeployment | quote }}]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-rustfs-coredns
+  namespace: {{ .Values.rustfs.coreDNSNamespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-rustfs-coredns
+subjects:
+  - kind: ServiceAccount
+    name: showcase-rustfs
+    namespace: athenz
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-coredns-script
+  namespace: athenz
+data:
+  coredns.py: |
+    import json, os, re, ssl, sys, time, urllib.error, urllib.request
+    mode = sys.argv[1]
+    namespace = os.environ['COREDNS_NAMESPACE']
+    configmap = os.environ['COREDNS_CONFIGMAP']
+    deployment = os.environ['COREDNS_DEPLOYMENT']
+    dns_name = os.environ['DNS_NAME']
+    cluster_domain = os.environ['CLUSTER_DOMAIN']
+    token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read().strip()
+    context = ssl.create_default_context(cafile='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt')
+    base = 'https://kubernetes.default.svc'
+    marker = '# athenz-showcase rustfs rewrite'
+    def api(path, method='GET', body=None):
+        request = urllib.request.Request(base + path,
+            data=json.dumps(body).encode() if body is not None else None,
+            method=method, headers={'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/merge-patch+json'})
+        with urllib.request.urlopen(request, context=context, timeout=30) as response:
+            return json.load(response)
+    path = f'/api/v1/namespaces/{namespace}/configmaps/{configmap}'
+    try:
+        corefile = api(path)['data']['Corefile']
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+        print(f'{namespace}/{configmap} not found; skipping CoreDNS rewrite')
+        sys.exit(0)
+    if mode == 'add':
+        if marker in corefile or dns_name in corefile:
+            sys.exit(0)
+        ready = re.search(r'(?m)^([ \t]*)ready[ \t]*$', corefile)
+        if ready is None:
+            raise RuntimeError('CoreDNS Corefile has no ready directive; set rustfs.patchCoreDNS=false or add a rewrite manually')
+        indent = ready.group(1)
+        host = re.escape(dns_name)
+        cluster = re.escape(cluster_domain)
+        rule = (f'{indent}rewrite name regex ^[a-zA-Z0-9-]+\\.{host}'
+            f'(\\.{namespace}\\.svc\\.{cluster}|\\.svc\\.{cluster}|\\.{cluster})?\\.?$ '
+            f'{dns_name}.svc.{cluster_domain}. answer auto')
+        new = corefile[:ready.end()] + '\n' + indent + marker + '\n' + rule + corefile[ready.end():]
+    elif mode == 'remove':
+        if marker not in corefile:
+            sys.exit(0)
+        lines = corefile.splitlines(keepends=True)
+        new = ''.join(line for i, line in enumerate(lines)
+                      if marker not in line and not (i > 0 and marker in lines[i - 1]))
+    else:
+        raise RuntimeError('unknown mode')
+    api(path, 'PATCH', {'data': {'Corefile': new}})
+    deployment_path = f'/apis/apps/v1/namespaces/{namespace}/deployments/{deployment}'
+    api(deployment_path, 'PATCH', {'spec': {'template': {'metadata': {'annotations': {
+        'athenz-showcase/rewrite-updated': str(time.time())}}}}})
+    deadline = time.monotonic() + 180
+    while time.monotonic() < deadline:
+        current = api(deployment_path)
+        status = current.get('status', {})
+        replicas = current['spec'].get('replicas', 1)
+        if (status.get('observedGeneration', 0) >= current['metadata']['generation']
+                and status.get('updatedReplicas', 0) == replicas
+                and status.get('readyReplicas', 0) == replicas):
+            break
+        time.sleep(3)
+    else:
+        raise RuntimeError('CoreDNS rollout did not complete')
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-rustfs-setup
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-rustfs
+      {{- if .Values.rustfs.patchCoreDNS }}
+      volumes:
+        - name: script
+          configMap:
+            name: {{ .Release.Name }}-coredns-script
+      initContainers:
+        - name: patch-coredns
+          image: {{ include "athenz-showcase.image" (list . .Values.rustfs.apiImage) | quote }}
+          command: ["python3", "/script/coredns.py", "add"]
+          env:
+            - name: COREDNS_NAMESPACE
+              value: {{ .Values.rustfs.coreDNSNamespace | quote }}
+            - name: COREDNS_CONFIGMAP
+              value: {{ .Values.rustfs.coreDNSConfigMap | quote }}
+            - name: COREDNS_DEPLOYMENT
+              value: {{ .Values.rustfs.coreDNSDeployment | quote }}
+            - name: DNS_NAME
+              value: {{ .Values.rustfs.dnsName | quote }}
+            - name: CLUSTER_DOMAIN
+              value: {{ .Values.rustfs.clusterDomain | quote }}
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              readOnly: true
+      {{- end }}
+      containers:
+        - name: create-bucket
+          image: {{ include "athenz-showcase.image" (list . .Values.rustfs.bucketImage) | quote }}
+          command: ["/bin/sh", "-ec"]
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: RUSTFS_ACCESS_KEY
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rustfs-credentials
+                  key: RUSTFS_SECRET_KEY
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.rustfs.region | quote }}
+            - name: RUSTFS_BUCKET
+              value: {{ .Values.rustfs.bucket | quote }}
+            - name: RUSTFS_ENDPOINT
+              value: {{ .Values.rustfs.endpoint | quote }}
+          args:
+            - |
+              i=0
+              until aws --endpoint-url "$RUSTFS_ENDPOINT" s3api list-buckets >/dev/null 2>&1; do
+                i=$((i+1)); [ "$i" -le 60 ] || exit 1; sleep 2
+              done
+              if ! aws --endpoint-url "$RUSTFS_ENDPOINT" s3api head-bucket --bucket "$RUSTFS_BUCKET" >/dev/null 2>&1; then
+                if [ "$AWS_DEFAULT_REGION" = us-east-1 ]; then
+                  aws --endpoint-url "$RUSTFS_ENDPOINT" s3api create-bucket --bucket "$RUSTFS_BUCKET"
+                else
+                  aws --endpoint-url "$RUSTFS_ENDPOINT" s3api create-bucket --bucket "$RUSTFS_BUCKET" \
+                    --create-bucket-configuration "LocationConstraint=$AWS_DEFAULT_REGION"
+                fi
+              fi
+{{- if .Values.rustfs.patchCoreDNS }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-rustfs-cleanup
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-rustfs
+      volumes:
+        - name: script
+          configMap:
+            name: {{ .Release.Name }}-coredns-script
+      containers:
+        - name: remove-coredns-rewrite
+          image: {{ include "athenz-showcase.image" (list . .Values.rustfs.apiImage) | quote }}
+          command: ["python3", "/script/coredns.py", "remove"]
+          env:
+            - name: COREDNS_NAMESPACE
+              value: {{ .Values.rustfs.coreDNSNamespace | quote }}
+            - name: COREDNS_CONFIGMAP
+              value: {{ .Values.rustfs.coreDNSConfigMap | quote }}
+            - name: COREDNS_DEPLOYMENT
+              value: {{ .Values.rustfs.coreDNSDeployment | quote }}
+            - name: DNS_NAME
+              value: {{ .Values.rustfs.dnsName | quote }}
+            - name: CLUSTER_DOMAIN
+              value: {{ .Values.rustfs.clusterDomain | quote }}
+          volumeMounts:
+            - name: script
+              mountPath: /script
+              readOnly: true
+{{- end }}
+{{- end }}

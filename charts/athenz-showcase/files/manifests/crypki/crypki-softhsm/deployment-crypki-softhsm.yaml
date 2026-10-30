@@ -1,0 +1,228 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/instance: crypki-softhsm
+    app.kubernetes.io/name: crypki-softhsm
+  name: crypki-softhsm
+  namespace: crypki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: crypki-softhsm
+      app.kubernetes.io/name: crypki-softhsm
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: crypki-softhsm
+        app.kubernetes.io/name: crypki-softhsm
+    spec:
+      containers:
+      - env:
+        - name: DEBUG
+          value: 'true'
+        - name: TZ
+          value: Asia/Tokyo
+        - name: CRYPKI_CONFIG_TEMPLATE
+          value: "/opt/crypki/crypki.config.template"
+        - name: CRYPKI_CONFIG_FILE
+          value: "/opt/crypki/crypki-softhsm.json"
+        - name: CRYPKI_PID_DIR
+          value: "/opt/crypki/pid"
+        - name: CRYPKI_LOG_DIR
+          value: "/opt/crypki/logs"
+        - name: USER_SSH_PRIVATE_KEY
+          value: ''
+        - name: USER_SSH_PUBLIC_KEY
+          value: ''
+        - name: HOST_X509_PRIVATE_KEY
+          value: ''
+        - name: HOST_X509_PUBLIC_KEY
+          value: ''
+        - name: HOST_SSH_PRIVATE_KEY
+          value: ''
+        - name: HOST_SSH_PUBLIC_KEY
+          value: ''
+        - name: SIGN_BLOB_PRIVATE_KEY
+          value: ''
+        - name: SIGN_BLOB_PUBLIC_KEY
+          value: ''
+        image: ghcr.io/ctyano/crypki-softhsm:latest
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - "-s"
+            - "--fail"
+            - "--cert"
+            - "/opt/crypki/tls-crt/client.crt"
+            - "--key"
+            - "/opt/crypki/tls-crt/client.key"
+            - "--cacert"
+            - "/opt/crypki/tls-crt/ca.crt"
+            - "--resolve"
+            - localhost:4443:127.0.0.1
+            - https://localhost:4443/ruok
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: crypki-softhsm
+        ports:
+        - containerPort: 4443
+          name: https
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - "-s"
+            - "--fail"
+            - "--cert"
+            - "/opt/crypki/tls-crt/client.crt"
+            - "--key"
+            - "/opt/crypki/tls-crt/client.key"
+            - "--cacert"
+            - "/opt/crypki/tls-crt/ca.crt"
+            - "--resolve"
+            - localhost:4443:127.0.0.1
+            - https://localhost:4443/ruok
+          failureThreshold: 5
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: "/opt/crypki/tls-crt"
+          name: crypki-keys
+          readOnly: true
+        - mountPath: "/opt/crypki/crypki.config.template"
+          name: crypki-config-template
+          subPath: crypki.config.template
+        - mountPath: "/dev/shm"
+          name: crypki-shm
+        - mountPath: "/var/log/crypki"
+          name: crypki-logs
+      - env:
+        - name: TZ
+          value: Asia/Tokyo
+        - name: ZMS
+          value: https://athenz-zms-server.athenz:4443/zms/v1
+        - name: ZTS
+          value: https://athenz-zts-server.athenz:4443/zts/v1
+        image: ghcr.io/ctyano/athenz-cli:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-cli
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: "/var/run/athenz"
+          name: athenz-admin-keys
+          readOnly: true
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-crypki-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+        - mountPath: "/opt/crypki/tls-crt"
+          name: crypki-keys
+          readOnly: true
+      - args:
+        - client
+        - "--listen"
+        - :3000
+        - "--target"
+        - localhost:4443
+        - "--override-server-name"
+        - crypki-softhsm.crypki
+        - "--cacert"
+        - "/etc/ssl/certs/ca-certificates.crt"
+        - "--disable-authentication"
+        - "--unsafe-listen"
+        image: docker.io/ghostunnel/ghostunnel:latest
+        imagePullPolicy: IfNotPresent
+        name: ghostunnel
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+          requests:
+            cpu: 5m
+            memory: 16Mi
+        volumeMounts:
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-crypki-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+        - mountPath: "/opt/crypki/tls-crt"
+          name: crypki-keys
+          readOnly: true
+      - command:
+        - envoy
+        - "-c"
+        - "/etc/envoy/envoy.yaml"
+        - "-l"
+        - debug
+        image: ghcr.io/ctyano/certsigner-envoy:latest
+        imagePullPolicy: IfNotPresent
+        name: envoy
+        ports:
+        - containerPort: 10000
+        volumeMounts:
+        - mountPath: "/etc/envoy/envoy.yaml"
+          name: envoy-config
+          subPath: envoy.yaml
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - name: crypki-keys
+        secret:
+          defaultMode: 365
+          secretName: crypki-keys
+      - name: athenz-admin-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: athenz_admin.cert.pem
+            path: athenz_admin.cert.pem
+          - key: athenz_admin.private.pem
+            path: athenz_admin.private.pem
+          secretName: athenz-admin-keys
+      - name: athenz-crypki-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-crypki-cacert
+      - configMap:
+          name: crypki-config-template
+        name: crypki-config-template
+      - configMap:
+          name: crypki-shm
+        name: crypki-shm
+      - emptyDir: {}
+        name: crypki-logs
+      - configMap:
+          name: envoy-config
+        name: envoy-config

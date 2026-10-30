@@ -9,6 +9,8 @@
 
 Other required dependencies will be automatically installed.
 
+For Helm installation instructions, see the [Athenz showcase chart](../charts/athenz-showcase/README.md).
+
 ## Full setup on a KinD cluster ⎈
 
 ### Setup with minimal components

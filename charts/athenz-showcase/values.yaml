@@ -1,0 +1,85 @@
+# Install each phase as a separate Helm release, in the order documented in README.md.
+phase: core
+
+namespaces:
+  create: true # false when athenz/crypki/keycloak namespaces already exist
+
+registries:
+  internal: ghcr.io/ctyano/
+  external: ghcr.io/ctyano/
+  dockerio: docker.io
+  quayio: quay.io
+athenzImageTag: latest
+# Full image references override the registry/tag calculation by image basename.
+images: {}
+imagePullPolicy: IfNotPresent
+
+# Merge patches keyed by phase, Kind, and resource name. Lists replace lists.
+# This also exposes every existing manifest field without duplicating its schema.
+overrides: {}
+
+pki:
+  validityDays: 3650
+  caCommonName: Test CA Certificate
+  existing: false
+  publicKeyImage: docker.io/alpine/openssl:latest
+  apiImage: docker.io/python:3.12-alpine
+
+zts:
+  certSigner: keystore # keystore, crypki, or vault
+  changeLogStore: zms # zms or s3
+
+vault:
+  rootToken: root # development Vault token used by the existing showcase
+  bootstrapScript: "" # optional replacement for the bundled bootstrap script
+  envoyConfig: "" # optional replacement for the bundled Envoy configuration
+
+identityProvider:
+  domain: athenz
+  service: identityprovider
+  provider: sys.auth.zts
+  dnsSuffix: zts.athenz.cloud
+  endpointHost: identityprovider.athenz
+
+workloads:
+  domain: athenz
+  provider: athenz.identityprovider
+  dnsSuffix: svc.cluster.local
+
+rustfs:
+  createCredentialsSecret: true
+  accessKey: rustfsadmin
+  secretKey: rustfsadmin
+  bucket: zms-domains
+  region: us-east-1
+  endpoint: http://rustfs.athenz:9000
+  serverDomains: rustfs.athenz:9000
+  patchCoreDNS: true
+  dnsName: rustfs.athenz
+  clusterDomain: cluster.local
+  coreDNSNamespace: kube-system
+  coreDNSConfigMap: coredns
+  coreDNSDeployment: coredns
+  apiImage: docker.io/python:3.12-alpine
+  bucketImage: docker.io/amazon/aws-cli:latest
+
+syncer:
+  schedule: "*/1 * * * *"
+  storageSize: 64Mi
+  storageClassName: null
+
+keycloak:
+  image: quay.io/keycloak/keycloak:26.5.5
+  postgresImage: docker.io/library/postgres:alpine
+  adminUser: admin
+  adminPassword: admin
+  dbUser: postgres
+  dbPassword: postgres
+  dbName: postgres
+  realmJSON: "" # optional replacement for the bundled showcase realm JSON
+  postgresExistingClaim: "" # emptyDir when unset
+
+hooks:
+  cliImage: "" # defaults to registries.internal + athenz-cli:athenzImageTag
+  apiImage: docker.io/python:3.12-alpine
+  timeoutSeconds: 600

@@ -1,0 +1,189 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/instance: athenz-zms-syncer
+    app.kubernetes.io/name: athenz-zms-syncer
+  name: athenz-zms-syncer
+  namespace: athenz
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: athenz-zms-syncer
+            app.kubernetes.io/name: athenz-zms-syncer
+        spec:
+          containers:
+          - env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: AWS_BUCKET
+              value: zms-domains
+            - name: AWS_S3_ENDPOINT
+              value: http://rustfs.athenz:9000
+            - name: AWS_S3_REGION
+              value: us-east-1
+            - name: AWS_CRED_KEYID
+              valueFrom:
+                secretKeyRef:
+                  key: RUSTFS_ACCESS_KEY
+                  name: rustfs-credentials
+            - name: AWS_CRED_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: RUSTFS_SECRET_KEY
+                  name: rustfs-credentials
+            - name: KEY_FILE
+              value: "/athenz/zms-syncer/keys/zms-syncer.private.pem"
+            - name: CERT_FILE
+              value: "/athenz/zms-syncer/certs/zms-syncer.cert.pem"
+            - name: CA_CERT_PEM_PATH
+              value: "/etc/ssl/certs/ca-certificates.crt"
+            image: ghcr.io/ctyano/athenz-zms-syncer:latest
+            imagePullPolicy: IfNotPresent
+            name: athenz-zms-syncer
+            resources:
+              limits:
+                cpu: 500m
+                memory: 512Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            volumeMounts:
+            - mountPath: "/athenz/zms-syncer/keys"
+              name: athenz-zms-syncer-keys
+              readOnly: true
+            - mountPath: "/athenz/zms-syncer/certs"
+              name: athenz-zms-syncer-certs
+              readOnly: true
+            - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+              name: athenz-cacert
+              readOnly: true
+              subPath: ca-certificates.crt
+            - mountPath: "/opt/athenz/zms-syncer/zms_syncer/conf"
+              name: zms-syncer-conf
+            - mountPath: "/opt/athenz/zms-syncer/var/state"
+              name: zms-syncer-state
+          initContainers:
+          - args:
+            - |
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                show-service zms-syncer \
+              || \
+              zms-cli \
+                -key /athenz/admin/${USER}.private.pem \
+                -cert /athenz/admin/${USER}.cert.pem \
+                -c /etc/ssl/certs/ca-certificates.crt \
+                -z ${ZMS} \
+                -d sys.auth \
+                add-service zms-syncer "${HOSTNAME}" /athenz/zms-syncer/keys/zms-syncer.public.pem
+            command:
+            - "/bin/sh"
+            - "-c"
+            env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: USER
+              value: athenz_admin
+            image: ghcr.io/ctyano/athenz-cli:latest
+            imagePullPolicy: IfNotPresent
+            name: zms-cli
+            resources:
+              limits:
+                cpu: 100m
+                memory: 32Mi
+              requests:
+                cpu: 50m
+                memory: 16Mi
+            volumeMounts:
+            - mountPath: "/athenz/admin"
+              name: athenz-admin-keys
+              readOnly: true
+            - mountPath: "/athenz/zms-syncer/keys"
+              name: athenz-zms-syncer-keys
+              readOnly: true
+            - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+              name: athenz-cacert
+              readOnly: true
+              subPath: ca-certificates.crt
+          - args:
+            - |
+              athenz-conf \
+                -svc-key-file /athenz/admin/athenz_admin.private.pem \
+                -svc-cert-file /athenz/admin/athenz_admin.cert.pem \
+                -z https://athenz-zms-server.athenz:4443/zms/v1 \
+                -t https://athenz-zms-server.athenz:4443/zts/v1 \
+                -o /athenz/conf/athenz.conf
+            command:
+            - "/bin/sh"
+            - "-c"
+            env:
+            - name: TZ
+              value: Asia/Tokyo
+            - name: ZMS
+              value: https://athenz-zms-server.athenz:4443/zms/v1
+            - name: USER
+              value: athenz_admin
+            image: ghcr.io/ctyano/athenz-cli:latest
+            imagePullPolicy: IfNotPresent
+            name: athenz-conf
+            resources:
+              limits:
+                cpu: 100m
+                memory: 32Mi
+              requests:
+                cpu: 50m
+                memory: 16Mi
+            volumeMounts:
+            - mountPath: "/athenz/admin"
+              name: athenz-admin-keys
+              readOnly: true
+            - mountPath: "/athenz/conf"
+              name: zms-syncer-conf
+            - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+              name: athenz-cacert
+              readOnly: true
+              subPath: ca-certificates.crt
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 1001
+          volumes:
+          - emptyDir: {}
+            name: zms-syncer-conf
+          - name: zms-syncer-state
+            persistentVolumeClaim:
+              claimName: athenz-zms-syncer-state
+          - name: athenz-zms-syncer-keys
+            secret:
+              defaultMode: 365
+              secretName: athenz-zms-syncer-keys
+          - name: athenz-zms-syncer-certs
+            secret:
+              defaultMode: 365
+              secretName: athenz-zms-syncer-certs
+          - name: athenz-cacert
+            secret:
+              defaultMode: 365
+              items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+              secretName: athenz-cacert
+          - name: athenz-admin-keys
+            secret:
+              defaultMode: 365
+              secretName: athenz-admin-keys
+  schedule: "*/1 * * * *"
+  successfulJobsHistoryLimit: 1

@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+data:
+  slot_pwd.txt: '123456'
+kind: ConfigMap
+metadata:
+  name: crypki-shm
+  namespace: crypki

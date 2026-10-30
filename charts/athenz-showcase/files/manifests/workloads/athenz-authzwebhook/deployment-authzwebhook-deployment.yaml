@@ -1,0 +1,243 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: authzwebhook-deployment
+  name: authzwebhook-deployment
+  namespace: athenz
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authzwebhook-deployment
+  template:
+    metadata:
+      labels:
+        app: authzwebhook-deployment
+    spec:
+      containers:
+      - args:
+        - "--mode=refresh"
+        - "--token-server-addr=:8180"
+        - "--authorization-server-addr=:8280"
+        - "--metrics-server-addr=:9999"
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: SERVICEACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        envFrom:
+        - configMapRef:
+            name: authzwebhook-sia
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        imagePullPolicy: IfNotPresent
+        name: sia
+        ports:
+        - containerPort: 8180
+          name: token-sidecar
+          protocol: TCP
+        - containerPort: 8280
+          name: authorization
+          protocol: TCP
+        - containerPort: 9999
+          name: exporter
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/var/run/secrets/kubernetes.io/bound-serviceaccount"
+          name: attestation-data
+          readOnly: true
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      - env:
+        - name: TZ
+          value: Asia/Tokyo
+        - name: ZMS
+          value: https://athenz-zms-server.athenz:4443/zms/v1
+        - name: ZTS
+          value: https://athenz-zts-server.athenz:4443/zts/v1
+        image: ghcr.io/ctyano/athenz-cli:latest
+        imagePullPolicy: IfNotPresent
+        name: athenz-cli
+        resources:
+          limits:
+            cpu: 1
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: "/var/run/athenz"
+          name: athenz-admin-keys
+          readOnly: true
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      - args:
+        - "-c"
+        - "/etc/envoy/config.yaml"
+        - "-l"
+        - debug
+        command:
+        - "/usr/local/bin/envoy"
+        image: docker.io/envoyproxy/envoy:v1.34-latest
+        imagePullPolicy: IfNotPresent
+        name: envoy
+        ports:
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        - containerPort: 4443
+          name: mtls
+          protocol: TCP
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/etc/envoy"
+          name: envoy
+          readOnly: true
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+          readOnly: true
+      - env:
+        - name: PORT
+          value: '3000'
+        image: docker.io/ealen/echo-server:latest
+        imagePullPolicy: IfNotPresent
+        name: echoserver
+        ports:
+        - containerPort: 3000
+          name: echoserver
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      initContainers:
+      - args:
+        - 'while true; do nc -vzw3 athenz-zts-server.athenz.svc.cluster.local 4443
+          && nc -vzw3 identityprovider.athenz.svc.cluster.local 443 && break; done
+
+'
+        command:
+        - sh
+        - "-c"
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        imagePullPolicy: IfNotPresent
+        name: sia-wait
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+      - args:
+        - "--mode=init"
+        - "--delay-jitter-seconds=5"
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: SERVICEACCOUNT
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.serviceAccountName
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.uid
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        envFrom:
+        - configMapRef:
+            name: authzwebhook-sia
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        imagePullPolicy: IfNotPresent
+        name: sia-init
+        resources:
+          limits:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: "/var/run/secrets/kubernetes.io/bound-serviceaccount"
+          name: attestation-data
+          readOnly: true
+        - mountPath: "/var/run/athenz"
+          name: athenz-tls-certs
+        - mountPath: "/etc/ssl/certs/ca-certificates.crt"
+          name: athenz-cacert
+          readOnly: true
+          subPath: ca-certificates.crt
+      securityContext:
+        fsGroup: 1000
+      serviceAccountName: authzwebhook
+      volumes:
+      - name: attestation-data
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: https://kubernetes.default.svc
+              expirationSeconds: 3600
+              path: token
+      - emptyDir: {}
+        name: athenz-tls-certs
+      - configMap:
+          name: authzwebhook-envoy
+        name: envoy
+      - name: athenz-cacert
+        secret:
+          defaultMode: 365
+          items:
+          - key: ca.cert.pem
+            path: ca-certificates.crt
+          secretName: athenz-cacert
+      - name: athenz-admin-keys
+        secret:
+          defaultMode: 365
+          items:
+          - key: athenz_admin.cert.pem
+            path: athenz_admin.cert.pem
+          - key: athenz_admin.private.pem
+            path: athenz_admin.private.pem
+          secretName: athenz-admin-keys

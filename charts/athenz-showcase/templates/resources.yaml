@@ -1,0 +1,218 @@
+{{- $phase := .Values.phase -}}
+{{- if not (has $phase (list "pki" "crypki" "vault" "core" "identityprovider" "workloads" "oauth2" "rustfs" "syncer")) -}}
+{{- fail (printf "unknown phase %q" $phase) -}}
+{{- end -}}
+{{- $paths := .Files.Glob (printf "files/manifests/%s/**/*.yaml" $phase) -}}
+{{- range $path, $_ := $paths }}
+{{- $resource := fromYaml ($.Files.Get $path) -}}
+{{- include "athenz-showcase.walk" (list $ $resource) -}}
+{{- $name := $resource.metadata.name -}}
+{{- if eq $phase "vault" -}}
+  {{- $_ := set $resource.metadata "namespace" "vault" -}}
+  {{- if eq $resource.kind "Deployment" -}}
+    {{- range $resource.spec.template.spec.containers -}}
+      {{- if eq .name "vault" -}}
+        {{- $_ := set . "command" (list "vault" "server" "-dev" "-dev-listen-address=0.0.0.0:8200" (printf "-dev-root-token-id=%s" $.Values.vault.rootToken)) -}}
+      {{- else if eq .name "vault-bootstrap" -}}
+        {{- range .env -}}
+          {{- if eq .name "VAULT_TOKEN" -}}{{- $_ := set . "value" $.Values.vault.rootToken -}}{{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if eq $phase "identityprovider" -}}
+  {{- if eq $resource.kind "ServiceAccount" -}}
+    {{- $_ := set $resource.metadata "name" $.Values.identityProvider.service -}}
+  {{- else if eq $resource.kind "Deployment" -}}
+    {{- $_ := set $resource.spec.template.spec "serviceAccountName" $.Values.identityProvider.service -}}
+    {{- $annotations := $resource.spec.template.metadata.annotations | default dict -}}
+    {{- $_ := set $annotations "showcase.athenz.io/bootstrap-revision" (toString $.Release.Revision) -}}
+    {{- $_ := set $resource.spec.template.metadata "annotations" $annotations -}}
+    {{- range $resource.spec.template.spec.containers -}}
+      {{- if eq .name "sia" -}}
+        {{- range .env -}}
+          {{- if eq .name "BACKUP" -}}{{- $_ := set . "value" "write" -}}{{- end -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if .args -}}
+        {{- $args := list -}}
+        {{- range .args -}}
+          {{- if hasPrefix "--provider-service=" . -}}
+            {{- $args = append $args (printf "--provider-service=%s" $.Values.identityProvider.provider) -}}
+          {{- else -}}{{- $args = append $args . -}}{{- end -}}
+        {{- end -}}
+        {{- $_ := set . "args" $args -}}
+      {{- end -}}
+    {{- end -}}
+  {{- else if or (eq $resource.kind "RoleBinding") (eq $resource.kind "ClusterRoleBinding") -}}
+    {{- range $resource.subjects -}}
+      {{- if eq .kind "ServiceAccount" -}}{{- $_ := set . "name" $.Values.identityProvider.service -}}{{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (eq $phase "identityprovider") (eq $resource.kind "ConfigMap") -}}
+  {{- if eq $name "identityprovider-sia" -}}
+    {{- $_ := set $resource.data "PROVIDER_SERVICE" $.Values.identityProvider.provider -}}
+    {{- $_ := set $resource.data "DNS_SUFFIX" $.Values.identityProvider.dnsSuffix -}}
+    {{- $_ := set $resource.data "SERVICEACCOUNT" $.Values.identityProvider.service -}}
+    {{- $_ := set $resource.data "ATHENZ_DOMAIN" $.Values.identityProvider.domain -}}
+    {{- $_ := set $resource.data "POD_UID" (printf "%s.%s" $.Values.identityProvider.domain $.Values.identityProvider.service) -}}
+  {{- else if eq $name "athenz-identityprovider" -}}
+    {{- $_ := set $resource.data "IDENTITYPROVIDER_ENDPOINT_HOST" $.Values.identityProvider.endpointHost -}}
+    {{- $_ := set $resource.data "IDENTITYPROVIDER_SERVICEACCOUNT_NAME" $.Values.identityProvider.service -}}
+  {{- else if eq $name "identityprovider-policy" -}}
+    {{- $policy := fromYaml (index $resource.data "config.yaml") -}}
+    {{- $_ := set $policy.config.constraints.athenz.domain "name" $.Values.identityProvider.domain -}}
+    {{- $_ := set $policy.config.constraints.athenz.identityprovider "service" (printf "%s.%s" $.Values.identityProvider.domain $.Values.identityProvider.service) -}}
+    {{- $sandns := list -}}
+    {{- range $policy.config.constraints.cert.sandns -}}
+      {{- if eq .glob "*.instanceid.zts.athenz.cloud" -}}
+        {{- $sandns = append $sandns (dict "glob" (printf "*.instanceid.%s" $.Values.identityProvider.dnsSuffix)) -}}
+      {{- else -}}{{- $sandns = append $sandns . -}}{{- end -}}
+    {{- end -}}
+    {{- $_ := set $policy.config.constraints.cert "sandns" $sandns -}}
+    {{- $_ := set $resource.data "config.yaml" (toYaml $policy) -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (eq $phase "workloads") (eq $resource.kind "ConfigMap") (hasSuffix "-sia" $name) -}}
+  {{- $_ := set $resource.data "PROVIDER_SERVICE" $.Values.workloads.provider -}}
+  {{- $_ := set $resource.data "DNS_SUFFIX" $.Values.workloads.dnsSuffix -}}
+  {{- $_ := set $resource.data "ATHENZ_DOMAIN" $.Values.workloads.domain -}}
+  {{- if index $resource.data "AUTHORIZATION_POLICY_DOMAINS" -}}{{- $_ := set $resource.data "AUTHORIZATION_POLICY_DOMAINS" $.Values.workloads.domain -}}{{- end -}}
+  {{- if index $resource.data "TARGET_DOMAIN_ROLES" -}}{{- $_ := set $resource.data "TARGET_DOMAIN_ROLES" (replace "athenz:" (printf "%s:" $.Values.workloads.domain) (index $resource.data "TARGET_DOMAIN_ROLES")) -}}{{- end -}}
+{{- end -}}
+{{- if and (eq $phase "workloads") (eq $resource.kind "ConfigMap") (has $name (list "authzenvoy-envoy" "authzwebhook-envoy")) -}}
+  {{- $_ := set $resource.data "config.yaml" (replace "CN=(%w+):role.(%w+),.*" "CN=([^:,]+):role%.([^,]+).*" (index $resource.data "config.yaml")) -}}
+{{- end -}}
+{{- if and (has $phase (list "identityprovider" "workloads")) (eq $resource.kind "Deployment") -}}
+  {{- $pod := $resource.spec.template.spec -}}
+  {{- if eq $phase "workloads" -}}
+    {{- $annotations := $resource.spec.template.metadata.annotations | default dict -}}
+    {{- $_ := set $annotations "showcase.athenz.io/config-revision" (toString $.Release.Revision) -}}
+    {{- $_ := set $resource.spec.template.metadata "annotations" $annotations -}}
+  {{- end -}}
+  {{- $seed := dict
+    "name" "seed-ca"
+    "image" (index $pod.initContainers 0).image
+    "imagePullPolicy" (index $pod.initContainers 0).imagePullPolicy
+    "command" (list "/bin/sh" "-ec")
+    "args" (list "cp /ca/ca-certificates.crt /var/run/athenz/ca.crt")
+    "volumeMounts" (list
+      (dict "name" "athenz-cacert" "mountPath" "/ca" "readOnly" true)
+      (dict "name" "athenz-tls-certs" "mountPath" "/var/run/athenz"))
+  -}}
+  {{- $_ := set $pod "initContainers" (append $pod.initContainers $seed) -}}
+{{- end -}}
+{{- if and (eq $phase "core") (eq $name "athenz-zts-conf") -}}
+  {{- $data := $resource.data -}}
+  {{- $properties := index $data "zts.properties" -}}
+  {{- if eq $.Values.zts.certSigner "crypki" -}}
+    {{- $properties = replace "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.crypki.HttpCertSignerFactory" $properties -}}
+  {{- else if eq $.Values.zts.certSigner "vault" -}}
+    {{- $properties = replace "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.zts.cert.impl.KeyStoreCertSignerFactory" "athenz.zts.cert_signer_factory_class=com.yahoo.athenz.common.server.cert.impl.vault.VaultCertSignerFactory" $properties -}}
+  {{- else if ne $.Values.zts.certSigner "keystore" -}}
+    {{- fail "zts.certSigner must be keystore, crypki, or vault" -}}
+  {{- end -}}
+  {{- $properties = replace "#athenz.zts.x509_ca_cert_fname=" "athenz.zts.x509_ca_cert_fname=/var/run/athenz/ca-response/ca.pem" $properties -}}
+  {{- if eq $.Values.zts.changeLogStore "s3" -}}
+    {{- $properties = replace "athenz.zts.change_log_store_factory_class=com.yahoo.athenz.common.server.store.impl.ZMSFileChangeLogStoreFactory" "athenz.zts.change_log_store_factory_class=io.athenz.server.aws.common.store.impl.S3ChangeLogStoreFactory" $properties -}}
+    {{- $properties = replace "#athenz.zts.aws_bucket_name=zms-domains" (printf "athenz.zts.aws_bucket_name=%s" $.Values.rustfs.bucket) $properties -}}
+    {{- $properties = replace "#athenz.zts.aws_region_name=us-east-1" (printf "athenz.zts.aws_region_name=%s" $.Values.rustfs.region) $properties -}}
+    {{- $properties = replace "#athenz.zts.aws_s3_endpoint=http://rustfs.athenz:9000" (printf "athenz.zts.aws_s3_endpoint=%s" $.Values.rustfs.endpoint) $properties -}}
+    {{- $properties = replace "#athenz.zts.zms_domain_jws_support=true" "athenz.zts.zms_domain_jws_support=true" $properties -}}
+  {{- else if ne $.Values.zts.changeLogStore "zms" -}}
+    {{- fail "zts.changeLogStore must be zms or s3" -}}
+  {{- end -}}
+  {{- $_ := set $data "zts.properties" $properties -}}
+{{- end -}}
+{{- if and (eq $phase "core") (eq $resource.kind "Deployment") (eq $name "athenz-zts-server") -}}
+  {{- $pod := $resource.spec.template.spec -}}
+  {{- $zts := index $pod.containers 0 -}}
+  {{- $_ := set $pod "volumes" (append $pod.volumes (dict "name" "showcase-ca-response" "emptyDir" dict)) -}}
+  {{- $_ := set $pod "initContainers" (append $pod.initContainers (dict
+    "name" "showcase-ca-response"
+    "image" $zts.image
+    "imagePullPolicy" $zts.imagePullPolicy
+    "command" (list "/bin/sh" "-ec")
+    "args" (list "echo > /response/ca.pem; cat /ca/ca-certificates.crt >> /response/ca.pem")
+    "volumeMounts" (list
+      (dict "name" "athenz-cacert" "mountPath" "/ca" "readOnly" true)
+      (dict "name" "showcase-ca-response" "mountPath" "/response")))) -}}
+  {{- $_ := set $zts "volumeMounts" (append $zts.volumeMounts (dict
+    "name" "showcase-ca-response" "mountPath" "/var/run/athenz/ca-response" "readOnly" true)) -}}
+  {{- if eq $.Values.zts.certSigner "crypki" -}}
+    {{- $pod := $resource.spec.template.spec -}}
+    {{- $_ := set $pod "volumes" (append $pod.volumes (dict "name" "crypki-client" "secret" (dict "secretName" "crypki-client"))) -}}
+    {{- range $pod.containers -}}
+      {{- if eq .name "athenz-zts-server" -}}
+        {{- $_ := set . "volumeMounts" (append .volumeMounts (dict "name" "crypki-client" "mountPath" "/var/run/athenz/crypki-client" "readOnly" true)) -}}
+        {{- range .env -}}
+          {{- if eq .name "ZTS_SIGNER_TRUSTSTORE_PEM_PATH" -}}{{- $_ := set . "value" "/var/run/athenz/crypki-client/ca.crt" -}}{{- end -}}
+          {{- if eq .name "ZTS_SIGNER_KEYSTORE_CERT_PEM_PATH" -}}{{- $_ := set . "value" "/var/run/athenz/crypki-client/client.crt" -}}{{- end -}}
+          {{- if eq .name "ZTS_SIGNER_KEYSTORE_KEY_PEM_PATH" -}}{{- $_ := set . "value" "/var/run/athenz/crypki-client/client.key" -}}{{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if eq $.Values.zts.certSigner "keystore" -}}
+    {{- range $resource.spec.template.spec.volumes -}}
+      {{- if eq .name "athenz-cacert" -}}
+        {{- $_ := set .secret "items" (append .secret.items (dict "key" "zts-ca.cert.pem" "path" "zts-ca.cert.pem")) -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $zts := index $resource.spec.template.spec.containers 0 -}}
+    {{- $truststore := dict
+      "name" "showcase-zts-truststore"
+      "image" $zts.image
+      "imagePullPolicy" $zts.imagePullPolicy
+      "command" (list "/bin/sh" "-ec")
+      "args" (list "keytool -importcert -noprompt -file /ca/ca-certificates.crt -alias ssl_trust_store -keystore /truststore/zts_truststore.jks -storepass athenz && keytool -importcert -noprompt -file /ca/zts-ca.cert.pem -alias zts_ca -keystore /truststore/zts_truststore.jks -storepass athenz")
+      "volumeMounts" (list (dict "name" "athenz-cacert" "mountPath" "/ca" "readOnly" true) (dict "name" "athenz-trust-store" "mountPath" "/truststore"))
+    -}}
+    {{- $_ := set $resource.spec.template.spec "initContainers" (prepend $resource.spec.template.spec.initContainers $truststore) -}}
+  {{- end -}}
+  {{- if eq $.Values.zts.certSigner "vault" -}}
+    {{- $pod := $resource.spec.template.spec -}}
+    {{- $_ := set $pod "volumes" (append $pod.volumes (dict "name" "vault-approle" "secret" (dict "secretName" "vault-approle"))) -}}
+    {{- range $pod.containers -}}
+      {{- if eq .name "athenz-zts-server" -}}
+        {{- $_ := set . "env" (append .env (dict "name" "ATHENZ__ZTS__VAULT__APPROLE_ROLE_ID" "valueFrom" (dict "secretKeyRef" (dict "name" "vault-approle" "key" "role_id")))) -}}
+        {{- $_ := set . "env" (append .env (dict "name" "ATHENZ__ZTS__VAULT__APPROLE_SECRET_ID" "valueFrom" (dict "secretKeyRef" (dict "name" "vault-approle" "key" "secret_id")))) -}}
+        {{- $_ := set . "volumeMounts" (append .volumeMounts (dict "name" "vault-approle" "mountPath" "/var/run/athenz/vault" "readOnly" true)) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $settings := printf "%s|%s|%s|%s|%s" $.Values.zts.certSigner $.Values.zts.changeLogStore $.Values.rustfs.bucket $.Values.rustfs.region $.Values.rustfs.endpoint -}}
+  {{- $annotations := $resource.spec.template.metadata.annotations | default dict -}}
+  {{- $_ := set $annotations "checksum/showcase-zts-settings" (sha256sum $settings) -}}
+  {{- $_ := set $resource.spec.template.metadata "annotations" $annotations -}}
+{{- end -}}
+{{- if and (eq $phase "rustfs") (eq $name "rustfs") (eq $resource.kind "StatefulSet") -}}
+  {{- $annotations := $resource.spec.template.metadata.annotations | default dict -}}
+  {{- $_ := set $annotations "checksum/showcase-rustfs-credentials" (sha256sum (printf "%s|%s" $.Values.rustfs.accessKey $.Values.rustfs.secretKey)) -}}
+  {{- $_ := set $resource.spec.template.metadata "annotations" $annotations -}}
+  {{- $container := index $resource.spec.template.spec.containers 0 -}}
+  {{- range $container.env -}}
+    {{- if eq .name "RUSTFS_SERVER_DOMAINS" -}}{{- $_ := set . "value" $.Values.rustfs.serverDomains -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (eq $phase "syncer") (eq $resource.kind "CronJob") -}}
+  {{- $_ := set $resource.spec "schedule" $.Values.syncer.schedule -}}
+  {{- $container := index $resource.spec.jobTemplate.spec.template.spec.containers 0 -}}
+  {{- range $container.env -}}
+    {{- if eq .name "AWS_BUCKET" -}}{{- $_ := set . "value" $.Values.rustfs.bucket -}}{{- end -}}
+    {{- if eq .name "AWS_S3_ENDPOINT" -}}{{- $_ := set . "value" $.Values.rustfs.endpoint -}}{{- end -}}
+    {{- if eq .name "AWS_S3_REGION" -}}{{- $_ := set . "value" $.Values.rustfs.region -}}{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- if and (eq $phase "syncer") (eq $resource.kind "PersistentVolumeClaim") -}}
+  {{- $_ := set $resource.spec.resources.requests "storage" $.Values.syncer.storageSize -}}
+  {{- if $.Values.syncer.storageClassName -}}{{- $_ := set $resource.spec "storageClassName" $.Values.syncer.storageClassName -}}{{- end -}}
+{{- end -}}
+{{- $phaseOverrides := index $.Values.overrides $phase | default dict -}}
+{{- $kindOverrides := index $phaseOverrides $resource.kind | default dict -}}
+{{- $patch := index $kindOverrides $name | default dict -}}
+{{- if $patch -}}{{- $resource = mergeOverwrite $resource (deepCopy $patch) -}}{{- end -}}
+{{ printf "---\n%s\n" (toYaml $resource) }}
+{{- end }}

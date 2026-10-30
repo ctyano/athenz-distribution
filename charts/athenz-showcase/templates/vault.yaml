@@ -1,0 +1,24 @@
+{{- if eq .Values.phase "vault" }}
+{{- if .Values.namespaces.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+---
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-bootstrap
+  namespace: vault
+data:
+  bootstrap.sh: {{ default (.Files.Get "files/vault/bootstrap.sh") .Values.vault.bootstrapScript | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-config
+  namespace: vault
+data:
+  envoy.yaml: {{ default (.Files.Get "files/vault/envoy.yaml") .Values.vault.envoyConfig | quote }}
+{{- end }}

@@ -1,0 +1,176 @@
+{{- if eq .Values.phase "pki" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: showcase-pki
+  namespace: athenz
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-showcase-pki
+  namespace: athenz
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - athenz-cacert
+      - athenz-zts-certs
+      - athenz-zts-keys
+      - athenz-ui-keys
+      - athenz-zms-syncer-keys
+      - showcase-service-keys
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-showcase-pki
+  namespace: athenz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-showcase-pki
+subjects:
+  - kind: ServiceAccount
+    name: showcase-pki
+    namespace: athenz
+{{- if not .Values.pki.existing }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-showcase-pki
+  namespace: crypki
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["crypki-keys"]
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-showcase-pki
+  namespace: crypki
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-showcase-pki
+subjects:
+  - kind: ServiceAccount
+    name: showcase-pki
+    namespace: athenz
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-showcase-bootstrap
+  namespace: athenz
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-showcase-bootstrap
+  namespace: athenz
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-showcase-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: showcase-pki
+    namespace: athenz
+{{- if not .Values.pki.existing }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-public-keys
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-pki
+      volumes:
+        - name: pki
+          secret:
+            secretName: showcase-pki
+        - name: public
+          emptyDir: {}
+      initContainers:
+        - name: derive-public-keys
+          image: {{ include "athenz-showcase.image" (list . .Values.pki.publicKeyImage) | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              for name in ca zts ui zms-syncer identityprovider authorizer authzenvoy authzwebhook authzproxy client; do
+                openssl pkey -in "/pki/${name}.private.pem" -pubout -out "/public/${name}.public.pem"
+              done
+              # ZTS derives its issuer key identifier from PKCS#1 bytes, while
+              # Helm's genCA uses a different identifier. Trust both CA
+              # certificates so the initial and ZTS-issued leaves validate.
+              subject=$(openssl x509 -in /pki/ca.cert.pem -noout -subject -nameopt compat | sed 's/^subject= *//')
+              openssl req -new -x509 -key /pki/ca.private.pem -subj "$subject" \
+                -days {{ .Values.pki.validityDays }} \
+                -addext 'subjectKeyIdentifier=hash' \
+                -addext 'basicConstraints=critical,CA:TRUE' \
+                -addext 'keyUsage=critical,keyCertSign,cRLSign' \
+                -out /public/zts-ca.cert.pem
+              cat /pki/ca.cert.pem /public/zts-ca.cert.pem > /public/ca.bundle.pem
+          volumeMounts:
+            - name: pki
+              mountPath: /pki
+              readOnly: true
+            - name: public
+              mountPath: /public
+      containers:
+        - name: patch-secrets
+          image: {{ include "athenz-showcase.image" (list . .Values.pki.apiImage) | quote }}
+          command: ["python3", "-c"]
+          args:
+            - |
+              import json, pathlib, ssl, urllib.request
+              root = pathlib.Path('/public')
+              service_account = pathlib.Path('/var/run/secrets/kubernetes.io/serviceaccount')
+              token = (service_account / 'token').read_text().strip()
+              context = ssl.create_default_context(cafile=str(service_account / 'ca.crt'))
+              def patch(namespace, name, keys):
+                  url = f'https://kubernetes.default.svc/api/v1/namespaces/{namespace}/secrets/{name}'
+                  body = {'stringData': {key: (root / source).read_text() for key, source in keys.items()}}
+                  request = urllib.request.Request(url, data=json.dumps(body).encode(), method='PATCH', headers={
+                      'Authorization': f'Bearer {token}',
+                      'Content-Type': 'application/merge-patch+json',
+                  })
+                  with urllib.request.urlopen(request, context=context, timeout=30) as response:
+                      assert response.status == 200
+              patch('athenz', 'athenz-zts-keys', {'zts.public.pem': 'zts.public.pem'})
+              patch('athenz', 'athenz-cacert', {
+                  'ca.cert.pem': 'ca.bundle.pem',
+                  'zts-ca.cert.pem': 'zts-ca.cert.pem',
+              })
+              patch('athenz', 'athenz-zts-certs', {'selfsign.ca.cert.pem': 'zts-ca.cert.pem'})
+              patch('athenz', 'athenz-ui-keys', {'ui.public.pem': 'ui.public.pem'})
+              patch('athenz', 'athenz-zms-syncer-keys', {'zms-syncer.public.pem': 'zms-syncer.public.pem'})
+              patch('athenz', 'showcase-service-keys', {
+                  f'{name}.public.pem': f'{name}.public.pem' for name in
+                  ('identityprovider', 'authorizer', 'authzenvoy', 'authzwebhook', 'authzproxy', 'client')
+              })
+              patch('crypki', 'crypki-keys', {'ca.public.key': 'ca.public.pem'})
+          volumeMounts:
+            - name: public
+              mountPath: /public
+              readOnly: true
+{{- end }}
+{{- end }}

@@ -1,0 +1,275 @@
+name: Test Kubernetes Helm showcases
+
+on:
+  workflow_call:
+    inputs:
+      athenz_image_tag:
+        description: Prebuilt Athenz image tag; build locally when empty
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      athenz_image_tag:
+        description: Prebuilt Athenz image tag; build locally when empty
+        required: false
+        default: ''
+        type: string
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-kubernetes-helm.yaml'
+      - 'charts/**'
+      - 'kubernetes/**'
+      - 'Makefile'
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  DOCKER_REGISTRY: ghcr.io/ctyano/
+  DOCKER_REGISTRY_EXTERNAL: ghcr.io/ctyano/
+  DOCKERIO_REGISTRY: docker.io
+  QUAYIO_REGISTRY: quay.io
+  ATHENZ_IMAGE_TAG_INPUT: ${{ inputs.athenz_image_tag || '' }}
+
+jobs:
+  helm_scenarios:
+
+    name: Helm ${{ matrix.scenario }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [basic, crypki, syncer, userauth, vault]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: azure/setup-helm@v4
+
+      - name: Lint every Helm phase
+        run: |
+          set -euo pipefail
+          for phase in pki crypki vault core identityprovider workloads oauth2 rustfs syncer; do
+            helm lint charts/athenz-showcase --strict --set "phase=$phase"
+          done
+          helm lint charts/athenz-showcase --strict --set phase=core --set zts.certSigner=crypki
+          helm lint charts/athenz-showcase --strict --set phase=core --set zts.certSigner=vault
+          helm lint charts/athenz-showcase --strict --set phase=core --set zts.changeLogStore=s3
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+
+      - name: Set Go environment
+        run: echo "GOPATH=$(go env GOPATH)" >> "$GITHUB_ENV"
+
+      - name: Resolve Athenz version and Java version
+        id: versions
+        env:
+          GH_API_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 10 --retry-max-time 180 \
+            -H "Authorization: Bearer ${GH_API_TOKEN}" https://api.github.com/repos/AthenZ/athenz/releases/latest \
+            | jq -r '.tag_name // empty')
+          version=$(printf '%s' "$tag" | sed -nE 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')
+          if [[ -z "$version" ]]; then
+            echo "Could not resolve an Athenz release version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if [[ $(printf '%s\n' 1.12.0 "$version" | sort -V | head -n1) == 1.12.0 ]]; then
+            echo 'java_version=17' >> "$GITHUB_OUTPUT"
+          else
+            echo 'java_version=11' >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ steps.versions.outputs.java_version }}
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
+
+      - name: Build or pull Athenz images
+        run: |
+          set -euo pipefail
+          if [[ -n "$ATHENZ_IMAGE_TAG_INPUT" ]]; then
+            [[ "$ATHENZ_IMAGE_TAG_INPUT" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || exit 1
+            echo "ATHENZ_IMAGE_TAG=$ATHENZ_IMAGE_TAG_INPUT" >> "$GITHUB_ENV"
+            make load-docker-images-internal ATHENZ_IMAGE_TAG="$ATHENZ_IMAGE_TAG_INPUT"
+          else
+            make build VERSION="$VERSION"
+          fi
+          make load-docker-images-external
+
+      - name: Load images into KinD
+        run: make -C kubernetes kind-load-images
+
+      - name: Install and test ${{ matrix.scenario }} with Helm
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+        run: |
+          set -euo pipefail
+
+          scenario=${SCENARIO:?}
+          case "$scenario" in
+            basic|crypki|syncer|userauth|vault) ;;
+            *) echo "Unknown showcase scenario: $scenario" >&2; exit 2 ;;
+          esac
+
+          chart=charts/athenz-showcase
+          image_tag=${ATHENZ_IMAGE_TAG:-latest}
+          helm_values=()
+          if [[ -n "${HELM_VALUES_FILE:-}" ]]; then
+            helm_values=(-f "$HELM_VALUES_FILE")
+          fi
+
+          install_phase() {
+            local phase=$1
+            shift
+            helm upgrade --install "showcase-$phase" "$chart" --namespace default \
+              "${helm_values[@]}" \
+              --set "phase=$phase" \
+              --set-string "registries.internal=${DOCKER_REGISTRY:-ghcr.io/ctyano/}" \
+              --set-string "registries.external=${DOCKER_REGISTRY_EXTERNAL:-ghcr.io/ctyano/}" \
+              --set-string "registries.dockerio=${DOCKERIO_REGISTRY:-docker.io}" \
+              --set-string "registries.quayio=${QUAYIO_REGISTRY:-quay.io}" \
+              --set-string "athenzImageTag=$image_tag" \
+              --wait --timeout 15m "$@"
+          }
+
+          wait_for_scheduled_sync() {
+            local since=$1
+            local resource=$2
+            local deadline=$((SECONDS + 180))
+            local state run_time run_status run_epoch
+            while (( SECONDS < deadline )); do
+              if state=$(make --no-print-directory show-kubernetes-athenz-zms-syncer-status); then
+                run_time=$(jq -r '."run-time" // empty' <<<"$state" 2>/dev/null || true)
+                run_status=$(jq -r '."run-status" // empty' <<<"$state" 2>/dev/null || true)
+                run_epoch=$(date -u -d "$run_time" +%s 2>/dev/null || echo 0)
+                if [[ -n "$run_time" && "$run_epoch" -gt "$since" && "$run_status" == 0 ]]; then
+                  echo "Scheduled ZMS sync completed after $resource registration at $run_time"
+                  return
+                fi
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for scheduled ZMS sync after $resource registration" >&2
+            echo "${state:-}" >&2
+            return 1
+          }
+
+          check_workload_routes() {
+            local route attempt
+            for route in client2extauthz client2extauthzmtls \
+                client2webhookauthzmtls client2webhookauthzjwt client2webhookauthzmtlsjwt \
+                client2filterauthzmtls client2filterauthzjwt client2filterauthzmtlsjwt \
+                client2authzproxy; do
+              for attempt in {1..12}; do
+                if kubectl -n athenz exec deployment/athenz-cli -c athenz-cli -- \
+                    curl -fsS "https://client.athenz.svc.cluster.local/$route" | jq -e '.request' >/dev/null; then
+                  echo "Verified $route"
+                  break
+                fi
+                if (( attempt == 12 )); then
+                  echo "Workload route failed: $route" >&2
+                  return 1
+                fi
+                sleep 5
+              done
+            done
+          }
+
+          install_phase pki
+
+          case "$scenario" in
+            crypki|userauth)
+              install_phase crypki
+              make test-kubernetes-crypki-softhsm
+              signer=crypki
+              ;;
+            vault)
+              install_phase vault
+              make check-kubernetes-vault test-kubernetes-vault-pki
+              signer=vault
+              ;;
+            *) signer=keystore ;;
+          esac
+
+          install_phase core --set "zts.certSigner=$signer"
+          make check-kubernetes-athenz
+
+          if [[ "$scenario" == syncer ]]; then
+            install_phase rustfs
+            make test-kubernetes-rustfs
+            install_phase syncer
+            make test-kubernetes-athenz-zms-syncer
+            helm upgrade showcase-core "$chart" --namespace default --reuse-values \
+              "${helm_values[@]}" \
+              --set zts.changeLogStore=s3 --wait --timeout 15m
+            make test-kubernetes-athenz test-kubernetes-athenz-solution-template-reload
+          else
+            make test-kubernetes-athenz
+            if [[ "$scenario" == basic ]]; then
+              make test-kubernetes-athenz-solution-template-reload
+            fi
+          fi
+
+          install_phase identityprovider
+          if [[ "$scenario" == syncer ]]; then
+            since_identityprovider=$(date -u +%s)
+            wait_for_scheduled_sync "$since_identityprovider" identityprovider
+          fi
+          make test-kubernetes-athenz-identityprovider
+
+          install_phase workloads
+          if [[ "$scenario" == syncer ]]; then
+            since_workloads=$(date -u +%s)
+            wait_for_scheduled_sync "$since_workloads" workloads
+          fi
+
+          if [[ "$scenario" == basic || "$scenario" == crypki || "$scenario" == syncer ]]; then
+            for test in authorizer authzenvoy authzwebhook authzproxy client \
+                envoy2envoyextauthz envoy2envoywebhook envoy2envoyfilter envoy2authzproxy; do
+              make "test-kubernetes-athenz-$test"
+            done
+          fi
+
+          check_workload_routes
+
+          if [[ "$scenario" == userauth || "$scenario" == vault ]]; then
+            install_phase oauth2
+            make test-kubernetes-athenz-oauth2
+          fi
+
+      - name: Show cluster state on failure
+        if: failure()
+        run: |
+          helm list --all-namespaces || true
+          kubectl get pods --all-namespaces || true
+          kubectl get events --all-namespaces --sort-by=.lastTimestamp | tail -100 || true
+
+  build:
+    name: build
+    needs: helm_scenarios
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Helm scenario to succeed
+        env:
+          HELM_SCENARIOS_RESULT: ${{ needs.helm_scenarios.result }}
+        run: test "$HELM_SCENARIOS_RESULT" = success

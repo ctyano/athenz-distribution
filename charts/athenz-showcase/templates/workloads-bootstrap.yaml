@@ -1,0 +1,92 @@
+{{- if eq .Values.phase "workloads" }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-register
+  namespace: athenz
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: {{ .Values.hooks.timeoutSeconds }}
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: showcase-pki
+      volumes:
+        - name: admin
+          secret:
+            secretName: athenz-admin-keys
+        - name: ca
+          secret:
+            secretName: athenz-cacert
+        - name: service-keys
+          secret:
+            secretName: showcase-service-keys
+      containers:
+        - name: register
+          image: {{ include "athenz-showcase.cliImage" . | quote }}
+          command: ["/bin/sh", "-ec"]
+          env:
+            - name: DOMAIN
+              value: {{ .Values.workloads.domain | quote }}
+            - name: PROVIDER
+              value: {{ .Values.workloads.provider | quote }}
+            - name: DNS_SUFFIX
+              value: {{ .Values.workloads.dnsSuffix | quote }}
+          args:
+            - |
+              ZMS=https://athenz-zms-server.athenz:4443/zms/v1
+              ZTS=https://athenz-zts-server.athenz:4443/zts/v1
+              key=/admin/athenz_admin.private.pem
+              cert=/admin/athenz_admin.cert.pem
+              ca=/ca/ca.cert.pem
+              zms() { zms-cli -z "$ZMS" -key "$key" -cert "$cert" -c "$ca" "$@"; }
+              if ! curl -fsS --key "$key" --cert "$cert" --cacert "$ca" \
+                   "$ZMS/domain/$DOMAIN" >/dev/null; then
+                curl -fsS --key "$key" --cert "$cert" --cacert "$ca" \
+                  -H 'Content-Type: application/json' \
+                  -d "{\"name\":\"$DOMAIN\",\"adminUsers\":[\"user.athenz_admin\"]}" \
+                  "$ZMS/domain" >/dev/null
+              fi
+              zms -d sys.auth set-domain-template instance_provider \
+                "provider=$PROVIDER" "dnssuffix=$DNS_SUFFIX"
+              for service in authorizer authzenvoy authzwebhook authzproxy client; do
+                public="/service-keys/$service.public.pem"
+                zms -d "$DOMAIN" show-service "$service" >/dev/null 2>&1 || \
+                  zms -d "$DOMAIN" add-service "$service" 0 "$public"
+                zms -d "$DOMAIN" set-domain-template identity_provisioning \
+                  instanceprovider=sys.auth.zts "service=$service"
+                zms -d "$DOMAIN" set-domain-template identity_provisioning \
+                  "instanceprovider=$PROVIDER" "service=$service"
+              done
+              zms -d "$DOMAIN" add-group-role envoyclients || true
+              zms -d "$DOMAIN" add-policy envoyclients grant get to envoyclients on '/extauthz*' || true
+              zms -d "$DOMAIN" add-group-role envoywebhookclients || true
+              zms -d "$DOMAIN" add-policy envoywebhookclients grant get to envoywebhookclients on '/jwtauthn*' || true
+              zms -d "$DOMAIN" add-assertion envoywebhookclients grant get to envoywebhookclients on '/mtlsauthn*' || true
+              zms -d "$DOMAIN" add-group-role authorization-proxy-clients || true
+              zms -d "$DOMAIN" add-policy authorization-proxy-clients grant get to authorization-proxy-clients on '/echoserver*' || true
+              zms -d "$DOMAIN" add-assertion authorization-proxy-clients grant get to authorization-proxy-clients on 'server.test*' || true
+              for role in envoyclients envoywebhookclients authorization-proxy-clients; do
+                zms -d "$DOMAIN" add-member "$role" "$DOMAIN.client" || true
+              done
+              for service in authorizer authzenvoy authzwebhook authzproxy client; do
+                i=0
+                until curl -fsS --key "$key" --cert "$cert" --cacert "$ca" \
+                  "$ZTS/domain/$DOMAIN/service/$service" >/dev/null; do
+                  i=$((i+1)); [ "$i" -le 36 ] || exit 1; sleep 5
+                done
+              done
+          volumeMounts:
+            - name: admin
+              mountPath: /admin
+              readOnly: true
+            - name: ca
+              mountPath: /ca
+              readOnly: true
+            - name: service-keys
+              mountPath: /service-keys
+              readOnly: true
+{{- end }}

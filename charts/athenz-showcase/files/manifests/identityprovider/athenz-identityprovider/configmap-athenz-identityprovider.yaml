@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+data:
+  IDENTITYPROVIDER_ENDPOINT_HOST: identityprovider.athenz
+  IDENTITYPROVIDER_NAMESPACE: athenz
+  IDENTITYPROVIDER_OPA_LOG_FORMAT: json
+  IDENTITYPROVIDER_OPA_LOG_LEVEL: debug
+  IDENTITYPROVIDER_SERVICEACCOUNT_NAME: identityprovider
+kind: ConfigMap
+metadata:
+  name: athenz-identityprovider
+  namespace: athenz

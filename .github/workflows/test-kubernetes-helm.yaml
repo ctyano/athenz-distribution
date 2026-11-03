@@ -48,7 +48,7 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
 
       - name: Lint every Helm phase
         run: |

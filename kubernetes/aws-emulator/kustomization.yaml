@@ -4,10 +4,3 @@ namespace: athenz
 
 resources:
   - service.yaml
-
-generatorOptions:
-  disableNameSuffixHash: true
-configMapGenerator:
-  - name: aws-emulator-imds
-    files:
-      - metadata.py

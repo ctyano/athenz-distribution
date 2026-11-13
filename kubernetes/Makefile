@@ -281,8 +281,8 @@ kind-load-images-thirdparty: kind-load-images-check
 kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
 
 kind-load-aws-emulator-image:
-	$(call KIND_LOAD_DOCKER_IMAGES,aws-emulator:latest)
-	$(call KIND_LOAD_DOCKER_IMAGES,docker.io/library/python:3.13-alpine)
+	$(call KIND_LOAD_DOCKER_IMAGES,ghcr.io/ctyano/docker-aws-emulator:latest)
+	$(call KIND_LOAD_DOCKER_IMAGES,k8s-athenz-sia:awsimds)
 
 kind-shutdown:
 	kind delete cluster --name "$(KIND_CLUSTER_NAME)"

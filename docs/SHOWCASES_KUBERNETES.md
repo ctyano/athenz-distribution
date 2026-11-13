@@ -69,7 +69,7 @@ make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator
 
 The test requests credentials from `GET /zts/v1/domain/awsshowcase/role/showcaserole/creds`, uses the returned credentials to call the emulator's STS `GetCallerIdentity`, and checks that an ungranted role is denied. Only the final result is printed; temporary credentials are kept out of the test output.
 
-The emulator runs beside ZTS in the same Pod so ZTS can use its loopback HTTPS endpoint and trust its generated certificate. A small metadata adapter exposes the emulator's credentials through the instance metadata API required by the current ZTS implementation. The emulator image is built from the [AWS supplied RPM](https://docs.aws.amazon.com/emulator/latest/userguide/getting-started-docker.html) for the local KinD architecture. This opt-in setup does not call live AWS APIs.
+The emulator runs beside ZTS in the same Pod so ZTS can use its loopback HTTPS endpoint and trust its generated certificate. A k8s-athenz-sia sidecar provides the emulator's credentials through IMDSv2, which the current ZTS implementation requires. The test also runs SIA beside AWS CLI to retrieve role credentials from ZTS through IMDSv2. The emulator image comes from [docker-aws-emulator](https://github.com/ctyano/docker-aws-emulator), which tracks the [AWS supplied RPM](https://docs.aws.amazon.com/emulator/latest/userguide/getting-started-docker.html). The SIA image is built from `../k8s-athenz-sia` and loaded into KinD. This opt-in setup does not call live AWS APIs.
 
 ## Each steps in Makefile
 

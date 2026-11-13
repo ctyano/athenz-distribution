@@ -6,9 +6,6 @@ spec:
       volumes:
         - name: aws-emulator-state
           emptyDir: {}
-        - name: aws-emulator-imds
-          configMap:
-            name: aws-emulator-imds
       containers:
         - name: athenz-zts-server
           command: ["/bin/sh", "-ec"]
@@ -39,7 +36,7 @@ spec:
               mountPath: /var/run/aws-emulator
               readOnly: true
         - name: aws-emulator
-          image: aws-emulator:latest
+          image: ghcr.io/ctyano/docker-aws-emulator:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: emulator-https
@@ -59,12 +56,16 @@ spec:
             - name: aws-emulator-state
               mountPath: /home/emulator/.aws/emulator
         - name: aws-emulator-imds
-          image: python:3.13-alpine
-          command: ["python", "-u", "/etc/metadata/metadata.py"]
+          image: k8s-athenz-sia:awsimds
+          imagePullPolicy: IfNotPresent
+          args:
+            - imds
+            - -source=file
+            - -role=zts
+            - -credentials-file=/var/run/aws-emulator/9297/emulator_credentials
           securityContext:
             runAsUser: 10001
             runAsGroup: 10001
-          readinessProbe: null
           resources:
             requests:
               memory: 16Mi
@@ -75,7 +76,4 @@ spec:
           volumeMounts:
             - name: aws-emulator-state
               mountPath: /var/run/aws-emulator
-              readOnly: true
-            - name: aws-emulator-imds
-              mountPath: /etc/metadata
               readOnly: true

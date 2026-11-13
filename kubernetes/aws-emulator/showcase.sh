@@ -97,12 +97,19 @@ test_credentials() {
     printf '%s\n' "$response" | jq -e \
         '([.accessKeyId, .secretAccessKey, .sessionToken] | all(. != null and length > 0)) and .expiration != null' >/dev/null
 
-    AWS_ACCESS_KEY_ID=$(printf '%s\n' "$response" | jq -r .accessKeyId)
-    AWS_SECRET_ACCESS_KEY=$(printf '%s\n' "$response" | jq -r .secretAccessKey)
-    AWS_SESSION_TOKEN=$(printf '%s\n' "$response" | jq -r .sessionToken)
-    identity=$(aws_cli sts get-caller-identity)
-    # AWS CLI writes an HTTPS verification warning to its combined Pod log.
-    printf '%s\n' "$identity" | sed -n '/^{/,$p' | jq -e --arg account "$ACCOUNT" --arg role "$ROLE" \
+    kubectl apply -f test-pod.yaml >/dev/null
+    trap 'kubectl -n athenz delete pod aws-emulator-client --ignore-not-found --wait=false >/dev/null' EXIT
+    kubectl -n athenz wait --for=condition=Ready pod/aws-emulator-client --timeout=120s >/dev/null
+    identity=
+    for attempt in $(seq 1 60); do
+        if identity=$(kubectl -n athenz exec pod/aws-emulator-client -c aws-cli -- \
+            aws --endpoint-url "$EMULATOR" --no-verify-ssl sts get-caller-identity 2>/dev/null); then
+            break
+        fi
+        sleep 2
+    done
+    test -n "$identity" || { echo 'AWS CLI could not use the IMDSv2 credentials' >&2; exit 1; }
+    printf '%s\n' "$identity" | jq -e --arg account "$ACCOUNT" --arg role "$ROLE" \
         '.Account == $account and (.Arn | startswith("arn:aws:sts::" + $account + ":assumed-role/" + $role + "/"))' >/dev/null
 
     status=$(kubectl -n athenz exec deployment/athenz-cli -- curl -sS \

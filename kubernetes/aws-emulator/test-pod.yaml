@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aws-emulator-client
+  namespace: athenz
+spec:
+  restartPolicy: Never
+  volumes:
+    - name: admin-keys
+      secret:
+        secretName: athenz-admin-keys
+    - name: athenz-ca
+      secret:
+        secretName: athenz-cacert
+  containers:
+    - name: sia-imds
+      image: k8s-athenz-sia:awsimds
+      imagePullPolicy: IfNotPresent
+      args:
+        - imds
+        - -source=zts
+        - -role=showcaserole
+        - -domain=awsshowcase
+        - -zts-endpoint=https://athenz-zts-server.athenz:4443/zts/v1
+        - -cert-file=/var/run/athenz/athenz_admin.cert.pem
+        - -key-file=/var/run/athenz/athenz_admin.private.pem
+        - -ca-file=/var/run/athenz/ca-certificates.crt
+      resources:
+        requests:
+          memory: 16Mi
+          cpu: 10m
+        limits:
+          memory: 64Mi
+          cpu: 100m
+      volumeMounts:
+        - name: admin-keys
+          mountPath: /var/run/athenz/athenz_admin.cert.pem
+          subPath: athenz_admin.cert.pem
+          readOnly: true
+        - name: admin-keys
+          mountPath: /var/run/athenz/athenz_admin.private.pem
+          subPath: athenz_admin.private.pem
+          readOnly: true
+        - name: athenz-ca
+          mountPath: /var/run/athenz/ca-certificates.crt
+          subPath: ca.cert.pem
+          readOnly: true
+    - name: aws-cli
+      image: amazon/aws-cli:latest
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/sh", "-c"]
+      args: ["sleep 3600"]
+      env:
+        - name: AWS_EC2_METADATA_SERVICE_ENDPOINT
+          value: http://127.0.0.1:1338
+        - name: AWS_EC2_METADATA_V1_DISABLED
+          value: "true"
+        - name: AWS_DEFAULT_REGION
+          value: us-east-1
+      resources:
+        requests:
+          memory: 32Mi
+          cpu: 10m
+        limits:
+          memory: 256Mi
+          cpu: 200m

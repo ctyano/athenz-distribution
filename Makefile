@@ -611,16 +611,19 @@ use-kubernetes-vault: test-kubernetes-vault-pki
 deploy-kubernetes-rustfs:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-rustfs deploy-rustfs
 
-# Opt-in AWS STS showcase. The emulator and its metadata adapter run next to ZTS.
+# Opt-in AWS STS showcase. SIA provides IMDSv2 in the ZTS and client Pods.
+AWS_EMULATOR_PULL ?= true
+AWS_SIA_CONTEXT ?= ../k8s-athenz-sia
+
 deploy-kubernetes-aws-emulator:
-	@$(MAKE) build-kubernetes-aws-emulator
-	@docker pull docker.io/library/python:3.13-alpine
+	@$(MAKE) build-kubernetes-aws-sia
+	@if [ "$(AWS_EMULATOR_PULL)" = true ]; then docker pull ghcr.io/ctyano/docker-aws-emulator:latest; fi
 	@$(MAKE) -C kubernetes kind-load-aws-emulator-image
 	@AWS_CLI_IMAGE=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest sh kubernetes/aws-emulator/showcase.sh setup
 
-build-kubernetes-aws-emulator:
-	@case "$$(uname -m)" in arm64|aarch64) rpm_arch=aarch64 ;; *) rpm_arch=x86_64 ;; esac; \
-		docker build --build-arg RPM_ARCH=$$rpm_arch -t aws-emulator:latest kubernetes/aws-emulator
+build-kubernetes-aws-sia:
+	@cd $(AWS_SIA_CONTEXT) && CGO_ENABLED=0 GOOS=linux GOARCH=$$(go env GOARCH) go build -o athenz-sia ./cmd/athenz-sia
+	@docker build -f $(AWS_SIA_CONTEXT)/Dockerfile.imds -t k8s-athenz-sia:awsimds $(AWS_SIA_CONTEXT)
 
 test-kubernetes-aws-emulator:
 	@AWS_CLI_IMAGE=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest sh kubernetes/aws-emulator/showcase.sh test

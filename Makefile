@@ -613,17 +613,13 @@ deploy-kubernetes-rustfs:
 
 # Opt-in AWS STS showcase. SIA provides IMDSv2 in the ZTS and client Pods.
 AWS_EMULATOR_PULL ?= true
-AWS_SIA_CONTEXT ?= ../k8s-athenz-sia
+AWS_SIA_PULL ?= true
 
 deploy-kubernetes-aws-emulator:
-	@$(MAKE) build-kubernetes-aws-sia
 	@if [ "$(AWS_EMULATOR_PULL)" = true ]; then docker pull ghcr.io/ctyano/docker-aws-emulator:latest; fi
+	@if [ "$(AWS_SIA_PULL)" = true ]; then docker pull ghcr.io/ctyano/k8s-athenz-sia:latest; fi
 	@$(MAKE) -C kubernetes kind-load-aws-emulator-image
 	@AWS_CLI_IMAGE=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest sh kubernetes/aws-emulator/showcase.sh setup
-
-build-kubernetes-aws-sia:
-	@cd $(AWS_SIA_CONTEXT) && CGO_ENABLED=0 GOOS=linux GOARCH=$$(go env GOARCH) go build -o athenz-sia ./cmd/athenz-sia
-	@docker build -f $(AWS_SIA_CONTEXT)/Dockerfile.imds -t k8s-athenz-sia:awsimds $(AWS_SIA_CONTEXT)
 
 test-kubernetes-aws-emulator:
 	@AWS_CLI_IMAGE=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest sh kubernetes/aws-emulator/showcase.sh test

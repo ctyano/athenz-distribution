@@ -404,21 +404,6 @@ jobs:
           make test-kubernetes-athenz-envoy2authzproxy
 
       -
-        name: Checkout SIA with IMDSv2 support
-        uses: actions/checkout@v7
-        with:
-          repository: ctyano/k8s-athenz-sia
-          ref: 128fc5027f5c1ad614c011747a0548439b830a22
-          path: k8s-athenz-sia
-          persist-credentials: false
-          submodules: recursive
-
-      -
-        name: Apply local SIA IMDSv2 patch
-        run: |
-          git -C k8s-athenz-sia apply "$GITHUB_WORKSPACE/kubernetes/aws-emulator/k8s-athenz-sia.patch"
-
-      -
         name: Verify ZTS AWS temporary credentials with AWS Emulator
         run: |
-          make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator AWS_SIA_CONTEXT=k8s-athenz-sia
+          make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator

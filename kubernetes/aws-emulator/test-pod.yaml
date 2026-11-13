@@ -14,17 +14,21 @@ spec:
         secretName: athenz-cacert
   containers:
     - name: sia-imds
-      image: k8s-athenz-sia:awsimds
+      image: ghcr.io/ctyano/k8s-athenz-sia:latest
       imagePullPolicy: IfNotPresent
       args:
-        - imds
-        - -source=zts
-        - -role=showcaserole
-        - -domain=awsshowcase
-        - -zts-endpoint=https://athenz-zts-server.athenz:4443/zts/v1
-        - -cert-file=/var/run/athenz/athenz_admin.cert.pem
-        - -key-file=/var/run/athenz/athenz_admin.private.pem
-        - -ca-file=/var/run/athenz/ca-certificates.crt
+        - -mode=refresh
+        - -cert=/var/run/athenz/athenz_admin.cert.pem
+        - -key=/var/run/athenz/athenz_admin.private.pem
+        - -endpoint=https://athenz-zts-server.athenz:4443/zts/v1
+        - -server-ca-cert=/var/run/athenz/ca-certificates.crt
+        - -refresh-interval=0
+        - -token-refresh-interval=0
+        - -log-dir=/tmp
+        - -use-imds-server
+        - -imds-source=zts
+        - -imds-role=showcaserole
+        - -imds-domain=awsshowcase
       resources:
         requests:
           memory: 16Mi

@@ -282,7 +282,7 @@ kind-load-images: kind-load-images-internal kind-load-images-external kind-load-
 
 kind-load-aws-emulator-image:
 	$(call KIND_LOAD_DOCKER_IMAGES,ghcr.io/ctyano/docker-aws-emulator:latest)
-	$(call KIND_LOAD_DOCKER_IMAGES,k8s-athenz-sia:awsimds)
+	$(call KIND_LOAD_DOCKER_IMAGES,ghcr.io/ctyano/k8s-athenz-sia:latest)
 
 kind-shutdown:
 	kind delete cluster --name "$(KIND_CLUSTER_NAME)"

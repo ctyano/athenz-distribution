@@ -57,6 +57,20 @@ This is entirely opt-in: unless these extra targets are run, `athenz-zts-server`
 
 ⚠️ `deploy-kubernetes-athenz-zms-syncer` also creates this repository's only `PersistentVolumeClaim` (see [kubernetes/athenz-zms-syncer/README.md](../kubernetes/athenz-zms-syncer/README.md)). It relies on the cluster's default `StorageClass` supporting dynamic `ReadWriteOnce` provisioning — KinD's bundled `rancher.io/local-path` provisioner does this automatically, so no extra setup is needed on the standard `deploy-kubernetes-in-docker` flow.
 
+### Get AWS temporary credentials without an AWS account
+
+The [AWS Emulator](https://github.com/aws/aws-emulator) showcase enables ZTS's `GetAWSTemporaryCredentials` endpoint on the existing Kubernetes deployment. It creates an IAM role named `showcaserole` in the emulator's account (`000000000000`) and an Athenz domain named `awsshowcase` with an `assume_aws_role` policy for `user.athenz_admin`.
+
+On a KinD cluster with the basic Athenz deployment and images loaded, run:
+
+```
+make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator
+```
+
+The test requests credentials from `GET /zts/v1/domain/awsshowcase/role/showcaserole/creds`, uses the returned credentials to call the emulator's STS `GetCallerIdentity`, and checks that an ungranted role is denied. Only the final result is printed; temporary credentials are kept out of the test output.
+
+The emulator runs beside ZTS in the same Pod so ZTS can use its loopback HTTPS endpoint and trust its generated certificate. A small metadata adapter exposes the emulator's credentials through the instance metadata API required by the current ZTS implementation. The emulator image is built from the [AWS supplied RPM](https://docs.aws.amazon.com/emulator/latest/userguide/getting-started-docker.html) for the local KinD architecture. This opt-in setup does not call live AWS APIs.
+
 ## Each steps in Makefile
 
 - `deploy-kubernetes-in-docker` installs kind and create a cluster.
@@ -72,6 +86,8 @@ This is entirely opt-in: unless these extra targets are run, `athenz-zts-server`
 - `deploy-kubernetes-athenz-zms-syncer` registers a dedicated service identity for the ZMS Domain Syncer and deploys it as a Kubernetes `CronJob` that periodically writes ZMS domain data into RustFS.
 - `use-kubernetes-athenz-zms-syncer` switches `athenz-zts-server` to read domain data from RustFS instead of pulling it directly from ZMS.
 - `show-kubernetes-athenz-zms-syncer-status` prints the ZMS Domain Syncer's last run status/counters from its persisted state volume.
+- `deploy-kubernetes-aws-emulator` builds and loads the emulator, enables AWS support in ZTS, and registers the IAM role and Athenz policy.
+- `test-kubernetes-aws-emulator` checks credentials from ZTS against the emulator and verifies Athenz authorization.
 
 ## After completing the setup
 

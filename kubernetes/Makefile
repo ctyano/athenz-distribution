@@ -289,6 +289,10 @@ kind-load-images-thirdparty: kind-load-images-check
 	fi
 
 kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
+	@# Envoy certificate watchers can exhaust the hosted runner's default inotify limits.
+	@if [ "$${GITHUB_ACTIONS:-}" = true ] && [ "$$(uname -s)" = Linux ]; then \
+		sudo sysctl -w fs.inotify.max_user_instances=16384 fs.inotify.max_user_watches=1048576; \
+	fi
 
 kind-load-aws-emulator-image:
 	$(call KIND_LOAD_DOCKER_IMAGES,ghcr.io/ctyano/docker-aws-emulator:latest)

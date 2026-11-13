@@ -99,9 +99,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Raise inotify limits for Envoy certificate watchers
-        run: sudo sysctl -w fs.inotify.max_user_instances=16384 fs.inotify.max_user_watches=1048576
-
       - uses: helm/kind-action@v1
         with:
           cluster_name: kind

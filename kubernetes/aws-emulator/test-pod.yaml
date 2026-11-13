@@ -14,7 +14,7 @@ spec:
         secretName: athenz-cacert
   containers:
     - name: sia-imds
-      image: ghcr.io/ctyano/k8s-athenz-sia:latest
+      image: ghcr.io/ctyano/k8s-athenz-sia:awsimds
       imagePullPolicy: IfNotPresent
       args:
         - -mode=refresh

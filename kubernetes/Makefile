@@ -254,8 +254,18 @@ kind-load-images-external: kind-load-images-check
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest)
 
 kind-load-images-thirdparty: kind-load-images-check
+	@# Docker's containerd image store can export Vault's manifest without its config or layers.
+	@# Pull Vault in the kind node so containerd receives all of the referenced content.
+	@if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
+		nodes="$$(kind get nodes --name "$(KIND_CLUSTER_NAME)")" || exit 1; \
+		if [ -z "$$nodes" ]; then echo "No nodes found for kind cluster '$(KIND_CLUSTER_NAME)'." >&2; exit 1; fi; \
+		for node in $$nodes; do \
+			docker exec --privileged "$$node" ctr --namespace=k8s.io images pull --snapshotter=overlayfs "$(DOCKERIO_REGISTRY)/hashicorp/vault:latest" >/dev/null || exit 1; \
+		done; \
+	else \
+		kind load docker-image --name "$(KIND_CLUSTER_NAME)" "$(DOCKERIO_REGISTRY)/hashicorp/vault:latest"; \
+	fi
 	$(call KIND_LOAD_DOCKER_IMAGES, \
-		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
 		$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \

@@ -45,23 +45,44 @@ deploy-aws-emulator: setup-aws-emulator
 	kubectl apply -k client
 	kubectl -n athenz rollout status deployment/aws-emulator-client --timeout=180s
 
+test-aws-emulator: SHELL := /bin/bash
 test-aws-emulator:
-	@set -eu; \
-	for attempt in $$(seq 1 60); do \
-		if credentials=$$($(CLIENT) sh -ec ' \
+	set -o pipefail; \
+	SLEEP_SECONDS=5; \
+	WAITING_THRESHOLD=120; \
+	elapsed_seconds=0; \
+	while true; do \
+		printf '\n***** Waiting for AWS temporary credentials (%ss/%ss) *****\n' "$$elapsed_seconds" "$${WAITING_THRESHOLD}"; \
+		$(CLIENT) sh -ec ' \
 			token=$$(curl -fsS --max-time 5 -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 60" http://127.0.0.1:1338/latest/api/token); \
-			curl -fsS --max-time 5 -H "X-aws-ec2-metadata-token: $$token" http://127.0.0.1:1338/latest/meta-data/iam/security-credentials/$(ROLE)' 2>/dev/null); then break; fi; \
-		sleep 2; \
-	done; \
-	test -n "$$credentials" || { echo 'SIA did not return AWS temporary credentials' >&2; exit 1; }; \
-	printf '%s\n' "$$credentials" | jq -e 'select(.Code == "Success" and ([.AccessKeyId, .SecretAccessKey, .Token, .Expiration] | all(type == "string" and length > 0))) | {AccessKeyId, SecretAccessKey, SessionToken: .Token, Expiration}'; \
-	identity=$$($(CLIENT) aws sts get-caller-identity); \
-	printf '%s\n' "$$identity" | jq -e --arg account $(ACCOUNT) --arg role $(ROLE) \
-		'select(.Account == $$account and .Arn == ("arn:aws:sts::" + $$account + ":assumed-role/" + $$role + "/athenz.aws-emulator-client"))'; \
-	status=$$($(CLIENT) curl -sS --key /var/run/athenz/tls.key --cert /var/run/athenz/tls.crt \
-		--cacert /etc/ssl/certs/ca-certificates.crt -o /dev/null -w '%{http_code}' $(ZTS)/domain/$(DOMAIN)/role/unauthorized/creds); \
-	test "$$status" = 403
-	@echo 'SIA returned usable AWS temporary credentials and ZTS denied an unauthorized role.'
+			curl -fsS --max-time 5 -H "X-aws-ec2-metadata-token: $$token" http://127.0.0.1:1338/latest/meta-data/iam/security-credentials/$(ROLE)' \
+			| jq -e 'select(.Code == "Success" and ([.AccessKeyId, .SecretAccessKey, .Token, .Expiration] | all(type == "string" and length > 0))) | {AccessKeyId, SecretAccessKey, SessionToken: .Token, Expiration}' \
+			&& break \
+			|| echo 'Waiting for SIA to provide AWS temporary credentials...'; \
+		sleep $${SLEEP_SECONDS}; \
+		elapsed_seconds=$$((elapsed_seconds + SLEEP_SECONDS)); \
+		if [ "$$elapsed_seconds" -ge "$${WAITING_THRESHOLD}" ]; then \
+			printf '\n\n** Waiting (%ss) reached to threshold (%ss) **\n\n' "$$elapsed_seconds" "$${WAITING_THRESHOLD}"; \
+			kubectl -n athenz logs deployment/aws-emulator-client --all-containers=true --tail=200 ||:; \
+			kubectl -n athenz describe deployment aws-emulator-client ||:; \
+			kubectl -n athenz get all; \
+			exit 1; \
+		fi; \
+	done
+	set -o pipefail; \
+	$(CLIENT) aws sts get-caller-identity \
+		| jq -e --arg account $(ACCOUNT) --arg role $(ROLE) \
+		'select(.Account == $$account and .Arn == ("arn:aws:sts::" + $$account + ":assumed-role/" + $$role + "/athenz.aws-emulator-client"))'
+	set -o pipefail; \
+	$(CLIENT) curl -sS --key /var/run/athenz/tls.key --cert /var/run/athenz/tls.crt \
+		--cacert /etc/ssl/certs/ca-certificates.crt -o /dev/null -w '%{http_code}\n' $(ZTS)/domain/$(DOMAIN)/role/unauthorized/creds \
+		| jq -e 'select(. == 403)'
+	kubectl -n athenz get all
+	@echo ""
+	@echo "****************************************"
+	@echo "***  AWS Emulator is functioning     ***"
+	@echo "****************************************"
+	@echo ""
 
 clean-aws-emulator:
 	kubectl -n athenz set env deployment/athenz-zts-server --containers=athenz-zts-server \

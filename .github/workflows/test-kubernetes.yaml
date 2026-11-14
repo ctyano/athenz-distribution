@@ -403,7 +403,14 @@ jobs:
           # Replace this with your test command
           make test-kubernetes-athenz-envoy2authzproxy
 
+      # A GitHub Action to deploy aws emulator
+      -
+        name: Deploy ZTS AWS temporary credentials Showcase with AWS Emulator
+        run: |
+          make deploy-kubernetes-aws-emulator
+
+      # A GitHub Action to test aws emulator
       -
         name: Verify ZTS AWS temporary credentials with AWS Emulator
         run: |
-          make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator
+          make test-kubernetes-aws-emulator

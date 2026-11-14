@@ -46,16 +46,16 @@ fi
 [ ! -z "${ZTS_SIGNER_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.keystore_signer.keystore_password=${ZTS_SIGNER_KEYSTORE_PASS}"
 [ ! -z "${ZTS_SIGNER_KEYSTORE_PASS}" ] && JAVA_OPTS="${JAVA_OPTS} -Dathenz.zts.ssl_key_store_password=${ZTS_SIGNER_KEYSTORE_PASS}"
 if [ ! -z "${ZTS_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool --list -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_TRUSTSTORE_PASS:-athenz} | grep ssl_trust_store || \
-      keytool -import -noprompt -file ${ZTS_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_TRUSTSTORE_PASS:-athenz}
+    keytool --list -alias "${ZTS_TRUSTSTORE_ALIAS:-ssl_trust_store}" -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_TRUSTSTORE_PASS:-athenz} >/dev/null 2>&1 || \
+      keytool -import -noprompt -file ${ZTS_TRUSTSTORE_PEM_PATH} -alias "${ZTS_TRUSTSTORE_ALIAS:-ssl_trust_store}" -keystore $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_TRUSTSTORE_PASS:-athenz}
 fi
 if [ ! -z "${ZTS_SIGNER_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool --list -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz} | grep ssl_trust_store || \
-      keytool -import -noprompt -file ${ZTS_SIGNER_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz}
+    keytool --list -alias "${ZTS_SIGNER_TRUSTSTORE_ALIAS:-ssl_trust_store}" -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz} >/dev/null 2>&1 || \
+      keytool -import -noprompt -file ${ZTS_SIGNER_TRUSTSTORE_PEM_PATH} -alias "${ZTS_SIGNER_TRUSTSTORE_ALIAS:-ssl_trust_store}" -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zts.ssl_trust_store=" | cut -d= -f2) -storepass ${ZTS_SIGNER_TRUSTSTORE_PASS:-athenz}
 fi
 if [ ! -z "${ZMS_CLIENT_TRUSTSTORE_PEM_PATH}" ]; then
-    keytool --list -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.truststore_path=" | cut -d= -f2) -storepass ${ZMS_CLIENT_TRUSTSTORE_PASS:-athenz} | grep ssl_trust_store || \
-      keytool -import -noprompt -file ${ZMS_CLIENT_TRUSTSTORE_PEM_PATH} -alias ssl_trust_store -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.truststore_path=" | cut -d= -f2) -storepass ${ZMS_CLIENT_TRUSTSTORE_PASS:-athenz}
+    keytool --list -alias "${ZMS_CLIENT_TRUSTSTORE_ALIAS:-ssl_trust_store}" -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.truststore_path=" | cut -d= -f2) -storepass ${ZMS_CLIENT_TRUSTSTORE_PASS:-athenz} >/dev/null 2>&1 || \
+      keytool -import -noprompt -file ${ZMS_CLIENT_TRUSTSTORE_PEM_PATH} -alias "${ZMS_CLIENT_TRUSTSTORE_ALIAS:-ssl_trust_store}" -keystore $(cat ${CONF_PATH}/zts.properties | grep -E "^athenz.zms.client.truststore_path=" | cut -d= -f2) -storepass ${ZMS_CLIENT_TRUSTSTORE_PASS:-athenz}
 fi
 if [ ! -z "${ZTS_KEYSTORE_CERT_PEM_PATH}" -a ! -z "${ZTS_KEYSTORE_KEY_PEM_PATH}" ]; then
     openssl pkcs12 -export -noiter -in $(cat ${CONF_PATH}/athenz.properties | grep -E "^athenz.ssl_key_store=" | cut -d= -f2) -password pass:${ZTS_KEYSTORE_PASS:-athenz} || \

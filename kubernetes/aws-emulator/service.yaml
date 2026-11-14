@@ -4,9 +4,11 @@ metadata:
   name: aws-emulator
 spec:
   selector:
-    app.kubernetes.io/name: athenz-zts-server
-    app.kubernetes.io/instance: athenz-zts-server
+    app.kubernetes.io/name: aws-emulator
   ports:
-    - name: https
-      port: 9297
-      targetPort: 9297
+    - name: http
+      port: 9298
+      targetPort: 9298
+    - name: imds
+      port: 1339
+      targetPort: 1339

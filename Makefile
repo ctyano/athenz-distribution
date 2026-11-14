@@ -611,18 +611,20 @@ use-kubernetes-vault: test-kubernetes-vault-pki
 deploy-kubernetes-rustfs:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-rustfs deploy-rustfs
 
-# Opt-in AWS STS showcase. SIA provides IMDSv2 in the ZTS and client Pods.
 AWS_EMULATOR_PULL ?= true
 AWS_SIA_PULL ?= true
 
 deploy-kubernetes-aws-emulator:
-	@if [ "$(AWS_EMULATOR_PULL)" = true ]; then docker pull ghcr.io/ctyano/docker-aws-emulator:latest; fi
-	@if [ "$(AWS_SIA_PULL)" = true ]; then docker pull ghcr.io/ctyano/k8s-athenz-sia:awsimds; fi
+	@if [ "$(AWS_EMULATOR_PULL)" = true ]; then docker pull $(GHCR_REGISTRY)/ctyano/docker-aws-emulator:latest; fi
+	@if [ "$(AWS_SIA_PULL)" = true ]; then docker pull $(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds; fi
 	@$(MAKE) -C kubernetes kind-load-aws-emulator-image
-	@AWS_CLI_IMAGE=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest sh kubernetes/aws-emulator/showcase.sh setup
+	@$(MAKE) -C kubernetes deploy-aws-emulator
 
 test-kubernetes-aws-emulator:
-	@AWS_CLI_IMAGE=$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest sh kubernetes/aws-emulator/showcase.sh test
+	@$(MAKE) -C kubernetes test-aws-emulator
+
+clean-kubernetes-aws-emulator:
+	@$(MAKE) -C kubernetes clean-aws-emulator
 
 test-kubernetes-rustfs:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-rustfs

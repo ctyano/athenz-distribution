@@ -59,17 +59,17 @@ This is entirely opt-in: unless these extra targets are run, `athenz-zts-server`
 
 ### Get AWS temporary credentials without an AWS account
 
-The [AWS Emulator](https://github.com/aws/aws-emulator) showcase enables ZTS's `GetAWSTemporaryCredentials` endpoint on the existing Kubernetes deployment. It creates an IAM role named `showcaserole` in the emulator's account (`000000000000`) and an Athenz domain named `awsshowcase` with an `assume_aws_role` policy for `user.athenz_admin`.
+The [AWS Emulator](https://github.com/aws/aws-emulator) showcase enables ZTS's `GetAWSTemporaryCredentials` endpoint on the existing Kubernetes deployment. It creates an IAM role named `showcaserole` in the emulator's account (`000000000000`) and an Athenz domain named `awsshowcase` with an `assume_aws_role` policy for workload identity `athenz.aws-emulator-client`.
 
-On a KinD cluster with the basic Athenz deployment and images loaded, run:
+On a KinD cluster with the basic Athenz deployment, images loaded, and `make deploy-kubernetes-athenz-identityprovider` completed, run:
 
 ```
 make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator
 ```
 
-The test requests credentials from `GET /zts/v1/domain/awsshowcase/role/showcaserole/creds`, uses the returned credentials to call the emulator's STS `GetCallerIdentity`, and checks that an ungranted role is denied. Only the final result is printed; temporary credentials are kept out of the test output.
+The client Deployment obtains its workload identity through Copper Argos using `sia-wait`, `sia-init`, and a projected Kubernetes ServiceAccount token. The test retrieves AWS temporary credentials from SIA's IMDSv2 endpoint, parses and prints the access key, secret key, session token, and expiration, verifies STS `GetCallerIdentity` using AWS CLI, and checks that an ungranted role is denied.
 
-The emulator runs beside ZTS in the same Pod so ZTS can use its loopback HTTPS endpoint and trust its generated certificate. A k8s-athenz-sia sidecar provides the emulator's credentials through IMDSv2, which the current ZTS implementation requires. The test also runs SIA beside AWS CLI to retrieve role credentials from ZTS through IMDSv2. The emulator image comes from [docker-aws-emulator](https://github.com/ctyano/docker-aws-emulator), which tracks the [AWS supplied RPM](https://docs.aws.amazon.com/emulator/latest/userguide/getting-started-docker.html). The SIA image is pulled from GHCR and loaded into KinD. This opt-in setup does not call live AWS APIs.
+The emulator runs in a dedicated Deployment with Envoy forwarding the in-cluster HTTP endpoint to its loopback HTTPS endpoint and validating its generated certificate. A file-source SIA sidecar supplies emulator credentials to ZTS's instance-profile credential provider through the same Service. The client SIA obtains role credentials from ZTS using its own workload certificate. The emulator image comes from [docker-aws-emulator](https://github.com/ctyano/docker-aws-emulator), which tracks the [AWS supplied RPM](https://docs.aws.amazon.com/emulator/latest/userguide/getting-started-docker.html). The Makefile applies the AWS enablement and endpoint settings to ZTS, while region/cache settings and truststore alias handling are shared. See [the showcase README](../kubernetes/aws-emulator/README.md) for details and cleanup. This opt-in setup does not call live AWS APIs.
 
 ## Each steps in Makefile
 

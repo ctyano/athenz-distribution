@@ -192,7 +192,6 @@ patch-athenz-zts-s3-change-log-store:
 		VALUE="athenz.zts.change_log_store_factory_class=io.athenz.server.aws.common.store.impl.S3ChangeLogStoreFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 	@$(SED_INPLACE) '/^#athenz.zts.aws_bucket_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
-	@$(SED_INPLACE) '/^#athenz.zts.aws_region_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^#athenz.zts.aws_s3_endpoint=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^#athenz.zts.zms_domain_jws_support=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 
@@ -202,7 +201,6 @@ clean-patch-athenz-zts-s3-change-log-store:
 		VALUE="athenz.zts.change_log_store_factory_class=com.yahoo.athenz.common.server.store.impl.ZMSFileChangeLogStoreFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 	@$(SED_INPLACE) '/^athenz.zts.aws_bucket_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
-	@$(SED_INPLACE) '/^athenz.zts.aws_region_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^athenz.zts.aws_s3_endpoint=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^athenz.zts.zms_domain_jws_support=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 
@@ -295,8 +293,8 @@ kind-load-images: kind-load-images-internal kind-load-images-external kind-load-
 	fi
 
 kind-load-aws-emulator-image:
-	$(call KIND_LOAD_DOCKER_IMAGES,ghcr.io/ctyano/docker-aws-emulator:latest)
-	$(call KIND_LOAD_DOCKER_IMAGES,ghcr.io/ctyano/k8s-athenz-sia:awsimds)
+	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/docker-aws-emulator:latest)
+	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds)
 
 kind-shutdown:
 	kind delete cluster --name "$(KIND_CLUSTER_NAME)"
@@ -321,6 +319,18 @@ deploy-rustfs: setup-rustfs
 
 test-rustfs:
 	@$(MAKE) -C rustfs test-rustfs
+
+setup-aws-emulator: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C aws-emulator setup-aws-emulator
+
+deploy-aws-emulator: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C aws-emulator deploy-aws-emulator
+
+test-aws-emulator:
+	@$(MAKE) -C aws-emulator test-aws-emulator
+
+clean-aws-emulator:
+	@$(MAKE) -C aws-emulator clean-aws-emulator
 
 setup-athenz-zms-syncer:
 	@$(MAKE) -C athenz-zms-syncer setup-athenz-zms-syncer

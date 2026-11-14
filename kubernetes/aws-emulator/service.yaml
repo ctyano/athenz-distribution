@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aws-emulator
+spec:
+  selector:
+    app.kubernetes.io/name: aws-emulator
+  ports:
+    - name: http
+      port: 9298
+      targetPort: 9298
+    - name: imds
+      port: 1339
+      targetPort: 1339

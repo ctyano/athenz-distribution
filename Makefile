@@ -611,6 +611,21 @@ use-kubernetes-vault: test-kubernetes-vault-pki
 deploy-kubernetes-rustfs:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes setup-rustfs deploy-rustfs
 
+AWS_EMULATOR_PULL ?= true
+AWS_SIA_PULL ?= true
+
+deploy-kubernetes-aws-emulator:
+	@if [ "$(AWS_EMULATOR_PULL)" = true ]; then docker pull $(GHCR_REGISTRY)/ctyano/docker-aws-emulator:latest; fi
+	@if [ "$(AWS_SIA_PULL)" = true ]; then docker pull $(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds; fi
+	@$(MAKE) -C kubernetes kind-load-aws-emulator-image
+	@$(MAKE) -C kubernetes deploy-aws-emulator
+
+test-kubernetes-aws-emulator:
+	@$(MAKE) -C kubernetes test-aws-emulator
+
+clean-kubernetes-aws-emulator:
+	@$(MAKE) -C kubernetes clean-aws-emulator
+
 test-kubernetes-rustfs:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-rustfs
 

@@ -192,7 +192,6 @@ patch-athenz-zts-s3-change-log-store:
 		VALUE="athenz.zts.change_log_store_factory_class=io.athenz.server.aws.common.store.impl.S3ChangeLogStoreFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 	@$(SED_INPLACE) '/^#athenz.zts.aws_bucket_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
-	@$(SED_INPLACE) '/^#athenz.zts.aws_region_name=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^#athenz.zts.aws_s3_endpoint=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^#athenz.zts.zms_domain_jws_support=/s/^#//' athenz-zts-server/kustomize/conf/zts.properties
 
@@ -202,7 +201,6 @@ clean-patch-athenz-zts-s3-change-log-store:
 		VALUE="athenz.zts.change_log_store_factory_class=com.yahoo.athenz.common.server.store.impl.ZMSFileChangeLogStoreFactory" \
 		FILE="athenz-zts-server/kustomize/conf/zts.properties"
 	@$(SED_INPLACE) '/^athenz.zts.aws_bucket_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
-	@$(SED_INPLACE) '/^athenz.zts.aws_region_name=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^athenz.zts.aws_s3_endpoint=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 	@$(SED_INPLACE) '/^athenz.zts.zms_domain_jws_support=/s/^/#/' athenz-zts-server/kustomize/conf/zts.properties
 
@@ -254,8 +252,18 @@ kind-load-images-external: kind-load-images-check
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest)
 
 kind-load-images-thirdparty: kind-load-images-check
+	@# Docker's containerd image store can export Vault's manifest without its config or layers.
+	@# Pull Vault in the kind node so containerd receives all of the referenced content.
+	@if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
+		nodes="$$(kind get nodes --name "$(KIND_CLUSTER_NAME)")" || exit 1; \
+		if [ -z "$$nodes" ]; then echo "No nodes found for kind cluster '$(KIND_CLUSTER_NAME)'." >&2; exit 1; fi; \
+		for node in $$nodes; do \
+			docker exec --privileged "$$node" ctr --namespace=k8s.io images pull --snapshotter=overlayfs "$(DOCKERIO_REGISTRY)/hashicorp/vault:latest" >/dev/null || exit 1; \
+		done; \
+	else \
+		kind load docker-image --name "$(KIND_CLUSTER_NAME)" "$(DOCKERIO_REGISTRY)/hashicorp/vault:latest"; \
+	fi
 	$(call KIND_LOAD_DOCKER_IMAGES, \
-		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
 		$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
@@ -279,6 +287,14 @@ kind-load-images-thirdparty: kind-load-images-check
 	fi
 
 kind-load-images: kind-load-images-internal kind-load-images-external kind-load-images-thirdparty
+	@# Envoy certificate watchers can exhaust the hosted runner's default inotify limits.
+	@if [ "$${GITHUB_ACTIONS:-}" = true ] && [ "$$(uname -s)" = Linux ]; then \
+		sudo sysctl -w fs.inotify.max_user_instances=16384 fs.inotify.max_user_watches=1048576; \
+	fi
+
+kind-load-aws-emulator-image:
+	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/docker-aws-emulator:latest)
+	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds)
 
 kind-shutdown:
 	kind delete cluster --name "$(KIND_CLUSTER_NAME)"
@@ -303,6 +319,18 @@ deploy-rustfs: setup-rustfs
 
 test-rustfs:
 	@$(MAKE) -C rustfs test-rustfs
+
+setup-aws-emulator: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C aws-emulator setup-aws-emulator
+
+deploy-aws-emulator: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C aws-emulator deploy-aws-emulator
+
+test-aws-emulator:
+	@$(MAKE) -C aws-emulator test-aws-emulator
+
+clean-aws-emulator:
+	@$(MAKE) -C aws-emulator clean-aws-emulator
 
 setup-athenz-zms-syncer:
 	@$(MAKE) -C athenz-zms-syncer setup-athenz-zms-syncer

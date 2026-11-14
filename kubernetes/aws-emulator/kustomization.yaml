@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: athenz
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: aws-emulator-envoy
+    files:
+      - config.yaml=envoy/config.yaml

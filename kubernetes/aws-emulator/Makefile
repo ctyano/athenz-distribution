@@ -69,6 +69,12 @@ test-aws-emulator:
 			exit 1; \
 		fi; \
 	done
+	@printf '\n***** AWS CLI automatic credentials retrieval from SIA *****\n'
+	set -o pipefail; \
+	$(CLIENT) env | grep -E '^AWS_(EC2_METADATA_SERVICE_ENDPOINT|EC2_METADATA_V1_DISABLED|DEFAULT_REGION|ENDPOINT_URL)='
+	set -o pipefail; \
+	$(CLIENT) aws configure list \
+		| awk '{ print } $$1 == "access_key" && /iam-role/ { imds_credentials_found=1 } END { exit !imds_credentials_found }'
 	set -o pipefail; \
 	$(CLIENT) aws sts get-caller-identity \
 		| jq -e --arg account $(ACCOUNT) --arg role $(ROLE) \

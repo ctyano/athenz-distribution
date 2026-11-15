@@ -8,7 +8,18 @@ make deploy-kubernetes-aws-emulator test-kubernetes-aws-emulator
 
 The Makefile creates IAM role `showcaserole` in the [AWS Emulator](https://github.com/aws/aws-emulator) account `000000000000`, associates Athenz domain `awsshowcase` with that account, and grants `athenz.aws-emulator-client` the `assume_aws_role` action. The client runs as a Deployment with a dedicated Kubernetes ServiceAccount. Its `sia-wait` and `sia-init` containers obtain a workload certificate through Copper Argos using `athenz.identityprovider` and a projected ServiceAccount token. The SIA sidecar refreshes that certificate and obtains AWS temporary credentials from ZTS; the workload does not mount an administrator certificate or private key.
 
-The test explicitly requests an IMDSv2 token from SIA, retrieves the role credentials, and parses and prints `AccessKeyId`, `SecretAccessKey`, `SessionToken`, and `Expiration` with `jq`. These are credentials issued by this local emulator. AWS CLI independently obtains credentials through SIA's IMDSv2 endpoint and calls STS `GetCallerIdentity`; the test checks the account, role, and workload identity. A request for an unauthorized role must return HTTP 403.
+The test explicitly requests an IMDSv2 token from SIA, retrieves the role credentials, and parses and prints `AccessKeyId`, `SecretAccessKey`, `SessionToken`, and `Expiration` with `jq`. These are credentials issued by this local emulator.
+
+The next demonstration prints the AWS CLI container's connection settings, configured by the client Deployment:
+
+```sh
+export AWS_EC2_METADATA_SERVICE_ENDPOINT=http://127.0.0.1:1338
+export AWS_EC2_METADATA_V1_DISABLED=true
+export AWS_DEFAULT_REGION=us-east-1
+export AWS_ENDPOINT_URL=http://aws-emulator.athenz:9298
+```
+
+It then runs `aws configure list`, displaying masked credentials and checking that the access key's source is `iam-role` (IMDS). Finally, it runs the ordinary `aws sts get-caller-identity` command and checks the account, role, and workload identity. AWS CLI obtains credentials automatically from SIA for these commands; the credentials printed by the earlier demonstration are not copied into environment variables or credentials files. A request for an unauthorized role must return HTTP 403.
 
 The emulator runs in its own Deployment. Its generated TLS certificate covers loopback addresses, so an Envoy sidecar forwards the in-cluster HTTP endpoint `http://aws-emulator.athenz:9298` to `https://127.0.0.1:9297`, validating the generated certificate and its IP SAN. A file-source SIA sidecar serves the emulator's generated credentials through IMDSv2, which ZTS's instance-profile credential provider requires. Envoy exposes this endpoint on Service port 1339; its SIA certificate refresh is disabled, and the mounted ZTS identity is used only to initialize SIA. These HTTP Service ports are for this local showcase and should not be published outside the test cluster. The client SIA's IMDSv2 endpoint remains on Pod loopback.
 

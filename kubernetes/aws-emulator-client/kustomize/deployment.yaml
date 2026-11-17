@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aws-emulator-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aws-emulator-client
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-emulator-client
+    spec:
+      serviceAccountName: aws-emulator-client
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: attestation-data
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://kubernetes.default.svc
+                  expirationSeconds: 3600
+                  path: token
+        - name: athenz-tls-certs
+          emptyDir: {}
+        - name: athenz-cacert
+          secret:
+            secretName: athenz-cacert
+            items:
+              - key: ca.cert.pem
+                path: ca-certificates.crt
+      initContainers:
+        - name: sia-wait
+          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:awsimds
+          imagePullPolicy: &image-pull-policy IfNotPresent
+          resources: &sia-resources
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          command: [sh, -ec]
+          args:
+            - |
+              until nc -vzw3 athenz-zts-server.athenz 4443 && nc -vzw3 identityprovider.athenz 443; do sleep 2; done
+        - name: sia-init
+          image: *sia-image
+          imagePullPolicy: *image-pull-policy
+          resources: *sia-resources
+          args:
+            - --mode=init
+          envFrom: &sia-env-from
+            - configMapRef:
+                name: aws-emulator-client-sia
+          env: &sia-env
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SERVICEACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts: &sia-volume-mounts
+            - name: attestation-data
+              mountPath: /var/run/secrets/kubernetes.io/bound-serviceaccount
+              readOnly: true
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
+      containers:
+        - name: sia
+          image: *sia-image
+          imagePullPolicy: *image-pull-policy
+          resources: *sia-resources
+          args:
+            - --mode=refresh
+            - --use-imds-server
+            - --imds-source=zts
+            - --imds-domain=awsshowcase
+            - --imds-role=showcaserole
+          envFrom: *sia-env-from
+          env: *sia-env
+          volumeMounts: *sia-volume-mounts
+        - name: aws-cli
+          image: docker.io/amazon/aws-cli:latest
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, -c]
+          args: ["sleep infinity"]
+          env:
+            - name: AWS_EC2_METADATA_SERVICE_ENDPOINT
+              value: http://127.0.0.1:1338
+            - name: AWS_EC2_METADATA_V1_DISABLED
+              value: "true"
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+            - name: AWS_ENDPOINT_URL
+              value: http://aws-emulator.athenz:9298
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 10m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+          volumeMounts:
+            - name: athenz-tls-certs
+              mountPath: /var/run/athenz
+              readOnly: true
+            - name: athenz-cacert
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true

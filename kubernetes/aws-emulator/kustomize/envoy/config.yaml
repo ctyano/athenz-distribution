@@ -1,0 +1,73 @@
+static_resources:
+  listeners:
+    - name: aws
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9298
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: aws
+                route_config:
+                  virtual_hosts:
+                    - name: aws
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: /
+                          route:
+                            cluster: aws
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+    - name: imds
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 1339
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.tcp_proxy
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy
+                stat_prefix: imds
+                cluster: imds
+  clusters:
+    - name: aws
+      connect_timeout: 3s
+      load_assignment:
+        cluster_name: aws
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 9297
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          common_tls_context:
+            validation_context:
+              trusted_ca:
+                filename: /var/run/aws-emulator/9297/ca.pem
+              match_typed_subject_alt_names:
+                - san_type: IP_ADDRESS
+                  matcher:
+                    exact: 127.0.0.1
+    - name: imds
+      connect_timeout: 3s
+      load_assignment:
+        cluster_name: imds
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 1338

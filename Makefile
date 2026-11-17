@@ -619,12 +619,25 @@ deploy-kubernetes-aws-emulator:
 	@if [ "$(AWS_SIA_PULL)" = true ]; then docker pull $(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds; fi
 	@$(MAKE) -C kubernetes kind-load-aws-emulator-image
 	@$(MAKE) -C kubernetes deploy-aws-emulator
+	@$(MAKE) -C kubernetes deploy-aws-emulator-client
 
 test-kubernetes-aws-emulator:
-	@$(MAKE) -C kubernetes test-aws-emulator
+	@$(MAKE) -C kubernetes test-aws-emulator-client
 
 clean-kubernetes-aws-emulator:
+	@$(MAKE) -C kubernetes clean-aws-emulator-client
 	@$(MAKE) -C kubernetes clean-aws-emulator
+
+deploy-kubernetes-aws-emulator-client:
+	@if [ "$(AWS_SIA_PULL)" = true ]; then docker pull $(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds; fi
+	@$(MAKE) -C kubernetes kind-load-aws-emulator-client-image
+	@$(MAKE) -C kubernetes deploy-aws-emulator-client
+
+test-kubernetes-aws-emulator-client:
+	@$(MAKE) -C kubernetes test-aws-emulator-client
+
+clean-kubernetes-aws-emulator-client:
+	@$(MAKE) -C kubernetes clean-aws-emulator-client
 
 test-kubernetes-rustfs:
 	@DOCKER_REGISTRY=$(DOCKER_REGISTRY) $(MAKE) -C kubernetes test-rustfs

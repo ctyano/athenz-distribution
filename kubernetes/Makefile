@@ -296,6 +296,9 @@ kind-load-aws-emulator-image:
 	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/docker-aws-emulator:latest)
 	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds)
 
+kind-load-aws-emulator-client-image:
+	$(call KIND_LOAD_DOCKER_IMAGES,$(GHCR_REGISTRY)/ctyano/k8s-athenz-sia:awsimds)
+
 kind-shutdown:
 	kind delete cluster --name "$(KIND_CLUSTER_NAME)"
 
@@ -326,11 +329,20 @@ setup-aws-emulator: test-athenz-servers test-athenz-identityprovider
 deploy-aws-emulator: test-athenz-servers test-athenz-identityprovider
 	@$(MAKE) -C aws-emulator deploy-aws-emulator
 
-test-aws-emulator:
-	@$(MAKE) -C aws-emulator test-aws-emulator
-
 clean-aws-emulator:
 	@$(MAKE) -C aws-emulator clean-aws-emulator
+
+setup-aws-emulator-client: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C aws-emulator-client setup-aws-emulator-client
+
+deploy-aws-emulator-client: test-athenz-servers test-athenz-identityprovider
+	@$(MAKE) -C aws-emulator-client deploy-aws-emulator-client
+
+test-aws-emulator-client:
+	@$(MAKE) -C aws-emulator-client test-aws-emulator-client
+
+clean-aws-emulator-client:
+	@$(MAKE) -C aws-emulator-client clean-aws-emulator-client
 
 setup-athenz-zms-syncer:
 	@$(MAKE) -C athenz-zms-syncer setup-athenz-zms-syncer

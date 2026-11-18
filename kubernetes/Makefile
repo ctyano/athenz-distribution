@@ -38,7 +38,7 @@ define KIND_LOAD_DOCKER_IMAGES
 			exit 1; \
 		fi; \
 		for node in $$nodes; do \
-			docker image save $(2) $(1) | docker exec --privileged -i "$$node" ctr --namespace=k8s.io images import --digests --snapshotter=overlayfs - || exit 1; \
+			docker image save $(1) | docker exec --privileged -i "$$node" ctr --namespace=k8s.io images import --digests --snapshotter=overlayfs - || exit 1; \
 		done; \
 	else \
 		kind load docker-image --name "$(KIND_CLUSTER_NAME)" $(1); \
@@ -254,8 +254,19 @@ kind-load-images-external: kind-load-images-check
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest)
 
 kind-load-images-thirdparty: kind-load-images-check
-	# The combined archive fails to import Vault's image config with the containerd snapshotter.
-	$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/hashicorp/vault:latest,--platform=linux/$$(docker version --format '{{.Server.Arch}}'))
+	@# Docker's containerd image store omits a Vault config digest from its exported archive.
+	@if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
+		nodes="$$(kind get nodes --name "$(KIND_CLUSTER_NAME)")" || exit 1; \
+		if [ -z "$$nodes" ]; then \
+			echo "No nodes found for kind cluster '$(KIND_CLUSTER_NAME)'." >&2; \
+			exit 1; \
+		fi; \
+		for node in $$nodes; do \
+			docker exec --privileged "$$node" ctr --namespace=k8s.io images pull $(DOCKERIO_REGISTRY)/hashicorp/vault:latest || exit 1; \
+		done; \
+	else \
+		kind load docker-image --name "$(KIND_CLUSTER_NAME)" $(DOCKERIO_REGISTRY)/hashicorp/vault:latest; \
+	fi
 	$(call KIND_LOAD_DOCKER_IMAGES, \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \

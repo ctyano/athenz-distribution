@@ -48,7 +48,7 @@ spec:
         envFrom:
         - configMapRef:
             name: identityprovider-sia
-        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        image: docker.io/athenz/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia
         ports:
@@ -226,7 +226,7 @@ spec:
         command:
         - sh
         - "-c"
-        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        image: docker.io/athenz/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia-wait
         resources:
@@ -259,7 +259,7 @@ spec:
         envFrom:
         - configMapRef:
             name: identityprovider-sia
-        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        image: docker.io/athenz/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia-init
         resources:

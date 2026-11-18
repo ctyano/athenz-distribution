@@ -146,15 +146,10 @@ kustomize-edit-athenz-client-image:
 	&& kustomize edit set image ghcr.io/ctyano/athenz-cli:latest=$(DOCKER_REGISTRY)athenz-cli:$(ATHENZ_IMAGE_TAG) \
 	) \
 	fi
-	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
-	( \
-	cd kustomize \
-	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
-	) \
-	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
 	( \
 	cd kustomize \
+	&& kustomize edit set image docker.io/athenz/k8s-athenz-sia:latest=$(DOCKERIO_REGISTRY)/athenz/k8s-athenz-sia:latest \
 	&& kustomize edit set image docker.io/envoyproxy/envoy:v1.34-latest=$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
 	&& kustomize edit set image docker.io/ealen/echo-server:latest=$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
 	) \

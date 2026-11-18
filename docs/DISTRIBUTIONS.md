@@ -41,12 +41,14 @@ External Docker(OCI) image distributions:
   - [k8s-athenz-sia](https://github.com/users/ctyano/packages/container/package/k8s-athenz-sia)
     - This image is an enhanced version of [k8s-athenz-sia](https://github.com/AthenZ/k8s-athenz-sia).
     - This image provides additional capability to accept authorization check requests from sidecar proxies like [Envoy's External Authorization filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/ext_authz_filter).
+    - The authorizer, authorization Envoy, and authorization webhook showcases still use this image for that capability.
   - [authorization-envoy](https://github.com/users/ctyano/packages/container/package/authorization-envoy)
     - This image includes the Envoy proxy and a Wasm plugin to provide Athenz authentication and RBAC mechanisms to control access to the upstream cluster.
     - This image is a wrapper of [envoyproxy](https://hub.docker.com/r/envoyproxy/envoy).
 
 Third-party Docker(OCI) images:
 
+  - [k8s-athenz-sia](https://hub.docker.com/r/athenz/k8s-athenz-sia) (the upstream image used by the identity provider, client, and authorization proxy showcases)
   - [open-policy-agent](https://hub.docker.com/r/openpolicyagent/opa)
   - [kube-mgmt](https://hub.docker.com/r/openpolicyagent/kube-mgmt)
   - [envoy](https://hub.docker.com/r/envoyproxy/envoy)

@@ -50,7 +50,7 @@ spec:
       initContainers:
         # TODO: sia-wait should be implemented in sia-init in future
         - name: sia-wait
-          image: &sia-image ghcr.io/ctyano/k8s-athenz-sia:latest
+          image: &sia-image docker.io/athenz/k8s-athenz-sia:latest
           imagePullPolicy: &sia-imagePullPolicy IfNotPresent
           resources: &sia-resources
             limits:
@@ -110,16 +110,12 @@ spec:
           args:
             - --mode=refresh
             - --token-server-addr=:8180
-            - --authorization-server-addr=:8280
             - --metrics-server-addr=:9999
           envFrom: *sia-envFrom
           env: *sia-env
           ports:
             - name: token-sidecar
               containerPort: 8180
-              protocol: TCP
-            - name: authorization
-              containerPort: 8280
               protocol: TCP
             - name: exporter
               containerPort: 9999

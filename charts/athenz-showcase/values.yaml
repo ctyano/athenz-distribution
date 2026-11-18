@@ -10,7 +10,8 @@ registries:
   dockerio: docker.io
   quayio: quay.io
 athenzImageTag: latest
-# Full image references override the registry/tag calculation by image basename.
+# Full image references override the registry/tag calculation by original reference or image basename.
+# An original reference takes precedence when both are set.
 images: {}
 imagePullPolicy: IfNotPresent
 

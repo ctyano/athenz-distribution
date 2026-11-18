@@ -99,6 +99,8 @@ vault:
 
 `registries.internal` / `external` correspond to the Make variables `DOCKER_REGISTRY` / `DOCKER_REGISTRY_EXTERNAL`; `registries.dockerio` / `quayio` correspond to `DOCKERIO_REGISTRY` / `QUAYIO_REGISTRY`; and `athenzImageTag` corresponds to `ATHENZ_IMAGE_TAG`. Use `images.<basename>` to set a complete image reference for an individual image. You can also change `keycloak.image`, `keycloak.postgresImage`, `rustfs.bucketImage`, `pki.publicKeyImage`, and `hooks.apiImage`. Replace `keycloak.realmJSON` with `--set-file keycloak.realmJSON=path/to/realm.json`.
 
+The identity provider, client, and authorization proxy use the upstream SIA image `docker.io/athenz/k8s-athenz-sia:latest`. The authorizer, authorization Envoy, and authorization webhook still need the fork image `ghcr.io/ctyano/k8s-athenz-sia:latest` for its authorization HTTP server. To override just one of these images, put its full original image reference in `images` as a quoted key in a values file. A full-reference key takes precedence over the basename key.
+
 Set the Vault startup token with `vault.rootToken`. To change the Vault bootstrap or Envoy configuration, use `--set-file vault.bootstrapScript=...` and `--set-file vault.envoyConfig=...`.
 
 To use an existing `rustfs-credentials` Secret, set `rustfs.createCredentialsSecret=false`.

@@ -270,7 +270,7 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKERIO_REGISTRY)/rustfs/rustfs:latest \
 		$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+		$(DOCKERIO_REGISTRY)/athenz/k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest)
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest); \

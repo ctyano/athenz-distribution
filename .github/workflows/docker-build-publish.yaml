@@ -174,10 +174,16 @@ jobs:
             PACKAGE_VERSION="$(git tag --points-at HEAD | sed -e 's/.*v\([0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
             TAG_VERSION="$(git tag --points-at HEAD | sed -e 's/.*\(v[0-9]*.[0-9]*.[0-9]*\).*/\1/g')"
           else
+            release_repo="${TRACKING_GIT_REPO}"
+            release_path="releases"
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              release_repo="${{ github.repository }}"
+              release_path="releases/latest"
+            fi
             release_json=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 10 --retry-max-time 180 \
-              -H "Authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/repos/${TRACKING_GIT_REPO}/releases") || exit 1
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" "https://api.github.com/repos/${release_repo}/${release_path}") || exit 1
             LATEST_TAG=$(printf '%s' "$release_json" \
-              | jq -r '.[].tag_name' \
+              | jq -r 'if type == "array" then .[].tag_name else .tag_name // empty end' \
               | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+)?(\.[0-9]+)?$' \
               | sort -ruV \
               | head -n1)
@@ -185,7 +191,7 @@ jobs:
               PACKAGE_VERSION=$(echo "$LATEST_TAG" | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
               TAG_VERSION="v${PACKAGE_VERSION}"
             else
-              echo "No valid version tag found in releases for ${TRACKING_GIT_REPO}" >&2
+              echo "No valid version tag found in releases for ${release_repo}" >&2
               exit 1
             fi
           fi

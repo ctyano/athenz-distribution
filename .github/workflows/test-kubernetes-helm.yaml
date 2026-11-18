@@ -74,11 +74,11 @@ jobs:
         run: |
           set -euo pipefail
           tag=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 10 --retry-max-time 180 \
-            -H "Authorization: Bearer ${GH_API_TOKEN}" https://api.github.com/repos/AthenZ/athenz/releases/latest \
+            -H "Authorization: Bearer ${GH_API_TOKEN}" "https://api.github.com/repos/${{ github.repository }}/releases/latest" \
             | jq -r '.tag_name // empty')
           version=$(printf '%s' "$tag" | sed -nE 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')
           if [[ -z "$version" ]]; then
-            echo "Could not resolve an Athenz release version" >&2
+            echo "Could not resolve a distribution release version" >&2
             exit 1
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"

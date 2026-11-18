@@ -3,7 +3,9 @@
 {{- $original := index . 1 -}}
 {{- $last := last (splitList "/" $original) -}}
 {{- $name := first (splitList ":" $last) -}}
-{{- if hasKey $root.Values.images $name -}}
+{{- if hasKey $root.Values.images $original -}}
+{{- index $root.Values.images $original -}}
+{{- else if hasKey $root.Values.images $name -}}
 {{- index $root.Values.images $name -}}
 {{- else if hasPrefix "ghcr.io/ctyano/" $original -}}
   {{- if has $name (list "athenz-db" "athenz-cli" "athenz-zms-server" "athenz-zts-server" "athenz-ui" "athenz-zms-syncer") -}}

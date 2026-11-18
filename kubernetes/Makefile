@@ -254,8 +254,20 @@ kind-load-images-external: kind-load-images-check
 		$(DOCKER_REGISTRY_EXTERNAL)athenz-plugins:latest)
 
 kind-load-images-thirdparty: kind-load-images-check
+	@# Docker's containerd image store omits a Vault config digest from its exported archive.
+	@if docker info 2>/dev/null | grep -q 'io.containerd.snapshotter.v1'; then \
+		nodes="$$(kind get nodes --name "$(KIND_CLUSTER_NAME)")" || exit 1; \
+		if [ -z "$$nodes" ]; then \
+			echo "No nodes found for kind cluster '$(KIND_CLUSTER_NAME)'." >&2; \
+			exit 1; \
+		fi; \
+		for node in $$nodes; do \
+			docker exec --privileged "$$node" ctr --namespace=k8s.io images pull $(DOCKERIO_REGISTRY)/hashicorp/vault:latest || exit 1; \
+		done; \
+	else \
+		kind load docker-image --name "$(KIND_CLUSTER_NAME)" $(DOCKERIO_REGISTRY)/hashicorp/vault:latest; \
+	fi
 	$(call KIND_LOAD_DOCKER_IMAGES, \
-		$(DOCKERIO_REGISTRY)/hashicorp/vault:latest \
 		$(DOCKERIO_REGISTRY)/ghostunnel/ghostunnel:latest \
 		$(DOCKERIO_REGISTRY)/ealen/echo-server:latest \
 		$(DOCKERIO_REGISTRY)/envoyproxy/envoy:v1.34-latest \
@@ -270,7 +282,7 @@ kind-load-images-thirdparty: kind-load-images-check
 		$(DOCKERIO_REGISTRY)/library/postgres:alpine \
 		$(DOCKERIO_REGISTRY)/rustfs/rustfs:latest \
 		$(DOCKERIO_REGISTRY)/amazon/aws-cli:latest \
-		$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+		$(DOCKERIO_REGISTRY)/athenz/k8s-athenz-sia:latest \
 		$(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest)
 	if [ "$$(uname -m)" = "aarch64" -o "$$(uname -m)" = "arm64" ]; then \
 		$(call KIND_LOAD_DOCKER_IMAGES,$(DOCKERIO_REGISTRY)/tatyano/authorization-proxy:latest); \

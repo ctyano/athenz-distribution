@@ -234,6 +234,9 @@ jobs:
 
       # A GitHub Action for Kubernetes IN Docker
       # https://github.com/helm/kind-action
+      - name: Increase inotify limits for Envoy sidecars
+        run: sudo sysctl -w fs.inotify.max_user_instances=8192 fs.inotify.max_user_watches=1048576
+
       -
         name: Create KinD Cluster
         id: kind

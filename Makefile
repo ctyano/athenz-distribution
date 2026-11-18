@@ -233,7 +233,7 @@ mirror-athenz-amd64-images:
 	IMAGE=athenz-zts-server; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=athenz-ui; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=athenz-cli; docker pull --platform linux/amd64 $(DOCKER_REGISTRY)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
-	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
+	IMAGE=k8s-athenz-sia; docker pull --platform linux/amd64 $(DOCKERIO_REGISTRY)/athenz/$$IMAGE:latest && docker tag $(DOCKERIO_REGISTRY)/athenz/$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=athenz-plugins; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=crypki-softhsm; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
 	IMAGE=certsigner-envoy; docker pull --platform linux/amd64 $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest && docker tag $(DOCKER_REGISTRY_EXTERNAL)$$IMAGE:latest $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest && docker push $(DOCKER_REGISTRY_MIRROR)$$IMAGE:latest
@@ -253,7 +253,7 @@ build-java: patch install-rdl-tools
 		-Dcheckstyle.skip \
 		-pl core/zms \
 		-pl core/zts \
-		-pl core/msd \
+		$(if $(wildcard athenz/core/msd/pom.xml),-pl core/msd) \
 		-pl rdl/rdl-gen-athenz-java-model \
 		-pl rdl/rdl-gen-athenz-java-client \
 		-pl clients/java/zms \
@@ -285,8 +285,7 @@ build-go: assert-version install-rdl-tools
 	cp $$GOPATH/bin/rdl* athenz/clients/go/zms/bin/ && \
 	mkdir -p athenz/clients/go/zts/bin && \
 	cp $$GOPATH/bin/rdl* athenz/clients/go/zts/bin/ && \
-	mkdir -p athenz/clients/go/msd/bin && \
-	cp $$GOPATH/bin/rdl* athenz/clients/go/msd/bin/ && \
+	if [ -d athenz/clients/go/msd ]; then mkdir -p athenz/clients/go/msd/bin && cp $$GOPATH/bin/rdl* athenz/clients/go/msd/bin/; fi && \
 	mvn -B install \
 		-f athenz/pom.xml \
 		-Dproject.basedir=athenz \
@@ -295,13 +294,13 @@ build-go: assert-version install-rdl-tools
 		-Djacoco.skip=true \
 		-pl core/zms \
 		-pl core/zts \
-		-pl core/msd \
+		$(if $(wildcard athenz/core/msd/pom.xml),-pl core/msd) \
 		-pl rdl/rdl-gen-athenz-go-model \
 		-pl rdl/rdl-gen-athenz-go-client \
 		-pl rdl/rdl-gen-athenz-java-model \
 		-pl clients/go/zms \
 		-pl clients/go/zts \
-		-pl clients/go/msd \
+		$(if $(wildcard athenz/clients/go/msd/pom.xml),-pl clients/go/msd) \
 		-pl libs/go/zmscli \
 		-pl libs/go/athenzutils \
 		-pl libs/go/athenzconf \
@@ -428,8 +427,7 @@ install-rdl-tools: install-golang
 	cp $$GOPATH/bin/rdl* athenz/clients/go/zms/bin/ && \
 	mkdir -p athenz/clients/go/zts/bin && \
 	cp $$GOPATH/bin/rdl* athenz/clients/go/zts/bin/ && \
-	mkdir -p athenz/clients/go/msd/bin && \
-	cp $$GOPATH/bin/rdl* athenz/clients/go/msd/bin/ && \
+	if [ -d athenz/clients/go/msd ]; then mkdir -p athenz/clients/go/msd/bin && cp $$GOPATH/bin/rdl* athenz/clients/go/msd/bin/; fi && \
 	chmod a+x athenz/clients/go/*/bin/*
 
 clean-certificates:
@@ -534,6 +532,7 @@ load-docker-images-external:
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)certsigner-envoy:latest
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)crypki-softhsm:latest
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)docker-vegeta:latest
+	docker pull $(DOCKERIO_REGISTRY)/athenz/k8s-athenz-sia:latest
 	docker pull $(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest
 	docker pull $(DOCKERIO_REGISTRY)/dexidp/dex:latest
 	docker pull $(DOCKERIO_REGISTRY)/ealen/echo-server:latest

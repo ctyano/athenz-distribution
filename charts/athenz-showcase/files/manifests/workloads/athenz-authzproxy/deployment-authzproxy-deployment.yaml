@@ -43,7 +43,7 @@ spec:
         envFrom:
         - configMapRef:
             name: authzproxy-sia
-        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        image: docker.io/athenz/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia
         resources:
@@ -178,7 +178,7 @@ spec:
         command:
         - sh
         - "-c"
-        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        image: docker.io/athenz/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia-wait
         resources:
@@ -212,7 +212,7 @@ spec:
         envFrom:
         - configMapRef:
             name: authzproxy-sia
-        image: ghcr.io/ctyano/k8s-athenz-sia:latest
+        image: docker.io/athenz/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia-init
         resources:

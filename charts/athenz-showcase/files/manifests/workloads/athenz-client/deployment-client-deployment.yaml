@@ -20,6 +20,7 @@ spec:
       - args:
         - "--mode=refresh"
         - "--token-server-addr=:8180"
+        - "--authorization-server-addr=:8280"
         - "--metrics-server-addr=:9999"
         env:
         - name: NAMESPACE
@@ -45,12 +46,15 @@ spec:
         envFrom:
         - configMapRef:
             name: client-sia
-        image: docker.io/athenz/k8s-athenz-sia:latest
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia
         ports:
         - containerPort: 8180
           name: token-sidecar
+          protocol: TCP
+        - containerPort: 8280
+          name: authorization
           protocol: TCP
         - containerPort: 9999
           name: exporter
@@ -151,7 +155,7 @@ spec:
         command:
         - sh
         - "-c"
-        image: docker.io/athenz/k8s-athenz-sia:latest
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia-wait
         resources:
@@ -185,7 +189,7 @@ spec:
         envFrom:
         - configMapRef:
             name: client-sia
-        image: docker.io/athenz/k8s-athenz-sia:latest
+        image: ghcr.io/ctyano/k8s-athenz-sia:latest
         imagePullPolicy: IfNotPresent
         name: sia-init
         resources:

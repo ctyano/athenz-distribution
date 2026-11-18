@@ -4,7 +4,10 @@ data:
   ATHENZ_DOMAIN: ''
   ATHENZ_PREFIX: ''
   ATHENZ_SUFFIX: ''
-  BACKUP: ''
+  AUTHORIZATION_CACHE_INTERVAL: ''
+  AUTHORIZATION_POLICY_DOMAINS: ''
+  AUTHORIZATION_SERVER_ADDR: ''
+  BACKUP: '""'
   CA_CERT_FILE: "/var/run/athenz/ca.crt"
   CERT_FILE: "/var/run/athenz/tls.crt"
   CERT_SECRET: client-tls
@@ -20,7 +23,9 @@ data:
   NAMESPACE: ''
   POD_IP: ''
   POD_UID: ''
+  POLICY_REFRESH_INTERVAL: ''
   PROVIDER_SERVICE: athenz.identityprovider
+  PUBLICKEY_REFRESH_INTERVAL: ''
   REFRESH_INTERVAL: 30s
   ROLECERT_DIR: "/var/run/athenz"
   SA_TOKEN_FILE: "/var/run/secrets/kubernetes.io/bound-serviceaccount/token"
@@ -31,7 +36,6 @@ data:
   TOKEN_REFRESH_INTERVAL: 30s
   TOKEN_SERVER_ADDR: :8180
   TOKEN_TYPE: roletoken+accesstoken
-  USE_TOKEN_SERVER: 'true'
 kind: ConfigMap
 metadata:
   name: client-sia

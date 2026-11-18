@@ -286,10 +286,15 @@ setup-athenz-identityprovider: check-register-athenz-identityprovider
 	| tee -a kustomize/secret.yaml
 
 kustomize-edit-athenz-identityprovider-image:
+	if [ "$(DOCKER_REGISTRY_EXTERNAL)" != "ghcr.io/ctyano/" ]; then \
+	( \
+	cd kustomize \
+	&& kustomize edit set image ghcr.io/ctyano/k8s-athenz-sia:latest=$(DOCKER_REGISTRY_EXTERNAL)k8s-athenz-sia:latest \
+	) \
+	fi
 	if [ "$(DOCKERIO_REGISTRY)" != "docker.io" ]; then \
 	( \
 	cd kustomize \
-	&& kustomize edit set image docker.io/athenz/k8s-athenz-sia:latest=$(DOCKERIO_REGISTRY)/athenz/k8s-athenz-sia:latest \
 	&& kustomize edit set image docker.io/openpolicyagent/opa:0.66.0-static=$(DOCKERIO_REGISTRY)/openpolicyagent/opa:0.66.0-static \
 	&& kustomize edit set image docker.io/openpolicyagent/kube-mgmt:latest=$(DOCKERIO_REGISTRY)/openpolicyagent/kube-mgmt:latest \
 	&& kustomize edit set image docker.io/portainer/kubectl-shell:latest=$(DOCKERIO_REGISTRY)/portainer/kubectl-shell:latest \

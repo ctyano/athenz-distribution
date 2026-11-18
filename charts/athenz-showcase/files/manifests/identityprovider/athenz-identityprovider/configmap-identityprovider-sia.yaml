@@ -4,6 +4,9 @@ data:
   ATHENZ_DOMAIN: ''
   ATHENZ_PREFIX: ''
   ATHENZ_SUFFIX: ''
+  AUTHORIZATION_CACHE_INTERVAL: 30s
+  AUTHORIZATION_POLICY_DOMAINS: ''
+  AUTHORIZATION_SERVER_ADDR: ''
   BACKUP: write
   CA_CERT_FILE: "/var/run/athenz/ca.crt"
   CERT_FILE: "/var/run/athenz/tls.crt"
@@ -20,7 +23,9 @@ data:
   NAMESPACE: ''
   POD_IP: ''
   POD_UID: athenz.identityprovider
+  POLICY_REFRESH_INTERVAL: 30s
   PROVIDER_SERVICE: sys.auth.zts
+  PUBLICKEY_REFRESH_INTERVAL: 30s
   REFRESH_INTERVAL: 30s
   ROLECERT_DIR: ''
   SA_TOKEN_FILE: "/var/run/athenz/attestation-data/identitydocument.jwt"
